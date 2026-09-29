@@ -1,0 +1,24 @@
+MyTellPBX theme - third-party components
+=========================================
+
+1. Tabler (CSS design system)
+   Version: 1.6.1 (npm @tabler/core@1.6.1)
+   Source:  https://github.com/tabler/tabler
+   License: MIT - https://github.com/tabler/tabler/blob/master/LICENSE
+   Files:   css/tabler.min.css
+
+2. Tabler Icons (webfont)
+   Version: 3.48.0 (npm @tabler/icons-webfont@3.48.0)
+   Source:  https://github.com/tabler/tabler-icons
+   License: MIT - https://github.com/tabler/tabler-icons/blob/main/LICENSE
+   Files:   icons/tabler-icons.min.css, icons/fonts/tabler-icons.woff2,
+            icons/fonts/tabler-icons.woff
+
+3. Inter font (variable)
+   Version: @fontsource-variable/inter
+   Source:  https://github.com/rsms/inter
+   License: SIL Open Font License 1.1 - https://github.com/rsms/inter/blob/master/LICENSE.txt
+   Files:   fonts/inter/inter-latin-wght-normal.woff2
+
+All other files are part of the MyTellPBX theme (GPLv2, same as Issabel,
+from which the tenant theme structure was adapted).

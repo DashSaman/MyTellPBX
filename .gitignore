@@ -1,0 +1,5 @@
+# Local working files - never publish
+tools/
+study/
+*.tgz
+*.log

@@ -1,0 +1,449 @@
+/* ==========================================================================
+   MyTellPBX theme - compatibility layer
+   Bridges legacy Issabel/Bootstrap3 markup & JS onto the Tabler (BS5) design.
+   Loaded LAST so it can reconcile conflicts without touching module code.
+   ========================================================================== */
+
+/* --------------------------------------------------------------------------
+   1) Bootstrap 3 JavaScript interplay patches
+   (BS3 JS toggles .in / .open; BS5 CSS expects .show)
+   -------------------------------------------------------------------------- */
+.fade.in { opacity: 1; }
+.collapse.in { display: block; }
+.modal.fade.in { opacity: 1; }
+.modal.in .modal-dialog { transform: none; }
+.open > .dropdown-menu { display: block; }
+.tooltip.in { opacity: 1; }
+.popover.in { display: block; opacity: 1; }
+.tab-content > .tab-pane { display: none; }
+.tab-content > .active { display: block; }
+.nav-tabs > li.active > a { border-color: var(--tblr-border-color) var(--tblr-border-color) transparent; }
+.nav > li > a:hover, .nav > li > a:focus { text-decoration: none; }
+
+/* --------------------------------------------------------------------------
+   2) Bootstrap 3 utility classes removed in BS5
+   -------------------------------------------------------------------------- */
+.pull-right { float: right !important; }
+.pull-left { float: left !important; }
+.hidden { display: none !important; }
+.show { display: block !important; }
+.text-left { text-align: left; }
+.text-right { text-align: right; }
+.center-block { display: block; margin-left: auto; margin-right: auto; }
+.visible-xs, .visible-sm { display: none !important; }
+
+.caret {
+    display: inline-block;
+    width: 0; height: 0;
+    margin-left: .25em;
+    vertical-align: middle;
+    border-top: 4px dashed;
+    border-right: 4px solid transparent;
+    border-left: 4px solid transparent;
+}
+
+/* --------------------------------------------------------------------------
+   3) Legacy component skinning -> Tabler look
+   -------------------------------------------------------------------------- */
+.form-group { margin-bottom: 1rem; }
+.control-label { font-weight: 600; margin-bottom: .25rem; display: inline-block; }
+.help-block { color: var(--tblr-secondary); font-size: .85em; margin-top: .25rem; }
+.form-control-static { padding-top: .25rem; }
+
+.has-error .form-control { border-color: var(--tblr-danger) !important; }
+.has-error .help-block, .has-error .control-label { color: var(--tblr-danger); }
+.has-success .form-control { border-color: var(--tblr-success) !important; }
+.has-warning .form-control { border-color: var(--tblr-warning) !important; }
+
+/* Bootstrap 3 buttons that no longer exist in Tabler */
+.btn-default {
+    color: var(--tblr-body-color);
+    background: var(--tblr-bg-surface);
+    border: 1px solid var(--tblr-border-color);
+}
+.btn-default:hover, .btn-default:focus {
+    background: var(--tblr-secondary-bg, #f1f3f5);
+    color: var(--tblr-body-color);
+}
+.btn-inverse {
+    color: #fff;
+    background: #232e3c;
+    border: 1px solid #232e3c;
+}
+.btn-xs {
+    --tblr-btn-font-size: .72rem;
+    height: auto;
+    padding: .1rem .5rem;
+    font-size: .72rem;
+}
+
+.input-group-addon {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 2.25rem;
+    padding: .25rem .5rem;
+    font-size: .875rem;
+    color: var(--tblr-secondary);
+    background: var(--tblr-secondary-bg, #f1f3f5);
+    border: 1px solid var(--tblr-border-color);
+    border-radius: var(--tblr-border-radius);
+}
+
+/* Panels / wells -> cards */
+.panel {
+    border: 1px solid var(--tblr-border-color);
+    border-radius: var(--tblr-border-radius);
+    background: var(--tblr-bg-surface);
+    margin-bottom: 1rem;
+    box-shadow: none;
+}
+.panel-heading {
+    padding: .65rem 1rem;
+    border-bottom: 1px solid var(--tblr-border-color);
+    font-weight: 600;
+    background: transparent;
+}
+.panel-body { padding: 1rem; }
+.panel-footer {
+    padding: .65rem 1rem;
+    border-top: 1px solid var(--tblr-border-color);
+    background: transparent;
+}
+.panel-default > .panel-heading { background: transparent; }
+.panel-title { font-size: .9rem; margin: 0; }
+.panel-title > a { text-decoration: none; }
+
+.well {
+    background: var(--tblr-secondary-bg, #f6f8fb);
+    border: 1px solid var(--tblr-border-color);
+    border-radius: var(--tblr-border-radius);
+    padding: 1rem;
+    margin-bottom: 1rem;
+}
+
+/* Bootstrap 3 .label -> badge */
+.label {
+    display: inline-block;
+    padding: .25em .45em;
+    font-size: .72em;
+    font-weight: 600;
+    line-height: 1;
+    border-radius: 4px;
+    color: #fff;
+    background: var(--tblr-secondary);
+    vertical-align: baseline;
+    white-space: nowrap;
+}
+.label-primary { background: var(--tblr-primary); }
+.label-success { background: var(--tblr-success); }
+.label-danger { background: var(--tblr-danger); }
+.label-warning { background: var(--tblr-warning); }
+.label-info { background: var(--tblr-info); }
+.label-default { background: var(--tblr-secondary); }
+
+/* Legacy close icon */
+.close {
+    float: right;
+    font-size: 1.5rem;
+    font-weight: 700;
+    line-height: 1;
+    color: var(--tblr-body-color);
+    text-shadow: none;
+    opacity: .5;
+}
+.close:hover, .close:focus { opacity: .85; text-decoration: none; }
+
+/* Bootstrap 3 nav markup (li > a) */
+.nav-tabs > li > a {
+    display: block;
+    padding: .5rem .85rem;
+    margin-right: .25rem;
+    color: var(--tblr-secondary);
+    border: 1px solid transparent;
+    border-radius: var(--tblr-border-radius) var(--tblr-border-radius) 0 0;
+    text-decoration: none;
+}
+.nav-tabs > li > a:hover { background: var(--tblr-secondary-bg, #f1f3f5); }
+.nav-tabs > li.active > a,
+.nav-tabs > li.active > a:hover {
+    color: var(--tblr-primary);
+    background: var(--tblr-bg-surface);
+    border-bottom-color: transparent;
+}
+.nav-pills > li > a {
+    display: block;
+    padding: .4rem .8rem;
+    border-radius: var(--tblr-border-radius);
+    color: var(--tblr-secondary);
+    text-decoration: none;
+}
+.nav-pills > li.active > a,
+.nav-pills > li.active > a:hover {
+    color: #fff;
+    background: var(--tblr-primary);
+}
+
+/* Bootstrap 3 pagination markup */
+.pagination > li > a,
+.pagination > li > span {
+    position: relative;
+    display: inline-block;
+    padding: .3rem .6rem;
+    margin-left: -1px;
+    color: var(--tblr-primary);
+    background: var(--tblr-bg-surface);
+    border: 1px solid var(--tblr-border-color);
+    text-decoration: none;
+}
+.pagination > li:first-child > a { border-top-left-radius: 4px; border-bottom-left-radius: 4px; }
+.pagination > li:last-child > a { border-top-right-radius: 4px; border-bottom-right-radius: 4px; }
+.pagination > .active > a,
+.pagination > .active > a:hover {
+    z-index: 2;
+    color: #fff;
+    background: var(--tblr-primary);
+    border-color: var(--tblr-primary);
+}
+.pagination > .disabled > a,
+.pagination > .disabled > span {
+    color: var(--tblr-secondary);
+    pointer-events: none;
+}
+
+/* Media object & thumbnail */
+.media { display: flex; align-items: flex-start; }
+.media-body { flex: 1 1 auto; }
+.media-object { max-width: 100%; }
+.thumbnail {
+    display: inline-block;
+    padding: .25rem;
+    border: 1px solid var(--tblr-border-color);
+    border-radius: var(--tblr-border-radius);
+    background: var(--tblr-bg-surface);
+}
+
+/* Dropdown submenu (BS3 style) */
+.dropdown-submenu { position: relative; }
+.dropdown-submenu > .dropdown-menu {
+    top: 0;
+    left: 100%;
+    margin-top: -6px;
+}
+.dropdown-submenu:hover > .dropdown-menu { display: block; }
+
+/* Legacy error message box (emitted by some modules) */
+.div_msg_errors {
+    border: 1px solid var(--tblr-danger);
+    background: var(--tblr-danger-liteness, #ffe7e9);
+    color: var(--tblr-danger);
+    border-radius: var(--tblr-border-radius);
+    padding: .75rem 1rem;
+    margin: .75rem 1.25rem;
+}
+
+/* --------------------------------------------------------------------------
+   4) Bare legacy form controls -> Tabler form look
+   -------------------------------------------------------------------------- */
+.neo-module-content input[type="text"],
+.neo-module-content input[type="password"],
+.neo-module-content input[type="number"],
+.neo-module-content input[type="email"],
+.neo-module-content input[type="search"],
+.neo-module-content input[type="tel"],
+.neo-module-content input[type="url"],
+.neo-module-content input[type="datetime-local"],
+.neo-module-content select,
+.neo-module-content textarea {
+    display: block;
+    width: auto;
+    min-width: 8rem;
+    max-width: 100%;
+    padding: .36rem .5rem;
+    font-size: .875rem;
+    font-family: inherit;
+    color: var(--tblr-body-color);
+    background: var(--tblr-bg-forms, var(--tblr-bg-surface));
+    border: 1px solid var(--tblr-border-color);
+    border-radius: 4px;
+    box-shadow: none;
+    outline: none;
+    transition: border-color .15s ease-in-out, box-shadow .15s ease-in-out;
+}
+
+.neo-module-content input[type="text"]:focus,
+.neo-module-content input[type="password"]:focus,
+.neo-module-content input[type="number"]:focus,
+.neo-module-content input[type="email"]:focus,
+.neo-module-content input[type="search"]:focus,
+.neo-module-content select:focus,
+.neo-module-content textarea:focus {
+    border-color: var(--tblr-primary);
+    box-shadow: 0 0 0 .15rem rgba(32, 107, 196, .12);
+}
+
+.neo-module-content input[disabled],
+.neo-module-content select[disabled],
+.neo-module-content textarea[disabled] {
+    background: var(--tblr-secondary-bg, #f1f3f5);
+    opacity: .7;
+}
+
+/* date pickers / jQuery-UI widgets from framework libs */
+.ui-widget { font-family: inherit; }
+.ui-state-active, .ui-widget-content .ui-state-active {
+    background: var(--tblr-primary);
+    border-color: var(--tblr-primary);
+}
+
+/* --------------------------------------------------------------------------
+   5) Framework grid toolbar & data table (_list.tpl)
+   -------------------------------------------------------------------------- */
+.issabel-standard-formgrid { margin-bottom: .5rem; }
+
+.neo-table-header-row {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: .4rem;
+    margin-bottom: .75rem;
+}
+
+.neo-table-header-row-filter { display: inline-flex; align-items: center; gap: .35rem; }
+
+.neo-table-toolbar-button {
+    display: inline-flex;
+    align-items: center;
+    gap: .35rem;
+    padding: .32rem .7rem;
+    font-size: .8rem;
+    color: #fff;
+    background: var(--tblr-primary);
+    border: 1px solid var(--tblr-primary);
+    border-radius: 4px;
+    cursor: pointer;
+}
+.neo-table-toolbar-button:hover { filter: brightness(1.06); }
+
+.neo-table-action {
+    display: inline-flex;
+    align-items: center;
+    padding: .32rem .7rem;
+    font-size: .8rem;
+    color: var(--tblr-primary);
+    background: var(--tblr-bg-surface);
+    border: 1px solid var(--tblr-border-color);
+    border-radius: 4px;
+    cursor: pointer;
+}
+.neo-table-action:hover { background: var(--tblr-secondary-bg, #f1f3f5); }
+
+.neo-table-button-filter-left,
+.neo-table-button-filter-right {
+    display: inline-flex;
+    align-items: center;
+    gap: .35rem;
+    padding: .32rem .7rem;
+    font-size: .8rem;
+    color: var(--tblr-body-color);
+    background: var(--tblr-bg-surface);
+    border: 1px solid var(--tblr-border-color);
+    border-radius: 4px;
+    cursor: pointer;
+}
+.neo-table-button-filter-left { border-top-right-radius: 0; border-bottom-right-radius: 0; margin-right: -1px; }
+.neo-table-button-filter-right { border-top-left-radius: 0; border-bottom-left-radius: 0; }
+.neo-table-button-filter-left:hover, .neo-table-button-filter-right:hover { background: var(--tblr-secondary-bg, #f1f3f5); }
+
+.neo-table-header-row-navigation {
+    margin-left: auto;
+    display: inline-flex;
+    align-items: center;
+    gap: .35rem;
+    font-size: .8rem;
+}
+.neo-navigation-arrow-active {
+    color: var(--tblr-primary);
+    text-decoration: none;
+    cursor: pointer;
+}
+
+/* export dropdown menu (kept ids/classes from framework JS) */
+#subMenuExport.subMenu {
+    position: absolute;
+    z-index: 1000;
+    background: var(--tblr-bg-surface);
+    border: 1px solid var(--tblr-border-color);
+    border-radius: var(--tblr-border-radius);
+    box-shadow: 0 8px 24px rgba(9, 19, 33, .14);
+    min-width: 12rem;
+    padding: .35rem 0;
+}
+#subMenuExport .items a {
+    display: block;
+    padding: .35rem .9rem;
+    color: var(--tblr-body-color);
+    text-decoration: none;
+    font-size: .85rem;
+}
+#subMenuExport .items a:hover { background: var(--tblr-secondary-bg, #f1f3f5); }
+
+/* data table */
+table.issabel-standard-table, table.list, table.table_data {
+    width: 100%;
+    border-collapse: collapse;
+    background: var(--tblr-bg-surface);
+    color: var(--tblr-body-color);
+    margin-bottom: 1rem;
+}
+table.issabel-standard-table th,
+table.list th,
+table.table_data th,
+table.issabel-standard-table thead td {
+    padding: .5rem .6rem;
+    text-align: left;
+    font-weight: 600;
+    font-size: .78rem;
+    text-transform: uppercase;
+    letter-spacing: .02em;
+    color: var(--tblr-secondary);
+    background: var(--tblr-secondary-bg, #f6f8fb);
+    border-bottom: 1px solid var(--tblr-border-color);
+}
+table.issabel-standard-table td,
+table.list td,
+table.table_data td {
+    padding: .5rem .6rem;
+    font-size: .86rem;
+    border-bottom: 1px solid var(--tblr-border-color);
+    vertical-align: middle;
+}
+table.table_data_last_row td { border-bottom: 0; }
+table.issabel-standard-table tr:hover > td,
+table.list tr:hover > td,
+table.table_data tr:hover > td {
+    background: var(--tblr-active-bg, rgba(32, 107, 196, .04));
+}
+
+/* old PaloSanto form buttons */
+.button, input.button, a.button {
+    display: inline-flex;
+    align-items: center;
+    gap: .35rem;
+    padding: .32rem .7rem;
+    font-size: .82rem;
+    color: #fff;
+    background: var(--tblr-primary);
+    border: 1px solid var(--tblr-primary);
+    border-radius: 4px;
+    cursor: pointer;
+    text-decoration: none;
+}
+.button:hover { filter: brightness(1.06); text-decoration: none; color: #fff; }
+
+/* filter chips row */
+.neo-table-filter-controls { margin: .5rem 0; font-size: .82rem; }
+.neo-filter-control { display: inline-flex; align-items: center; gap: .25rem; margin-right: .75rem; color: var(--tblr-secondary); }
+
+/* old grid filter row */
+#neo-table-header-filterrow { margin-bottom: .75rem; }

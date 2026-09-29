@@ -1,0 +1,260 @@
+/* ==========================================================================
+   MyTellPBX theme - application shell tuning (Tabler vertical layout)
+   Load order: fonts.css -> tabler.min.css -> shell.css -> (module css) -> compat.css
+   ========================================================================== */
+
+/* --- Sidebar (navbar-vertical) --- */
+#navbar-vertical {
+    background: var(--tblr-bg-surface);
+    border-right: 1px solid var(--tblr-border-color);
+}
+
+.navbar-vertical .navbar-brand {
+    padding: .75rem .75rem;
+    font-weight: 700;
+}
+
+.navbar-vertical .dropdown-menu {
+    position: static;
+    float: none;
+    width: 100%;
+    min-width: 0;
+    border: 0;
+    background: transparent;
+    box-shadow: none;
+    border-radius: 0;
+    padding: 0 0 .25rem 0;
+    margin: 0;
+    display: none;
+}
+
+.navbar-vertical .dropdown-menu.show {
+    display: block;
+}
+
+.navbar-vertical .dropdown-item {
+    display: block;
+    width: 100%;
+    padding: .35rem 1rem .35rem 2.75rem;
+    color: var(--tblr-secondary);
+    text-decoration: none;
+    border-radius: var(--tblr-border-radius);
+    font-size: .82rem;
+    white-space: normal;
+}
+
+.navbar-vertical .dropdown-item.sub-item {
+    padding-left: 3.5rem;
+    font-size: .8rem;
+}
+
+.navbar-vertical .dropdown-item:hover,
+.navbar-vertical .dropdown-item:focus {
+    color: var(--tblr-body-color);
+    background: var(--tblr-active-bg, rgba(32, 107, 196, .06));
+}
+
+.navbar-vertical .dropdown-item.active,
+.navbar-vertical .dropdown-item:active {
+    color: #fff;
+    background: var(--tblr-primary);
+}
+
+.navbar-vertical .nav-link {
+    cursor: pointer;
+    user-select: none;
+}
+
+.navbar-vertical .nav-link .nav-link-icon {
+    width: 1.75rem;
+}
+
+/* module search in sidebar */
+#search_module_issabel,
+#search_module_issabel_mobile {
+    font-size: .8rem;
+}
+
+/* hidden-by-filter menu items */
+.nav-item.menu-filter-hidden,
+.dropdown-item.menu-filter-hidden {
+    display: none !important;
+}
+
+/* --- Page header / breadcrumb --- */
+.mytell-breadcrumb .breadcrumb-item a {
+    text-decoration: none;
+}
+
+.mytell-header-actions-inline {
+    margin-left: .75rem;
+}
+
+.mytell-header-actions-inline a {
+    color: var(--tblr-secondary);
+    text-decoration: none;
+}
+
+.mytell-header-actions-inline a:hover {
+    color: var(--tblr-primary);
+}
+
+/* --- Content area --- */
+#neo-contentbox {
+    padding: 0;
+}
+
+.neo-module-content {
+    padding: 1rem 1.25rem 2rem 1.25rem;
+    min-height: 60vh;
+}
+
+/* --- Footer --- */
+.mytell-footer {
+    padding: 1rem 0;
+    color: var(--tblr-secondary);
+    font-size: .82rem;
+}
+
+/* --- Legacy Issabel Panels right sidebar (kept from tenant, Tabler-skinned) --- */
+#chat {
+    position: fixed;
+    top: 0;
+    right: -320px;
+    width: 300px;
+    height: 100%;
+    background: var(--tblr-bg-surface);
+    border-left: 1px solid var(--tblr-border-color);
+    box-shadow: -4px 0 12px rgba(9, 19, 33, .08);
+    transition: right .25s ease;
+    z-index: 1030;
+    display: none;
+}
+
+.page-container.chat-visible #chat {
+    right: 0;
+    display: block;
+}
+
+.page-container.chat-visible {
+    margin-right: 300px;
+}
+
+.chat-inner {
+    height: 100%;
+    overflow-y: auto;
+}
+
+.chat-header {
+    font-size: 1rem;
+    font-weight: 600;
+    padding: .75rem 1rem;
+    border-bottom: 1px solid var(--tblr-border-color);
+    margin: 0;
+}
+
+.chat-close {
+    float: right;
+    color: var(--tblr-secondary);
+    text-decoration: none;
+}
+
+#issabel-panels .panel {
+    margin: .5rem;
+    border: 1px solid var(--tblr-border-color);
+    border-radius: var(--tblr-border-radius);
+    background: var(--tblr-bg-surface);
+}
+
+#issabel-panels .panel-heading {
+    padding: .5rem .75rem;
+}
+
+#issabel-panels .panel-title a {
+    text-decoration: none;
+    color: var(--tblr-body-color);
+    font-size: .875rem;
+}
+
+#issabel-panels .panel-body {
+    padding: .75rem;
+    border-top: 1px solid var(--tblr-border-color);
+}
+
+/* --- Legacy sticky note (positioned widgets, kept functional) --- */
+#neo-sticky-note {
+    z-index: 1050;
+}
+
+#neo-sticky-note #neo-submit-button {
+    font-size: .75rem;
+    padding: .15rem .6rem;
+}
+
+#neo-sticky-note #auto-popup {
+    font-size: .7rem;
+    color: #333;
+}
+
+/* --- Legacy neo modal popup box --- */
+.neo-modal-issabel-popup-box {
+    display: none;
+    position: fixed;
+    z-index: 1060;
+    top: 20%;
+    left: 50%;
+    transform: translateX(-50%);
+    background: var(--tblr-bg-surface);
+    border: 1px solid var(--tblr-border-color);
+    border-radius: var(--tblr-border-radius);
+    box-shadow: 0 8px 24px rgba(9, 19, 33, .2);
+    min-width: 380px;
+    max-width: 640px;
+}
+
+.neo-modal-issabel-popup-title {
+    font-weight: 600;
+    padding: .75rem 1rem;
+    border-bottom: 1px solid var(--tblr-border-color);
+}
+
+.neo-modal-issabel-popup-close {
+    position: absolute;
+    top: .5rem;
+    right: .75rem;
+    cursor: pointer;
+    width: 1.25rem;
+    height: 1.25rem;
+    background: url("data:image/svg+xml;charset=utf8,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%236b7a90' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M18 6l-12 12M6 6l12 12'/%3E%3C/svg%3E") no-repeat center / contain;
+}
+
+.neo-modal-issabel-popup-content {
+    padding: 1rem;
+    max-height: 60vh;
+    overflow-y: auto;
+}
+
+.neo-modal-issabel-popup-blockmask {
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: rgba(9, 19, 33, .3);
+    z-index: 1055;
+}
+
+/* --- Login page --- */
+.mytell-login-body {
+    background: linear-gradient(180deg, #ffffff 0%, #f6f8fb 100%);
+    min-height: 100vh;
+}
+
+/* --- Dark mode (shell only; legacy content area stays light) --- */
+html[data-bs-theme="dark"] #neo-contentbox,
+html[data-bs-theme="dark"] .page-header {
+    background: var(--tblr-bg-surface);
+    color: #182433;
+}
+
+html[data-bs-theme="dark"] .mytell-footer {
+    background: var(--tblr-bg-surface);
+}
