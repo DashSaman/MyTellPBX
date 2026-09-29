@@ -1,0 +1,7 @@
+# Normalize line endings: shell/smarty/php/css/js always LF, keep assets binary
+* text=auto eol=lf
+*.png binary
+*.woff binary
+*.woff2 binary
+*.tgz binary
+*.ico binary
