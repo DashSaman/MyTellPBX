@@ -12,7 +12,7 @@
 # ==========================================================================
 
 MYTELL_GITHUB_REPO="DashSaman/MyTellPBX"
-MYTELL_THEME_VERSION="v1.0.0"
+MYTELL_THEME_VERSION="v1.1.0"
 
 BLA_metro=( 0.2 '[    ]' '[=   ]' '[==  ]' '[=== ]' '[ ===]' '[  ==]' '[   =]' )
 
@@ -428,9 +428,10 @@ function install_mytellpbx_theme
 {
   echo "start install_mytellpbx_theme" >>/tmp/netinstall.log
   local DL=""
+  local TGZ="mytellpbx-theme-${MYTELL_THEME_VERSION#v}.tgz"
   local URLS=(
-    "https://github.com/${MYTELL_GITHUB_REPO}/releases/download/${MYTELL_THEME_VERSION}/mytellpbx-theme-1.0.0.tgz"
-    "https://github.com/${MYTELL_GITHUB_REPO}/releases/latest/download/mytellpbx-theme-1.0.0.tgz"
+    "https://github.com/${MYTELL_GITHUB_REPO}/releases/download/${MYTELL_THEME_VERSION}/${TGZ}"
+    "https://github.com/${MYTELL_GITHUB_REPO}/releases/latest/download/${TGZ}"
   )
   for u in "${URLS[@]}"; do
     if curl -fsl --max-time 180 "$u" -o /root/mytellpbx-theme.tgz; then
@@ -457,6 +458,23 @@ function install_mytellpbx_theme
   chown -R asterisk:asterisk /var/www/html/themes/mytellpbx
   find /var/www/html/themes/mytellpbx -type d -exec chmod 755 {} +
   find /var/www/html/themes/mytellpbx -type f -exec chmod 644 {} +
+
+  # Optional static extras (e.g. DataTables language files missing from some
+  # upstream report modules). Added only when absent; never overwrites.
+  if [ -d /var/www/html/themes/mytellpbx/extras ]; then
+    (
+      cd /var/www/html/themes/mytellpbx/extras
+      find . -type f | while read -r rel; do
+        rel="${rel#./}"
+        target="/var/www/html/modules/$rel"
+        if [ ! -f "$target" ] && [ -d "$(dirname "$target")" ]; then
+          cp "$rel" "$target"
+          chown asterisk:asterisk "$target"
+          chmod 644 "$target"
+        fi
+      done
+    )
+  fi
 
   php <<'PHP'
 <?php

@@ -9,6 +9,7 @@
     <link rel="stylesheet" href="{$WEBPATH}themes/{$THEMENAME}/css/fonts.css" />
     <link rel="stylesheet" href="{$WEBPATH}themes/{$THEMENAME}/css/tabler.min.css" />
     <link rel="stylesheet" href="{$WEBPATH}themes/{$THEMENAME}/icons/tabler-icons.min.css" />
+    <link rel="stylesheet" href="{$WEBPATH}themes/{$THEMENAME}/css/glyphicons.min.css" />
     <link rel="stylesheet" href="{$WEBPATH}themes/{$THEMENAME}/css/shell.css" />
     <link rel="stylesheet" href="{$WEBPATH}libs/js/sticky_note/sticky_note.css" />
     <link rel="stylesheet" href="{$WEBPATH}themes/{$THEMENAME}/css/compat.css" />

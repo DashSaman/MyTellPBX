@@ -15,14 +15,22 @@ components and branding only**.
 - All Issabel menus rendered dynamically from the real menu DB with ACL
   filtering intact (administrator vs restricted users)
 - MyTellPBX branding on login page, shell title, footer, user menu and the
-  About dialog
-- Tabler icons webfont (no emoji), Inter variable font, all assets local —
-  no CDN dependency
+  About dialog (static logo instead of the legacy animation)
+- Redesigned dashboard: Tabler cards, blue gauge/line charts, legacy news
+  widgets removed
+- Report pages (CDR, Channels Usage, Billing suite, Asterisk Logs, Graphic
+  Report, Summary, Missed Calls, Recordings) restyled: blue action buttons,
+  fixed search fields, date pickers, export menus and pagination
+- Tabler icons webfont (no emoji), Inter variable font, Bootstrap 3 glyphicon
+  font bundled for legacy DataTables buttons — all assets local, no CDN
 - Dark/light shell toggle (content area stays light for maximum legacy
   module compatibility)
 - Compatibility layer that restyles legacy Bootstrap 3 module markup and
   keeps Bootstrap 3 JS (modals, tooltips, dropdowns, tabs) fully working
   alongside Tabler CSS
+- The embedded issabelPBX (FreePBX fork) UI is rebranded through the
+  official `BRAND_*` settings plus a custom stylesheet: dark navbar,
+  blue accents, MyTellPBX logo, wordmark and footer
 - Mobile-friendly collapsed navigation, desktop-first information density
 
 ## Install on an existing Issabel 5 server
@@ -63,8 +71,11 @@ theme/                   the Issabel theme (installable as-is)
   _common/               Smarty templates (index, menu, login, popup, ...)
   css/                   Tabler 1.6.1 + fonts + shell + compatibility layer
   icons/                 Tabler Icons webfont 3.48.0
-  fonts/inter/           Inter variable font
+  fonts/                 Inter variable font + Bootstrap 3 glyphicons
+  images/                MyTellPBX logo, wordmark, favicon
   js/shell.js            vanilla-JS shell interactivity (no new JS deps)
+  extras/                optional static module fixes (missing DataTables
+                         language files), installed without overwriting
   themesetup.php         menu icons + labels
   install-theme.sh       installer/activator
 mytellpbx-netinstall.sh  Issabel 5 base + theme net installer
@@ -73,8 +84,8 @@ docs/                    screenshots and technical notes
 
 ## Known limitations
 
-- The embedded issabelPBX (FreePBX fork) configuration UI keeps its own
-  purple branding because it is a separate application loaded in a frame.
+- A few deep issabelPBX (FreePBX fork) pages may still show legacy purple
+  accents; the main navbar, headers, buttons and footer are rebranded.
 - The two-factor authentication page is hardcoded by the framework to load
   the `tenant` theme's CSS, so it keeps the original look.
 - Dark mode applies to the navigation shell; legacy module content stays on

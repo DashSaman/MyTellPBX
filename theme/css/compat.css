@@ -447,3 +447,280 @@ table.table_data tr:hover > td {
 
 /* old grid filter row */
 #neo-table-header-filterrow { margin-bottom: .75rem; }
+
+/* --------------------------------------------------------------------------
+   6) Plain legacy submit buttons (old report/config pages)
+   -------------------------------------------------------------------------- */
+.neo-module-content input[type="submit"],
+.neo-module-content input[type="button"],
+.neo-module-content button:not([class]) {
+    display: inline-flex;
+    align-items: center;
+    gap: .3rem;
+    padding: .32rem .75rem;
+    font-size: .82rem;
+    cursor: pointer;
+    color: #fff;
+    background: var(--tblr-primary);
+    border: 1px solid var(--tblr-primary);
+    border-radius: 4px;
+}
+.neo-module-content input[type="submit"]:hover,
+.neo-module-content input[type="button"]:hover,
+.neo-module-content button:not([class]):hover { filter: brightness(1.06); }
+
+/* --------------------------------------------------------------------------
+   7) DataTables (legacy 1.9-era classes used by Issabel grids)
+   -------------------------------------------------------------------------- */
+.dataTables_wrapper { font-size: .84rem; color: var(--tblr-body-color); }
+.dataTables_length,
+.dataTables_filter,
+.dataTables_info { color: var(--tblr-secondary); margin: .4rem 0; }
+.dataTables_filter { float: right; }
+.dataTables_filter input,
+.dataTables_length select {
+    padding: .3rem .45rem;
+    font-size: .84rem;
+    color: var(--tblr-body-color);
+    background: var(--tblr-bg-surface);
+    border: 1px solid var(--tblr-border-color);
+    border-radius: 4px;
+    outline: none;
+}
+.dataTables_filter input:focus,
+.dataTables_length select:focus { border-color: var(--tblr-primary); }
+.dataTables_length { float: left; }
+.dataTables_info { clear: both; float: left; }
+
+table.dataTable thead th {
+    font-weight: 600;
+    font-size: .78rem;
+    text-transform: uppercase;
+    letter-spacing: .02em;
+    color: var(--tblr-secondary);
+    background: var(--tblr-secondary-bg, #f6f8fb);
+    border-bottom: 1px solid var(--tblr-border-color);
+    padding: .5rem .6rem;
+}
+table.dataTable tbody td { padding: .5rem .6rem; border-bottom: 1px solid var(--tblr-border-color); }
+table.dataTable tbody tr:hover > td { background: rgba(32, 107, 196, .04); }
+
+.sorting, .sorting_asc, .sorting_desc, .sorting_asc_disabled, .sorting_desc_disabled { cursor: pointer; }
+table.dataTable thead .sorting { background-image: none; }
+table.dataTable thead .sorting:after { content: "↕"; opacity: .35; margin-left: .35rem; font-size: .72rem; }
+table.dataTable thead .sorting_asc:after { content: "↑"; color: var(--tblr-primary); opacity: 1; margin-left: .35rem; font-size: .72rem; }
+table.dataTable thead .sorting_desc:after { content: "↓"; color: var(--tblr-primary); opacity: 1; margin-left: .35rem; font-size: .72rem; }
+
+.dataTables_paginate { float: right; margin: .4rem 0; }
+.dataTables_paginate ul.pagination { margin: 0; flex-wrap: wrap; }
+.dataTables_paginate li.paginate_button > a,
+.dataTables_paginate li.paginate_button > span {
+    display: inline-block;
+    padding: .28rem .6rem;
+    margin-left: .2rem;
+    font-size: .8rem;
+    color: var(--tblr-primary);
+    background: var(--tblr-bg-surface);
+    border: 1px solid var(--tblr-border-color);
+    border-radius: 4px;
+    text-decoration: none;
+    cursor: pointer;
+    text-align: center;
+    min-width: 2rem;
+}
+.dataTables_paginate li.paginate_button > a:hover,
+.dataTables_paginate li.paginate_button > a:focus {
+    background: var(--tblr-secondary-bg, #f1f3f5);
+    text-decoration: none;
+}
+.dataTables_paginate li.paginate_button.active > a,
+.dataTables_paginate li.paginate_button.active > span {
+    color: #fff !important;
+    background: var(--tblr-primary);
+    border-color: var(--tblr-primary);
+}
+.dataTables_paginate li.paginate_button.disabled > a,
+.dataTables_paginate li.paginate_button.disabled > span {
+    color: var(--tblr-secondary);
+    opacity: .5;
+    cursor: default;
+    background: var(--tblr-bg-surface);
+    border-color: var(--tblr-border-color);
+}
+.dataTables_paginate a,
+.paging_full_numbers .paginate_button,
+.paging_full_numbers span a {
+    display: inline-block;
+    padding: .28rem .6rem;
+    margin-left: .2rem;
+    font-size: .8rem;
+    color: var(--tblr-primary) !important;
+    background: var(--tblr-bg-surface);
+    border: 1px solid var(--tblr-border-color);
+    border-radius: 4px;
+    text-decoration: none;
+    cursor: pointer;
+}
+.dataTables_paginate a:hover,
+.paging_full_numbers .paginate_button:hover {
+    background: var(--tblr-secondary-bg, #f1f3f5);
+    text-decoration: none;
+}
+.paging_full_numbers .paginate_active {
+    color: #fff !important;
+    background: var(--tblr-primary);
+    border-color: var(--tblr-primary);
+}
+.paging_full_numbers .paginate_button_disabled {
+    color: var(--tblr-secondary) !important;
+    opacity: .5;
+    cursor: default;
+}
+
+/* Issabel framework utility class used by module templates and list pages;
+   without it, menus and panels marked hidden stay visible. */
+.neo-display-none { display: none !important; }
+
+/* --------------------------------------------------------------------------
+   8) jQuery-UI widgets (date pickers used by report filters)
+   -------------------------------------------------------------------------- */
+.ui-datepicker {
+    width: 17em;
+    padding: .5rem;
+    background: var(--tblr-bg-surface);
+    border: 1px solid var(--tblr-border-color);
+    border-radius: 8px;
+    box-shadow: 0 8px 24px rgba(9, 19, 33, .14);
+    font-size: .82rem;
+    font-family: inherit;
+}
+.ui-datepicker-header,
+.ui-widget-header.ui-datepicker-header,
+.ui-datepicker .ui-widget-header {
+    background: #206bc4 !important;
+    background-image: none !important;
+    color: #fff;
+    border: 0;
+    border-radius: 6px;
+    padding: .4rem .5rem;
+}
+.ui-datepicker-title { color: #fff; text-align: center; font-weight: 600; font-size: .85rem; }
+.ui-datepicker-title select {
+    background: #fff;
+    color: #182433;
+    border: 1px solid var(--tblr-border-color);
+    border-radius: 4px;
+    font-size: .8rem;
+    padding: .1rem .2rem;
+}
+.ui-datepicker-prev, .ui-datepicker-next {
+    cursor: pointer;
+    top: .55rem !important;
+    width: auto; height: auto;
+    min-width: 1.6em;
+    border-radius: 4px;
+    background: none !important;
+    background-image: none !important;
+    border: 0;
+}
+.ui-datepicker-prev { left: .4rem !important; }
+.ui-datepicker-next { right: .4rem !important; }
+.ui-datepicker-prev span, .ui-datepicker-next span {
+    display: block;
+    margin: .15rem .3rem;
+    text-indent: 0;
+    background: none !important;
+    background-image: none !important;
+    width: auto; height: auto;
+    overflow: visible;
+    color: #fff;
+    font-size: .78rem;
+    font-weight: 600;
+}
+.ui-datepicker-prev.ui-state-hover, .ui-datepicker-next.ui-state-hover {
+    background: rgba(255, 255, 255, .15) !important;
+    border: 0;
+}
+.ui-datepicker th {
+    color: var(--tblr-secondary);
+    font-weight: 600;
+    font-size: .7rem;
+    text-transform: uppercase;
+    padding: .3rem .2rem;
+    border: 0;
+}
+.ui-datepicker td { border: 0; padding: .1rem; }
+.ui-datepicker td a, .ui-datepicker td span {
+    display: block;
+    padding: .22rem .3rem;
+    text-align: center;
+    border-radius: 4px;
+    color: var(--tblr-body-color);
+    background: none;
+    border: 0;
+}
+.ui-datepicker td a:hover { background: #eef4fb; }
+.ui-datepicker .ui-state-highlight { background: #eef4fb; }
+.ui-datepicker .ui-state-active {
+    background: var(--tblr-primary) !important;
+    color: #fff !important;
+    font-weight: 600;
+}
+.ui-datepicker-buttonpane button {
+    background: var(--tblr-primary);
+    color: #fff;
+    border: 0;
+    border-radius: 4px;
+    padding: .3rem .7rem;
+    font-size: .8rem;
+    cursor: pointer;
+}
+img.ui-datepicker-trigger, button.ui-datepicker-trigger, input.ui-datepicker-trigger {
+    width: 15px; height: 15px;
+    margin: 0 0 0 .3rem;
+    vertical-align: middle;
+    cursor: pointer;
+}
+img.ui-datepicker-trigger, input.ui-datepicker-trigger {
+    content: url("data:image/svg+xml;charset=utf-8,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%23206bc4' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Crect x='3' y='4' width='18' height='18' rx='2'/%3E%3Cline x1='16' y1='2' x2='16' y2='6'/%3E%3Cline x1='8' y1='2' x2='8' y2='6'/%3E%3Cline x1='3' y1='10' x2='21' y2='10'/%3E%3C/svg%3E");
+}
+button.ui-datepicker-trigger {
+    background: #fff;
+    border: 1px solid var(--tblr-border-color);
+    border-radius: 4px;
+    padding: 0;
+    line-height: 0;
+}
+input.hasDatepicker, .ui-widget input.hasDatepicker, .ui-state-default input.hasDatepicker,
+.ui-widget-content input.hasDatepicker, input.ui-widget-content.hasDatepicker {
+    color: #182433 !important;
+    background: #fff !important;
+}
+.ui-datepicker .ui-datepicker-calendar th.ui-datepicker-week-col { width: 2.2em; padding-left: .35rem; }
+.ui-widget { font-size: .9rem; }
+.ui-dialog {
+    background: var(--tblr-bg-surface);
+    border: 1px solid var(--tblr-border-color);
+    border-radius: 8px;
+    box-shadow: 0 8px 24px rgba(9, 19, 33, .18);
+    padding: 0;
+}
+.ui-dialog-titlebar {
+    background: transparent;
+    border: 0;
+    border-bottom: 1px solid var(--tblr-border-color);
+    color: var(--tblr-body-color);
+    font-weight: 600;
+    padding: .65rem 1rem;
+}
+.ui-dialog-content { color: var(--tblr-body-color); }
+
+/* legacy tooltip look (jQuery-UI) */
+.ui-tooltip {
+    background: #232e3c;
+    color: #fff;
+    border: 0;
+    border-radius: 4px;
+    padding: .3rem .55rem;
+    font-size: .78rem;
+}

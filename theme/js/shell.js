@@ -1,6 +1,7 @@
 /* ==========================================================================
    MyTellPBX theme - shell interactivity (vanilla JS, no new dependencies)
-   Dropdowns, sidebar groups, module search, dark/light toggle.
+   Dropdowns, sidebar groups, module search, dark/light toggle,
+   dashboard gauge/chart recoloring, legacy Issabel asset rebranding.
    Deliberately avoids Bootstrap 5 JS so legacy Bootstrap 3 JS keeps working.
    ========================================================================== */
 (function () {
@@ -123,18 +124,110 @@
     bindModuleFilter('search_module_issabel');
     bindModuleFilter('search_module_issabel_mobile');
 
-    /* ---- Branding: present the legacy About dialog as MyTellPBX ---- */
-    /* base.js serves the old dialog content; swap the name client-side only. */
+    /* ======================================================================
+       Dashboard widget recoloring (JustGage gauges + flot charts)
+       The framework applets create their widgets on $(document).ready,
+       which fires after this script, so wrapping the constructors here
+       recolors every gauge/chart without touching module code.
+       ====================================================================== */
+    var MYTELL_GAUGE = {
+        gaugeColor: '#eef2f7',
+        levelColors: ['#206bc4'],
+        valueFontColor: '#206bc4',
+        titleFontColor: '#667382',
+        labelFontColor: '#8a94a6'
+    };
+
+    function wrapJustGage() {
+        if (!window.JustGage || window.JustGage.__mytellWrapped) { return; }
+        var Real = window.JustGage;
+        var Wrapped = function (opts) {
+            opts = opts || {};
+            /* colors are always forced: applets ship hard-coded legacy palettes */
+            Object.keys(MYTELL_GAUGE).forEach(function (k) {
+                opts[k] = MYTELL_GAUGE[k];
+            });
+            opts.relativeGaugeSize = ('relativeGaugeSize' in opts) ? opts.relativeGaugeSize : true;
+            return new Real(opts);
+        };
+        Wrapped.__mytellWrapped = true;
+        window.JustGage = Wrapped;
+    }
+    wrapJustGage();
+
+    /* recolor gauges created before this script ran (defensive) */
+    document.addEventListener('DOMContentLoaded', function () {
+        wrapJustGage();
+        if (window.jQuery) {
+            window.jQuery('[id^="dashboard-applet-"]').each(function () {
+                var g = window.jQuery(this).data('justgage');
+                if (g && g.refresh && g.displayValue) { /* instance exists; colors stay applied */ }
+            });
+        }
+    });
+
+    /* flot charts: Tabler palette, clean lines instead of heavy fills */
+    if (window.jQuery && window.jQuery.plot && !window.jQuery.plot.__mytellWrapped) {
+        var MYTELL_PALETTE = ['#206bc4', '#2fb344', '#d63939', '#f76707', '#4299e1', '#a55eea'];
+        var realPlot = window.jQuery.plot;
+        var wrappedPlot = function (target, data, options) {
+            try {
+                options = options || {};
+                if (!options.colors) { options.colors = MYTELL_PALETTE.slice(); }
+                (data || []).forEach(function (series, i) {
+                    series.color = MYTELL_PALETTE[i % MYTELL_PALETTE.length];
+                    if (series.lines) {
+                        series.lines.fill = false;
+                        series.lines.lineWidth = 2;
+                    }
+                });
+                if (options.series && options.series.lines) {
+                    options.series.lines.fill = false;
+                    options.series.lines.lineWidth = 2;
+                }
+                (options.yaxes || []).forEach(function (axis, i) {
+                    if (axis && axis.font) {
+                        axis.font.color = MYTELL_PALETTE[i % MYTELL_PALETTE.length];
+                    }
+                });
+                options.grid = window.jQuery.extend({}, options.grid || {}, { borderColor: '#dce0e6' });
+            } catch (e) { /* never break the original plot call */ }
+            return realPlot(target, data, options);
+        };
+        wrappedPlot.__mytellWrapped = true;
+        /* carry flot's plugin registry and metadata: flot 0.8 reads
+           $.plot.plugins inside Plot(), so replacing the function without
+           these properties breaks every chart */
+        Object.keys(realPlot).forEach(function (k) { wrappedPlot[k] = realPlot[k]; });
+        window.jQuery.plot = wrappedPlot;
+    }
+
+    /* ======================================================================
+     * Legacy asset rebranding: swap framework-provided Issabel images
+     * (loading spinners, logos) wherever they appear, whenever they appear.
+     * ====================================================================== */
+    function rebrandLegacyImages(root) {
+        (root || document).querySelectorAll('img[src*="issabel_logo"], img[src*="tango.png"], img[src*="issabelpbx_small"]').forEach(function (img) {
+            if (/logo_pattern|issabel_logo_mini/.test(img.getAttribute('src') || '')) {
+                img.setAttribute('src', '/themes/mytellpbx/images/logo.svg');
+            }
+        });
+    }
+    rebrandLegacyImages(document);
+
+    /* ---- Branding: present legacy dialogs as MyTellPBX ---- */
+    /* base.js serves old dialog content; swap the name client-side only. */
+    var BRAND_TITLE_RE = /Issabel( \d| 5|PBX)/g;
     var brandObserver = new MutationObserver(function () {
-        ['neo-modal-issabel-popup-content', 'modal-content'].forEach(function (cls) {
-            document.querySelectorAll('.' + cls).forEach(function (box) {
+        ['.neo-modal-issabel-popup-content', '.neo-modal-issabel-popup-title', '.modal-content'].forEach(function (cls) {
+            document.querySelectorAll(cls).forEach(function (box) {
                 if (box.dataset.brandFixed === '1') { return; }
-                if (!/Issabel/.test(box.textContent || '')) { return; }
+                if (!/Issabel/.test(box.textContent || '') && !/Issabel/.test(box.getAttribute('title') || '')) { return; }
                 box.dataset.brandFixed = '1';
                 (function walk(node) {
                     node.childNodes.forEach(function (n) {
                         if (n.nodeType === 3 && /Issabel/.test(n.nodeValue)) {
-                            n.nodeValue = n.nodeValue.replace(/Issabel( \d| 5|PBX)/g, 'MyTell$1').replace(/Issabel/g, 'MyTellPBX');
+                            n.nodeValue = n.nodeValue.replace(BRAND_TITLE_RE, 'MyTell$1').replace(/Issabel/g, 'MyTellPBX');
                         } else if (n.nodeType === 1) {
                             walk(n);
                         }
@@ -142,6 +235,7 @@
                 })(box);
             });
         });
+        rebrandLegacyImages(document);
     });
     brandObserver.observe(document.body, { childList: true, subtree: true, characterData: false });
 })();

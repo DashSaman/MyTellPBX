@@ -1,0 +1,83 @@
+/* ==========================================================================
+   MyTellPBX skin for the embedded PBX configuration UI
+   Loaded via BRAND_CSS_CUSTOM (see /etc/amportal.conf). Presentation only.
+   ========================================================================== */
+
+@font-face {
+    font-family: 'Inter';
+    font-style: normal;
+    font-weight: 100 900;
+    font-display: swap;
+    src: url('/themes/mytellpbx/fonts/inter/inter-latin-wght-normal.woff2') format('woff2');
+}
+
+body,
+.button,
+.input, .textarea, .select, .select select,
+.navbar, .title, .subtitle, .label, table, th, td {
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+}
+
+/* brand: navbar in dark slate, links and accents in MyTell blue */
+.navbar {
+    background-color: #182433 !important;
+}
+
+/* widget/panel headers (h3.ui-widget-header) in dark slate */
+.ui-widget-header {
+    background-color: #182433;
+    color: #ffffff;
+}
+
+h3.ui-widget-header {
+    background: #182433;
+    color: #ffffff;
+    border: 0;
+}
+
+h3.ui-widget-header a { color: #ffffff; }
+
+.navbar .navbar-item,
+.navbar .navbar-link {
+    color: #e6e9ef;
+}
+
+.navbar .navbar-item:hover,
+.navbar .navbar-link:hover,
+.navbar .navbar-item.is-active,
+.navbar .navbar-link.is-active {
+    color: #ffffff;
+    background-color: rgba(255, 255, 255, .08);
+}
+
+.navbar .navbar-link::after { border-color: currentColor; }
+
+a { color: #206bc4; }
+a:hover { color: #1a5aa6; }
+
+.button.is-primary,
+.button.is-link {
+    background-color: #206bc4;
+    border-color: transparent;
+}
+
+.button.is-primary:hover, .button.is-primary:focus,
+.button.is-link:hover, .button.is-link:focus {
+    background-color: #1a5aa6;
+}
+
+h1, h2, h3, .title { color: #182433; }
+
+/* light purple tints -> light blue tints */
+#footer, .footer {
+    background: #f6f8fb;
+    color: #667382;
+    border-top: 1px solid #dce0e6;
+}
+
+.footer a { color: #206bc4; }
+
+#footer_logo1 { height: 34px; width: auto; }
+
+/* brandable header image sizing */
+.navbar img { height: 34px; width: auto; }

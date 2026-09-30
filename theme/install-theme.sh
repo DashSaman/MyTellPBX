@@ -34,6 +34,26 @@ chown -R asterisk:asterisk "$DEST_DIR"
 find "$DEST_DIR" -type d -exec chmod 755 {} +
 find "$DEST_DIR" -type f -exec chmod 644 {} +
 
+# Optional static extras: e.g. DataTables English language files referenced
+# by some upstream report modules but missing from them. Files are only
+# added when the module directory exists and the file is not already there,
+# so upstream files are never overwritten.
+if [ -d "$SRC_DIR/extras" ]; then
+    echo "Installing optional module extras ..."
+    cd "$SRC_DIR/extras"
+    find . -type f | while read -r rel; do
+        rel="${rel#./}"
+        target="/var/www/html/modules/$rel"
+        if [ ! -f "$target" ] && [ -d "$(dirname "$target")" ]; then
+            cp "$SRC_DIR/extras/$rel" "$target"
+            chown asterisk:asterisk "$target"
+            chmod 644 "$target"
+            echo "  added $target"
+        fi
+    done
+    cd "$SRC_DIR"
+fi
+
 echo "Activating theme in framework settings ..."
 php <<'PHP'
 <?php

@@ -131,3 +131,34 @@ Load order: fonts.css → tabler.min.css → shell.css → {$HEADER_LIBS_JQUERY}
   phones they scroll horizontally (pre-existing module behavior).
 - "News" widget links point to Issabel community sites (server-provided
   data, not theme content).
+
+## Phase 2 — dashboard & reports polish (v1.1.0, 2026-09-30)
+
+Updates on the test server (192.168.8.176) and in the theme, superseding
+the limitations above where noted:
+
+- Dashboard: News and Issabel Network applets removed from dashboard.db;
+  gauges and flot charts wrapped by shell.js (`MYTELL_GAUGE`, `MYTELL_PALETTE`)
+  so they render in MyTellPBX blue; flat applet cards.
+- Report sweep (real browser, every page screenshotted): CDR Report,
+  Channels Usage, Billing (rates/report/dest distribution/setup), Asterisk
+  Logs, Graphic Report, Summary, Missed Calls, Recordings. Buttons, search
+  fields, filters, DataTables pagination (1.9 + 1.10 markup) and export
+  toolbars verified; Bootstrap 3 glyphicon webfont bundled for the legacy
+  DataTables button icons.
+- compat.css additions: jQuery-UI datepicker skin (blue header, white
+  prev/next, styled selects), blue SVG calendar trigger icon via
+  `content:url()`, dark text on date inputs (beats the inline `color:#840`),
+  and the framework utility `.neo-display-none` (its absence left the
+  missed-calls export menu permanently visible).
+- About dialog: `modules/_issabelutils/themes/default/_aboutus.tpl`
+  rebranded (static MyTellPBX logo, project link; legacy lottie animation
+  and issabel.org link removed). Original saved in the phase-2 backup.
+- 404 clean-up: `lottie.min.js` request (About dialog), `animIssabel.json`
+  (stale Smarty compile — cache file removed), missing
+  `datatables.en.json` for cdrreport/monitoring (shipped as `theme/extras/`
+  and installed without overwriting existing files).
+- Server brand backup: `/root/mytell-brand-backup-20260930-001844` +
+  `/root/rollback-mytell-brand.sh`.
+- Theme tarball for this release: `mytellpbx-theme-1.1.0.tgz`
+  (md5 `6a9921a6b065221b2ea2e7a92ad814b6`).
