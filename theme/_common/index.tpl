@@ -31,6 +31,8 @@
                 } catch (e) {}
                 return orig.apply(this, arguments);
             };
+            /* flot reads $.plot.plugins — carry every own property over */
+            for (var k in orig) { if (Object.prototype.hasOwnProperty.call(orig, k)) f[k] = orig[k]; }
             f.__mt = true;
             return f;
         }
