@@ -75,6 +75,168 @@ a.button.is-link:hover, button.button.is-link:hover, input.button.is-link:hover 
     color: #fff !important;
     border-color: var(--mt-primary) !important;
 }
+
+/* ============================================================
+   v5 — full module-page coverage (forms, tables, dialogs, rnav)
+   ============================================================ */
+
+/* ---------- jQuery UI theme (dashboard headers, dialogs, pickers) ---------- */
+.ui-widget-header {
+    background: linear-gradient(90deg, #101D33, #0B1526) !important;
+    color: #fff !important;
+    border: 0 !important;
+    border-radius: 9px 9px 0 0 !important;
+    font-family: 'Vazirmatn', Tahoma, Arial, sans-serif !important;
+    font-weight: 600 !important;
+}
+.ui-widget-header a { color: #fff !important; }
+.ui-widget-content {
+    border: 1px solid #E3E7EE !important;
+    background: #fff !important;
+    color: #232A35 !important;
+    font-family: 'Vazirmatn', Tahoma, Arial, sans-serif !important;
+}
+.ui-widget { font-family: 'Vazirmatn', Tahoma, Arial, sans-serif !important; }
+.ui-state-default, .ui-widget-content .ui-state-default, .ui-button, html .ui-button.ui-state-disabled:hover, .ui-button.ui-state-disabled:active {
+    border: 1px solid #CBD2DD !important;
+    background: #fff !important;
+    color: #232A35 !important;
+}
+.ui-state-hover, .ui-widget-content .ui-state-hover, .ui-button:hover {
+    border-color: #4A4DB8 !important;
+    background: #EEEFFA !important;
+    color: #26287C !important;
+}
+.ui-state-active, .ui-widget-content .ui-state-active, .ui-button:active {
+    border-color: #2E3194 !important;
+    background: #2E3194 !important;
+    color: #fff !important;
+}
+.ui-state-highlight, .ui-widget-content .ui-state-highlight { background: #FFF1E0 !important; color: #8A5B00 !important; }
+.ui-state-error, .ui-widget-content .ui-state-error { background: #FDEBEC !important; color: #8C2427 !important; border-color: #F3C2C4 !important; }
+.ui-dialog-titlebar { background: linear-gradient(90deg, #101D33, #1E3252) !important; color: #fff !important; }
+.ui-dialog .ui-dialog-content { background: #fff !important; }
+.ui-dialog { border-radius: 14px !important; box-shadow: 0 14px 38px rgba(11,21,38,.22) !important; padding: 0 !important; }
+.ui-dialog .ui-dialog-titlebar-close { border: 0 !important; background: none !important; }
+.ui-tooltip { background: #101D33 !important; color: #fff !important; border: 0 !important; border-radius: 6px !important; }
+.ui-datepicker { border-radius: 10px !important; overflow: hidden; box-shadow: 0 3px 10px rgba(11,21,38,.09) !important; }
+.ui-datepicker .ui-datepicker-header { border-radius: 0 !important; }
+.ui-widget-overlay { background: rgba(8,15,28,.55) !important; opacity: 1 !important; }
+
+/* ---------- page scaffolding ---------- */
+body { font-family: 'Vazirmatn', Tahoma, Arial, sans-serif; }
+h1, h2, h3, h4, h5, h6 { font-family: 'Vazirmatn', Tahoma, Arial, sans-serif; color: #232A35; }
+#page_body hr { background: #E3E7EE !important; border: 0 !important; height: 1px !important; }
+
+/* ---------- FreePBX forms (table-based legacy) ---------- */
+table.table.is-narrow td, table.table.is-borderless td { vertical-align: middle; }
+table.table.is-narrow td h5, table.table td h5 {
+    background: linear-gradient(90deg, #EEEFFA, rgba(238,239,250,0)) !important;
+    color: #26287C !important;
+    font-size: 15px !important;
+    font-weight: 700 !important;
+    padding: 8px 12px !important;
+    border-inline-start: 3px solid #2E3194 !important;
+    border-radius: 4px;
+    margin: 4px 0;
+}
+.input, .form-control, select, textarea {
+    font-family: 'Vazirmatn', Tahoma, Arial, sans-serif;
+    border-color: #CBD2DD !important;
+    border-radius: 6px !important;
+    color: #232A35;
+    transition: border-color .18s, box-shadow .18s;
+}
+.input:focus, .form-control:focus, select:focus, textarea:focus {
+    border-color: #4A4DB8 !important;
+    box-shadow: 0 0 0 3px #DDDEF5 !important;
+    outline: 0;
+}
+input[type=checkbox], input[type=radio] { accent-color: #2E3194; }
+[type=checkbox].switch, input.switch + label { color: #232A35; }
+span.radioset { margin: 0 2px; }
+
+/* help "?" bubbles */
+.help, .fd-help, a[onclick*="help"], .infobox .help { color: #4A4DB8; }
+img[class*=help], span.help-circle { filter: hue-rotate(255deg) saturate(.9); }
+
+/* ---------- buttons ---------- */
+.button {
+    border-radius: 6px !important;
+    font-family: 'Vazirmatn', Tahoma, Arial, sans-serif;
+    font-weight: 600;
+}
+.button.is-primary { background: #2E3194 !important; border-color: #2E3194 !important; }
+.button.is-warning { background: #FF8A00 !important; border-color: #E67A00 !important; color: #fff !important; }
+.button.is-success { background: #27965A !important; border-color: #27965A !important; }
+.button.is-outlined.is-link, .button.is-outlined.is-primary {
+    border-color: #4A4DB8 !important; color: #2E3194 !important; background: #fff !important;
+}
+
+/* ---------- rnav (right navigation panel) ---------- */
+.rnav {
+    background: #fff !important;
+    border: 1px solid #E3E7EE !important;
+    border-radius: 12px !important;
+    box-shadow: 0 1px 3px rgba(11,21,38,.07) !important;
+    overflow: hidden;
+}
+.rnav > .panel-heading, .rnav .heading, .rnav h3, .rnav .title {
+    background: linear-gradient(90deg, #101D33, #1E3252) !important;
+    color: #fff !important;
+}
+.rnav li a { color: #232A35; border-radius: 6px; }
+.rnav li a:hover { background: #EEEFFA; color: #26287C; }
+.rnav li.active a, .rnav li a.active { background: #2E3194 !important; color: #fff !important; }
+.rnav input[type=text], .rnav .input { background: #F8F9FC; }
+
+/* ---------- tables ---------- */
+.table thead th, .table tfoot th {
+    background: #F8F9FC !important;
+    color: #64708A !important;
+    font-weight: 600 !important;
+    border-bottom: 1px solid #E3E7EE !important;
+}
+.table td { border-bottom: 1px solid #E3E7EE !important; color: #232A35; }
+.table tbody tr:hover td { background: #F8F9FC !important; }
+.table.is-bordered td, .table.is-bordered th { border-color: #E3E7EE !important; }
+
+/* ---------- tabs (FreePBX settings tabs) ---------- */
+.nav-tabs > li > a, ul.tabs li a, .tabs ul li a {
+    color: #64708A !important;
+    font-weight: 600 !important;
+    border-bottom: 2px solid transparent !important;
+    background: none !important;
+}
+.nav-tabs > li.active > a, ul.tabs li a.active, .tabs ul li a.active {
+    color: #2E3194 !important;
+    border-bottom-color: #FF8A00 !important;
+}
+.nav-tabs, ul.tabs { border-bottom: 2px solid #E3E7EE !important; }
+.ui-tabs-nav li.ui-tabs-active a { color: #2E3194 !important; }
+
+/* ---------- alerts / notices ---------- */
+.alert, .notice, .message_box {
+    border-radius: 9px !important;
+    font-family: 'Vazirmatn', Tahoma, Arial, sans-serif;
+}
+
+/* ---------- pagination ---------- */
+.pagination a, .pagination button { border-radius: 6px !important; }
+.pagination .active a, .pagination li.active a { background: #2E3194 !important; border-color: #2E3194 !important; color: #fff !important; }
+
+/* ---------- chosen selects ---------- */
+.chosen-container .chosen-single, .chosen-container-multi .chosen-choices {
+    border-color: #CBD2DD !important; border-radius: 6px !important; background: #fff !important;
+}
+.chosen-container-active .chosen-single, .chosen-container-active .chosen-choices {
+    border-color: #4A4DB8 !important; box-shadow: 0 0 0 3px #DDDEF5 !important;
+}
+.chosen-container .chosen-results li.highlighted { background: #2E3194 !important; }
+
+/* ---------- grid type pages (extensions list etc.) ---------- */
+.typegrid, .type-grid { border-radius: 10px; }
+span.grid-icon img { border-radius: 8px; }
 input[type="submit"], button[type="submit"].button { border-radius: 6px; }
 
 /* sweetalert + grid accents */
