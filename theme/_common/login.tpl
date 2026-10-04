@@ -7,9 +7,9 @@
 	<meta name="description" content="سامانه مدیریت مرکز تماس" />
 	<title>مای‌تل | سامانه مدیریت مرکز تماس</title>
 	<link rel="shortcut icon" href="{$WEBPATH}themes/{$THEMENAME}/images/favicon.png" />
-	<link rel="stylesheet" href="{$WEBPATH}themes/{$THEMENAME}/css/fonts.css?v=6">
-	<link rel="stylesheet" href="{$WEBPATH}themes/{$THEMENAME}/css/tokens.css?v=6">
-	<link rel="stylesheet" href="{$WEBPATH}themes/{$THEMENAME}/css/login.css?v=6">
+	<link rel="stylesheet" href="{$WEBPATH}themes/{$THEMENAME}/css/fonts.css?v=8">
+	<link rel="stylesheet" href="{$WEBPATH}themes/{$THEMENAME}/css/tokens.css?v=8">
+	<link rel="stylesheet" href="{$WEBPATH}themes/{$THEMENAME}/css/login.css?v=8">
 	{$HEADER_LIBS_JQUERY}
 </head>
 <body class="mt-login-body">

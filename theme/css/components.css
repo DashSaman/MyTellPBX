@@ -509,9 +509,12 @@ td.mt-ltr, .tabForm td.mt-ltr, i.mt-ltr {
 }
 
 /* legacy raw submit buttons */
-.neo-module-content input[type="submit"]:not(.btn):not(.button) {
+.neo-module-content input[type="submit"]:not(.btn):not(.button),
+.neo-module-content input.button,
+.neo-module-content .button:not(.neo-table-toolbar-button):not(.neo-table-action):not(.neo-table-button-filter-left):not(.neo-table-button-filter-right):not(.btn) {
     display: inline-flex;
     align-items: center;
+    justify-content: center;
     gap: 6px;
     font-family: var(--mt-font);
     font-size: var(--mt-fs-md);
@@ -523,8 +526,14 @@ td.mt-ltr, .tabForm td.mt-ltr, i.mt-ltr {
     color: #fff;
     cursor: pointer;
     transition: all var(--mt-speed) var(--mt-ease);
+    text-shadow: none;
 }
-.neo-module-content input[type="submit"]:not(.btn):not(.button):hover { background: var(--mt-primary-strong); border-color: var(--mt-primary-strong); }
+.neo-module-content input[type="submit"]:not(.btn):not(.button):hover,
+.neo-module-content input.button:hover,
+.neo-module-content .button:not(.neo-table-toolbar-button):not(.neo-table-action):not(.neo-table-button-filter-left):not(.neo-table-button-filter-right):not(.btn):hover {
+    background: var(--mt-primary-strong);
+    border-color: var(--mt-primary-strong);
+}
 
 /* legacy plain tables */
 .neo-module-content table[width]:not(.tabForm):not([id*="applet"]) {
