@@ -106,13 +106,21 @@
         setInterval(fixSpinners, 3000);
 
         /* ---------- brand text substitution in module content ---------- */
+        var TEXT_MAP = {
+            "Elastix": "MyTel",
+            "Marcar todos": "انتخاب همه",
+            "Desmarcar Todos": "لغو انتخاب همه",
+            "Marcartodos": "انتخاب همه",
+            "DesmarcarTodos": "لغو انتخاب همه"
+        };
         var brandSwap = function (root) {
             var walker = document.createTreeWalker(root, NodeFilter.SHOW_TEXT, null, false);
             var node, txt;
             while ((node = walker.nextNode())) {
                 txt = node.nodeValue;
-                if (txt && txt.indexOf('Elastix') !== -1) {
-                    node.nodeValue = txt.split('Elastix').join('MyTel');
+                if (!txt) continue;
+                for (var k in TEXT_MAP) {
+                    if (txt.indexOf(k) !== -1) { txt = txt.split(k).join(TEXT_MAP[k]); node.nodeValue = txt; }
                 }
             }
         };
@@ -175,5 +183,33 @@
         };
         $(document).ajaxComplete(function () { setTimeout(hideEmptyPlaceholderRows, 250); });
         setTimeout(hideEmptyPlaceholderRows, 1500);
+
+        /* ---------- Persian language for legacy DataTables ---------- */
+        var dtLang = function () {
+            if (!window.jQuery || !$.fn.dataTable) return;
+            $.extend(true, $.fn.dataTable.defaults, {
+                oLanguage: {
+                    sEmptyTable: "رکوردی یافت نشد",
+                    sZeroRecords: "رکوردی یافت نشد",
+                    sInfo: "نمایش _START_ تا _END_ از _TOTAL_ ردیف",
+                    sInfoEmpty: "نمایش ۰ تا ۰ از ۰ ردیف",
+                    sInfoFiltered: "(پالایش‌شده از _MAX_ ردیف)",
+                    sLengthMenu: "نمایش _MENU_ ردیف",
+                    sSearch: "جستجو:",
+                    oPaginate: { sFirst: "نخست", sLast: "آخر", sNext: "بعدی", sPrevious: "قبلی" }
+                }
+            });
+        };
+        var dtTimer = setInterval(function () {
+            if (window.jQuery && $.fn.dataTable) { dtLang(); clearInterval(dtTimer); }
+        }, 300);
+        setTimeout(function () { clearInterval(dtTimer); }, 10000);
+
+        /* ---------- replace stock default hosts in tools (client-side only) ---------- */
+        setTimeout(function () {
+            $('.neo-module-content input[type=text]').each(function () {
+                if (this.value === 'www.issabel.org') { this.value = ''; this.placeholder = 'mytel.one'; }
+            });
+        }, 800);
     });
 })(jQuery);
