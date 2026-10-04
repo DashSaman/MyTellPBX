@@ -322,29 +322,158 @@
         };
         if ($content.length) isolateLtrCells($content[0]);
 
-        /* ---------- flot recolor: defaults are baked inside the closure,
-           so recolor the live series after each plot ---------- */
-        var CHART_MAP = {
-            '#00cc00': '#27965A', '#33cc33': '#27965A', '#004ce0': '#1E88E5',
-            '#0000cc': '#1E88E5', '#3da8fb': '#1E88E5', '#afd8f8': '#1E88E5',
-            '#cc0000': '#FF8A00', '#cb4b4b': '#FF8A00', '#cb4b16': '#FF8A00',
-            '#edc240': '#FFB25C', '#e8b800': '#FFB25C'
+        /* ============================================================
+           ECharts migration layer — same data, better visualization.
+           Targets (inventory): dashboard flot (PerformanceGraphic),
+           dashboard Raphael gauges (SystemResources), HardDrives donut,
+           Chart.js canvases (cdrreport/monitoring/channelusage/graphic_report).
+           ============================================================ */
+
+        var E = function () { return window.MyTelCharts && window.echarts; };
+
+        /* ---- 1) dashboard performance chart: flot data -> ECharts line ---- */
+        var mtPerf = null;
+        var migratePerf = function () {
+            if (!E()) return;
+            var host = document.querySelector('#dashboard-applet-performancegraph');
+            if (!host) return;
+            var plot = window.jQuery(host).data('plot');
+            if (!plot) return;
+            var data = plot.getData();
+            if (!data || !data.length) return;
+            /* build categories from first series x-values (epoch ms) */
+            var cats = [];
+            var s0 = data[0].data || [];
+            var span = (s0.length > 1 ? (s0[s0.length - 1][0] - s0[0][0]) : 0);
+            var fmt = function (t) {
+                var d = new Date(t);
+                var hm = ('0' + d.getHours()).slice(-2) + ':' + ('0' + d.getMinutes()).slice(-2);
+                if (span > 3 * 864e5) {
+                    var j = window.MTJalali ? window.MTJalali.toJalali(d) : null;
+                    return j ? MTJalali.JMONTHS[j.jm - 1] + ' ' + MTJalali.faNum(j.jd) : hm;
+                }
+                return hm;
+            };
+            s0.forEach(function (p) { cats.push(fmt(p[0])); });
+            var series = data.map(function (s) {
+                return { name: s.label, data: (s.data || []).map(function (p) { return p[1]; }) };
+            });
+            var chartHost = host.parentElement.querySelector('.mt-echart');
+            if (!chartHost) {
+                host.style.display = 'none';
+                var legend = host.parentElement.querySelector('.legend');
+                if (legend) legend.style.display = 'none';
+                chartHost = document.createElement('div');
+                chartHost.className = 'mt-echart';
+                chartHost.style.cssText = 'width:100%;height:300px;direction:ltr;';
+                host.parentNode.insertBefore(chartHost, host);
+            }
+            mtPerf = MyTelCharts.line(chartHost, null, cats, series, { area: true, unit: '' });
         };
-        var recolorFlot = function () {
-            $('#dashboard-applet-performancegraph').each(function () {
-                var plot = $(this).data('plot');
-                if (!plot) return;
-                var changed = false;
-                var series = plot.getData();
-                series.forEach(function (s) {
-                    var c = (typeof s.color === 'string' ? s.color : '').toLowerCase();
-                    if (CHART_MAP[c] && s.color !== CHART_MAP[c]) { s.color = CHART_MAP[c]; changed = true; }
+        $(document).ajaxComplete(function () { setTimeout(migratePerf, 500); });
+        setInterval(migratePerf, 60000); /* live applet refresh keeps data fresh */
+
+        /* ---- 2) system resource gauges: read Raphael SVG values -> ECharts radial ---- */
+        var migrateGauges = function () {
+            if (!E()) return;
+            var full = document.querySelector('#Applet_SystemResources .appletwindow_fullcontent');
+            if (!full || full.dataset.mtGauges === '1') return;
+            var svgs = full.querySelectorAll('svg');
+            if (svgs.length < 3) return;
+            var vals = [];
+            svgs.forEach(function (svg) {
+                var texts = svg.querySelectorAll('text');
+                var label = null, value = null;
+                texts.forEach(function (t) {
+                    var txt = (t.textContent || '').trim();
+                    if (/^[A-Za-z]+$/.test(txt) && label === null) label = txt;
+                    if (/^\d+(\.\d+)?$/.test(txt)) value = parseFloat(txt);
                 });
-                if (changed) { try { plot.setupGrid(); plot.draw(); } catch (e) {} }
+                if (label !== null && value !== null) vals.push({ name: label, value: value });
+            });
+            if (vals.length < 3) return;
+            var names = { CPU: 'پردازنده (CPU)', RAM: 'حافظه (RAM)', SWAP: 'حافظه مبادله‌ای (Swap)' };
+            var host = document.createElement('div');
+            host.className = 'mt-echart';
+            host.style.cssText = 'width:100%;height:190px;';
+            full.insertBefore(host, full.firstChild);
+            MyTelCharts.gauge(host, null, vals.map(function (v) {
+                return { name: names[v.name] || v.name, value: v.value, color: v.name === 'SWAP' ? MyTelCharts.T.accent : MyTelCharts.T.primary };
+            }));
+            full.dataset.mtGauges = '1';
+        };
+        setTimeout(function () { migrateGauges(); setTimeout(migrateGauges, 5000); }, 4000);
+        $(document).ajaxComplete(function () { setTimeout(migrateGauges, 1200); });
+
+        /* ---- 3) hard drives: table text -> horizontal utilization bars ---- */
+        var migrateDisks = function () {
+            if (!E()) return;
+            var full = document.querySelector('#Applet_HardDrives .appletwindow_fullcontent');
+            if (!full || full.dataset.mtDisks === '1') return;
+            var txt = (full.innerText || '');
+            var m = txt.match(/([\d.]+)\s*GB/i);
+            var pct = txt.match(/(\d+)\s*٪|(\d+)\s*%/);
+            if (!m || !pct) return;
+            var total = parseFloat(m[1]);
+            var usedPct = parseInt(pct[1] || pct[2], 10);
+            var used = Math.round(total * usedPct / 100 * 10) / 10;
+            var host = document.createElement('div');
+            host.className = 'mt-echart';
+            host.style.cssText = 'width:100%;height:90px;';
+            full.insertBefore(host, full.firstChild);
+            MyTelCharts.bars(host, null, [{ name: '/', used: used, total: total, unit: 'GB' }]);
+            full.dataset.mtDisks = '1';
+        };
+        setTimeout(function () { migrateDisks(); setTimeout(migrateDisks, 5000); }, 4500);
+        $(document).ajaxComplete(function () { setTimeout(migrateDisks, 1200); });
+
+        /* ---- 4) Chart.js canvases (cdr/monitoring/channelusage/graphic_report):
+           read the existing Chart instance data and re-render with ECharts ---- */
+        var migrateChartJs = function (canvas) {
+            if (!E() || !window.Chart || canvas.dataset.mtDone === '1') return;
+            var inst = window.Chart.getChart ? window.Chart.getChart(canvas) : null;
+            if (!inst) return;
+            var cfg = inst.config;
+            var labels = (cfg.data && cfg.data.labels) || [];
+            var datasets = (cfg.data && cfg.data.datasets) || [];
+            if (!labels.length || !datasets.length) return;
+            var isBars = datasets.every(function (d) { return (d.type || cfg.type) === 'bar'; });
+            var series = datasets.map(function (d) {
+                return { name: d.label, data: (d.data || []).slice() };
+            });
+            /* channelusage: protocol series — semantic colors from MyTelCharts */
+            var host = document.createElement('div');
+            host.className = 'mt-echart';
+            host.style.cssText = 'width:100%;height:' + Math.max(260, canvas.offsetHeight) + 'px;direction:ltr;';
+            canvas.style.display = 'none';
+            canvas.parentNode.insertBefore(host, canvas);
+            var opts = {};
+            if (/channelusage/i.test(location.search)) { opts.area = true; }
+            if (/cdrreport|monitoring/i.test(location.search)) { opts.showValues = false; }
+            var cats = labels.map(function (l) {
+                /* normalize legacy am/pm ticks to 24h when parseable */
+                var m = String(l).match(/(\d{1,2}):(\d{2})\s*(am|pm)?/i);
+                if (m) {
+                    var h = parseInt(m[1], 10) % 12;
+                    if (/pm/i.test(m[3] || '')) h += 12;
+                    return ('0' + h).slice(-2) + ':' + m[2];
+                }
+                return String(l);
+            });
+            if (isBars && datasets.length === 1) {
+                MyTelCharts.bar(host, null, cats, series, { showValues: opts.showValues });
+            } else {
+                MyTelCharts.line(host, null, cats, series, opts);
+            }
+            canvas.dataset.mtDone = '1';
+        };
+        var chartScan = function () {
+            document.querySelectorAll('canvas').forEach(function (c) {
+                if (c.id === 'myChart' || c.closest('.chart-container, #chart')) migrateChartJs(c);
             });
         };
-        $(document).ajaxComplete(function () { setTimeout(recolorFlot, 300); });
-        setInterval(recolorFlot, 2500);
+        setTimeout(function () { chartScan(); setTimeout(chartScan, 5000); setTimeout(chartScan, 12000); }, 5000);
+        $(document).ajaxComplete(function () { setTimeout(chartScan, 800); });
 
         /* ---------- hide the upstream hardcoded placeholder row in the
            CDR datatables template (a row of fully empty <td>s) ---------- */

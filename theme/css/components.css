@@ -656,6 +656,29 @@ table.mt-comm tr:last-child td { border-bottom: 0; }
 table.mt-comm td:first-child { font-weight: 600; color: var(--mt-text); }
 table.mt-comm td.mt-num { direction: ltr; text-align: left; color: var(--mt-text-muted); font-variant-numeric: tabular-nums; }
 
+/* ECharts migration surfaces */
+.mt-echart { min-height: 120px; }
+.appletwindow_fullcontent .mt-echart { margin-top: 4px; }
+.appletwindow_fullcontent > .mt-echart + svg, .appletwindow_fullcontent > .mt-echart ~ svg { display: none; }
+#Applet_HardDrives .mt-echart ~ * { margin-top: 8px; }
+
+/* KPI cards (for future summaries built from existing report data) */
+.mt-kpi-row { display: flex; flex-wrap: wrap; gap: 12px; margin: 0 0 14px; }
+.mt-kpi {
+    flex: 1 1 150px;
+    background: var(--mt-surface);
+    border: 1px solid var(--mt-border);
+    border-radius: var(--mt-radius);
+    box-shadow: var(--mt-shadow-1);
+    padding: 14px 18px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 2px;
+}
+.mt-kpi-value { font-size: 24px; font-weight: 700; font-variant-numeric: tabular-nums; }
+.mt-kpi-title { font-size: var(--mt-fs-sm); color: var(--mt-text-muted); }
+
 /* legacy ON/OFF switches (edwidgets) */
 .neo-module-content .switcher, .neo-module-content .toggle, .neo-module-content [class*="edwidget"] img { vertical-align: middle; }
 
