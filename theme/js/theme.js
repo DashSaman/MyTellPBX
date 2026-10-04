@@ -513,7 +513,7 @@
             var iax = grab(/IAX داخلي هاي\s*\((\d+)\)|IAX داخلی های\s*\((\d+)\)/);
             var trunks = grab(/ترانك ها\s*\((\d+)\)|ترانک ها\s*\((\d+)\)/);
             var traffic = grab(/([\d.]+k?B\/s\)\s*=>\s*\([\d.]+k?B\/s)/);
-            if (calls === null && sip === null && channels === null) return; /* unknown shape */
+            if (calls === null || trunks === null) return; /* data not complete yet — retry */
             var rows = [];
             if (calls !== null) rows.push(['کل تماس‌ها', calls + ' (داخلی ' + (internal || '0') + ' | خارجی ' + (external || '0') + ')']);
             if (channels !== null) rows.push(['کانال‌های فعال', channels]);
@@ -536,6 +536,14 @@
             full.innerHTML = html;
             el.dataset.mtRebuilt = '1';
         };
-        setTimeout(function () { rebuildComm(); setTimeout(rebuildComm, 4000); }, 3500);
+        var rebuildAttempts = 0;
+        var rebuildLoop = function () {
+            if (rebuildAttempts++ > 12) return;
+            if (!document.querySelector('#Applet_CommunicationActivity[data-mt-rebuilt="1"]')) {
+                rebuildComm();
+                setTimeout(rebuildLoop, 2500);
+            }
+        };
+        setTimeout(rebuildLoop, 5000);
     });
 })(jQuery);
