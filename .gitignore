@@ -1,0 +1,6 @@
+# MyTel theme project — ignore credentials and local artifacts
+tools/
+shots/
+*.tgz
+*.tar.gz
+Thumbs.db
