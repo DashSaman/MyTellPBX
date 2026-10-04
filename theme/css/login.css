@@ -10,7 +10,7 @@ body.mt-login-body {
     min-height: 100vh;
 }
 
-.mt-login-stage { display: flex; min-height: 100vh; }
+.mt-login-stage { display: flex; min-height: 100vh; flex-direction: row-reverse; }
 
 /* brand pane */
 .mt-login-brandpane {
