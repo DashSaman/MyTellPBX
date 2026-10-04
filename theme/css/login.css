@@ -1,5 +1,7 @@
 /* MyTel login page — split brand pane + form card. RTL-first. */
 
+*, *::before, *::after { box-sizing: border-box; }
+
 body.mt-login-body {
     margin: 0;
     font-family: var(--mt-font);
