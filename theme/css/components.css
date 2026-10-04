@@ -236,8 +236,26 @@ td.table_data, td.table_data_last_row { padding: 9px 14px; border-bottom: 1px so
 .well { background: var(--mt-surface-2); border: 1px solid var(--mt-border); border-radius: var(--mt-radius); padding: 14px 16px; box-shadow: none; }
 
 /* ---------------- modals ---------------- */
-.modal-backdrop { background: rgba(8, 15, 28, .55); }
-.modal-backdrop.in { opacity: 1; }
+.modal {
+    display: none;
+    position: fixed;
+    inset: 0;
+    z-index: 1050;
+    overflow: hidden;
+    outline: 0;
+}
+.modal.in { display: block; }
+.modal-dialog { position: relative; width: auto; margin: 90px auto 30px; max-width: 560px; }
+.modal.in .modal-dialog { animation: mt-modal-in .16s var(--mt-ease); }
+@keyframes mt-modal-in { from { transform: translateY(-14px); opacity: 0; } to { transform: none; opacity: 1; } }
+.modal-backdrop {
+    display: none;
+    position: fixed;
+    inset: 0;
+    z-index: 1040;
+    background: rgba(8, 15, 28, .55);
+}
+.modal-backdrop.in { display: block; opacity: 1; }
 .modal-content {
     background: var(--mt-surface);
     border: 0;
