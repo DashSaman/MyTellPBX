@@ -502,7 +502,7 @@
             var el = document.querySelector('#Applet_CommunicationActivity');
             if (!el || el.dataset.mtRebuilt) return;
             var txt = (el.innerText || '').replace(/\s+/g, ' ');
-            var grab = function (re) { var m = txt.match(re); return m ? m[1] : null; };
+            var grab = function (re) { var m = txt.match(re); if (!m) return null; for (var i = 1; i < m.length; i++) { if (m[i] !== undefined) return m[i]; } return null; };
             var calls = grab(/تماس\s*\((\d+)\)/);
             var internal = grab(/\((\d+)\s*تماس هاي داخلي\)|\((\d+)\s*تماس های داخلی\)/);
             var external = grab(/\((\d+)\s*تماس هاي خارجي\)|\((\d+)\s*تماس های خارجی\)/);
