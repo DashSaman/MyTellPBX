@@ -551,6 +551,86 @@ td.mt-ltr, .tabForm td.mt-ltr, i.mt-ltr {
 /* empty-state text */
 .neo-module-content .nodata, .neo-module-content td[colspan] { line-height: 1.9; }
 
+/* ============================================================
+   Round-3 page polish
+   ============================================================ */
+
+/* contextual Persian guide block (betachannel, shutdown, fax*, vacations, relay, antispam) */
+.mt-guide {
+    background: linear-gradient(135deg, var(--mt-blue-tint), rgba(227,240,252,.35));
+    border: 1px solid #C9DFF6;
+    border-inline-start: 4px solid var(--mt-blue);
+    border-radius: var(--mt-radius);
+    padding: 14px 18px;
+    margin: 0 0 14px;
+    color: #1D4FA8;
+    font-size: var(--mt-fs-md);
+    line-height: 1.9;
+}
+.mt-guide b { display: block; margin-bottom: 4px; color: #14417F; font-size: var(--mt-fs-base); }
+.mt-guide p { margin: 0; }
+.mt-guide u { text-decoration-color: #E5484D; }
+
+/* communication activity — keep latin fragments readable */
+#Applet_CommunicationActivity td, #Applet_CommunicationActivity div {
+    unicode-bidi: plaintext;
+}
+#Applet_CommunicationActivity td:first-child { font-weight: 600; white-space: nowrap; }
+#Applet_CommunicationActivity table { width: 100%; }
+#Applet_CommunicationActivity td { padding: 4px 6px; }
+
+/* hardware detector legend card */
+.neo-module-content fieldset, .neo-module-content .port-status {
+    background: var(--mt-surface);
+    border: 1px solid var(--mt-border) !important;
+    border-radius: var(--mt-radius);
+    box-shadow: var(--mt-shadow-1);
+    padding: 12px 16px;
+    max-width: 360px;
+}
+.neo-module-content fieldset legend, .neo-module-content .port-status legend,
+.neo-module-content fieldset b, .neo-module-content fieldset i {
+    font-family: var(--mt-font);
+    font-size: var(--mt-fs-sm);
+    color: var(--mt-text-muted);
+    font-style: normal;
+    padding: 0 8px;
+}
+
+/* form labels hug their controls (vacations, faxclients, antispam) */
+table.tabForm > tbody > tr > td:first-child { width: 190px; }
+table.tabForm > tbody > tr > td .slider, table.tabForm input[type=range] { accent-color: var(--mt-accent); }
+
+/* antispam degree row */
+.tabForm .ui-slider, .tabForm .slider { max-width: 340px; display: inline-block; vertical-align: middle; }
+
+/* email stats / flot chart cards */
+.chart-container, #chart, .flotchart {
+    background: var(--mt-surface);
+    border: 1px solid var(--mt-border);
+    border-radius: var(--mt-radius);
+    box-shadow: var(--mt-shadow-1);
+    padding: 14px 18px;
+    margin: 14px 0;
+}
+.chart-container h3, .chart-container .title { text-align: center; }
+
+/* Jalali calendar (FullCalendar overlay) */
+.mt-jalali { direction: rtl; }
+.mt-jalali .fc-toolbar { direction: rtl; }
+.mt-jalali .fc-day-header { font-family: var(--mt-font); font-weight: 700; color: var(--mt-text-muted); }
+.mt-jalali .fc-day-number { text-align: left; padding: 4px 8px; }
+.mt-jalali .fc-day-number .mt-jday { font-family: var(--mt-font); font-size: 14px; color: var(--mt-text); }
+.mt-jalali .fc-day-number .mt-gday { display: block; font-size: 10px; color: var(--mt-text-faint); direction: ltr; }
+.mt-jalali .mt-greg { color: var(--mt-text-faint); font-size: 12px; font-weight: 400; margin-inline-start: 6px; }
+.mt-jalali .fc-day-grid .mt-holiday { background: var(--mt-danger-tint) !important; }
+.mt-jalali .fc-day-grid .mt-holiday.mt-has-name .mt-jday::after { content: ' ★'; color: var(--mt-danger); font-size: 11px; }
+.mt-jalali .fc-today { background: var(--mt-accent-tint) !important; }
+.mt-jalali .fc-today .mt-jday { color: var(--mt-accent-strong); font-weight: 700; }
+
+/* legacy ON/OFF switches (edwidgets) */
+.neo-module-content .switcher, .neo-module-content .toggle, .neo-module-content [class*="edwidget"] img { vertical-align: middle; }
+
 /* popup pages (no shell) */
 body.mt-popup-body {
     font-family: var(--mt-font);

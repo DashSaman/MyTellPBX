@@ -23,12 +23,27 @@
     (function () {
         var MAP = {'#33cc33':'#27965A','#00cc00':'#27965A','#3da8fb':'#1E88E5','#2da8fb':'#1E88E5','#cb4b4b':'#FF8A00','#e8b800':'#FF8A00','#0000cc':'#1E88E5','#cc0000':'#FF8A00','#edc240':'#FF8A00','#afd8f8':'#1E88E5'};
         function remap(c) { if (typeof c !== 'string') return c; var k = c.toLowerCase(); return MAP[k] || c; }
+        var WD = ['یکشنبه','دوشنبه','سه‌شنبه','چهارشنبه','پنجشنبه','جمعه','شنبه'];
+        function faTick(v, axis) {
+            var d = new Date(v);
+            var span = axis.datamax - axis.datamin;
+            var hm = ('0' + d.getHours()).slice(-2) + ':' + ('0' + d.getMinutes()).slice(-2);
+            if (span > 250 * 864e5) {
+                var j = window.MTJalali ? window.MTJalali.toJalali(d) : null;
+                return j ? (window.MTJalali.JMONTHS[j.jm - 1] + ' ' + window.MTJalali.faNum(j.jy)) : (d.getFullYear() + '/' + (d.getMonth() + 1));
+            }
+            if (span > 3 * 864e5) return WD[d.getDay()] + ' ' + hm;
+            return hm;
+        }
         function wrap(orig) {
             var f = function (el, data, opts) {
                 try {
                     if (data && data.map) data = data.map(function (s) { if (s && s.color) s.color = remap(s.color); return s; });
                     if (opts && opts.colors) opts.colors = opts.colors.map(remap);
                     if (opts && opts.yaxes) opts.yaxes.forEach(function (ax) { if (ax && ax.font) ax.font.color = remap(ax.font.color); });
+                    if (opts && opts.xaxes) opts.xaxes.forEach(function (ax) {
+                        if (ax && ax.mode === 'time' && !ax.tickFormatter) ax.tickFormatter = faTick;
+                    });
                 } catch (e) {}
                 return orig.apply(this, arguments);
             };

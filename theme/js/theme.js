@@ -3,6 +3,91 @@
 (function ($) {
     "use strict";
 
+    /* ============ Jalali (Solar Hijri) date core ============ */
+    var MT = window.MTJalali = (function () {
+        var div = function (a, b) { return ~~(a / b); };
+        var mod = function (a, b) { return a - ~~(a / b) * b; };
+        function g2d(gy, gm, gd) {
+            var d = div((gy + div(gm - 8, 6) + 100100) * 1461, 4)
+                + div(153 * mod(gm + 9, 12) + 2, 5)
+                + gd - 34840408;
+            d = d - div(div(gy + 100100 + div(gm - 8, 6), 100) * 3, 4) + 752;
+            return d;
+        }
+        function d2g(jdn) {
+            var j = 4 * jdn + 139361631;
+            j = j + div(div(4 * jdn + 183187720, 146097) * 3, 4) * 4 - 3908;
+            var i = div(mod(j, 1461), 4) * 5 + 308;
+            var gd = div(mod(i, 153), 5) + 1;
+            var gm = mod(div(i, 153), 12) + 1;
+            var gy = div(j, 1461) - 100100 + div(8 - gm, 6);
+            return { gy: gy, gm: gm, gd: gd };
+        }
+        function jalCal(jy) {
+            var breaks = [-61, 9, 38, 199, 426, 686, 756, 818, 1111, 1181, 1210,
+                1635, 2060, 2097, 2192, 2262, 2324, 2394, 2456, 3178];
+            var bl = breaks.length, gy = jy + 621, leapJ = -14, jp = breaks[0], jm, jump = 0, leap, leapG, march, n, i;
+            for (i = 1; i < bl; i += 1) {
+                jm = breaks[i]; jump = jm - jp;
+                if (jy < jm) break;
+                leapJ = leapJ + div(jump, 33) * 8 + div(mod(jump, 33), 4);
+                jp = jm;
+            }
+            n = jy - jp;
+            leapJ = leapJ + div(n, 33) * 8 + div(mod(n, 33) + 3, 4);
+            if (mod(jump, 33) === 4 && jump - n === 4) leapJ += 1;
+            leapG = div(gy, 4) - div((div(gy, 100) + 1) * 3, 4) - 150;
+            march = 20 + leapJ - leapG;
+            if (jump - n < 6) n = n - jump + div(jump + 4, 33) * 33;
+            leap = mod(mod(n + 1, 33) - 1, 4);
+            if (leap === -1) leap = 4;
+            return { leap: leap, gy: gy, march: march };
+        }
+        function d2j(jdn) {
+            var gy = d2g(jdn).gy, jy = gy - 621;
+            var r = jalCal(jy);
+            var jdn1f = g2d(gy, 3, r.march);
+            var k = jdn - jdn1f, jm, jd;
+            if (k >= 0) {
+                if (k <= 185) return { jy: jy, jm: 1 + div(k, 31), jd: mod(k, 31) + 1 };
+                k -= 186;
+            } else { jy -= 1; k += 179; if (r.leap === 1) k += 1; }
+            jm = 7 + div(k, 30);
+            jd = mod(k, 30) + 1;
+            return { jy: jy, jm: jm, jd: jd };
+        }
+        var JMONTHS = ['فروردین','اردیبهشت','خرداد','تیر','مرداد','شهریور','مهر','آبان','آذر','دی','بهمن','اسفند'];
+        var JDAYS = ['شنبه','یکشنبه','دوشنبه','سه‌شنبه','چهارشنبه','پنجشنبه','جمعه'];
+        var GDAYS_SHORT = { Sun: 'ی', Mon: 'د', Tue: 'س', Wed: 'چ', Thu: 'پ', Fri: 'ج', Sat: 'ش' };
+        /* official + recurring Iranian holidays (jy, jm, jd, title) */
+        var HOLIDAYS = [
+            [0,1,1,'نوروز'],[0,1,2,'نوروز'],[0,1,3,'نوروز'],[0,1,4,'نوروز'],
+            [0,1,12,'روز جمهوری اسلامی'],[0,1,13,'روز طبیعت'],
+            [0,3,14,'رحلت امام خمینی'],[0,3,15,'قیام ۱۵ خرداد'],
+            [0,11,22,'پیروزی انقلاب'],[0,12,29,'ملی شدن نفت'],
+            [0,3,1,'نبرد خرمشهر'],[0,9,16,'روز دانش‌آموز'],[0,8,13,'روز دانش‌آموز'],
+            [0,2,1,'روز کارگر معلم'],[0,6,31,'روز گفت‌وگو'],
+            [1404,1,25,'تولد حضرت فاطمه'],[1404,2,28,'ليلة المباث'],[1404,3,3,'تولد امام حسین'],
+            [1404,3,13,'ولادت امام رضا'],[1404,7,23,'تولد امام رضا'],
+            [1404,10,10,'اربعین'],[1404,10,18,'وفات حضرت رسول'],[1404,11,3,'شهادت امام حسن'],
+            [1404,11,20,'میلاد رسول اکرم'],[1404,12,20,'نیمه شعبان']
+        ];
+        function holidayName(jy, jm, jd) {
+            for (var i = 0; i < HOLIDAYS.length; i++) {
+                var h = HOLIDAYS[i];
+                if (h[1] === jm && h[2] === jd && (h[0] === 0 || h[0] === jy)) return h[3];
+            }
+            return null;
+        }
+        function toJalali(date) {
+            var jdn = g2d(date.getFullYear(), date.getMonth() + 1, date.getDate());
+            var j = d2j(jdn);
+            j.gwd = date.getDay();
+            return j;
+        }
+        return { toJalali: toJalali, d2j: d2j, g2d: g2d, JMONTHS: JMONTHS, JDAYS: JDAYS, GDAYS_SHORT: GDAYS_SHORT, holidayName: holidayName, faNum: function (n) { return String(n).replace(/\d/g, function (d) { return '۰۱۲۳۴۵۶۷۸۹'[d]; }); } };
+    })();
+
     $(document).ready(function () {
 
         var $container = $('.page-container');
@@ -111,7 +196,59 @@
             "Marcar todos": "انتخاب همه",
             "Desmarcar Todos": "لغو انتخاب همه",
             "Marcartodos": "انتخاب همه",
-            "DesmarcarTodos": "لغو انتخاب همه"
+            "DesmarcarTodos": "لغو انتخاب همه",
+            /* dashboard applets */
+            "Fetch directory report": "دریافت گزارش پوشه‌ها",
+            "WARNING: this operation may take a long time AND impact system performance": "هشدار: این عملیات زمان‌بر است و بر کارایی سامانه اثر می‌گذارد.",
+            "Hard Disk Capacity:": "ظرفیت دیسک:",
+            "Mount Point:": "نقطه اتصال:",
+            "Manufacturer:": "سازنده:",
+            "Used": "مصرف‌شده",
+            "Available": "آزاد",
+            "Sim. calls": "تماس‌های همزمان",
+            "(%) CPU usage": "مصرف پردازنده (٪)",
+            "Mem. usage (MB)": "مصرف حافظه (مگابایت)",
+            "Send": "ارسال",
+            "Call history": "تاریخچه تماس",
+            /* applet admin */
+            "Select/Unselect All": "انتخاب/لغو انتخاب همه",
+            "News:": "اخبار:",
+            "Calls:": "تماس‌ها:",
+            "Emails:": "ایمیل‌ها:",
+            "Faxes:": "فکس‌ها:",
+            "Voicemails:": "صندوق‌های صوتی:",
+            "Telephony Hardware:": "تجهیزات تلفنی:",
+            "System:": "سیستم:",
+            "Hardware Control": "کنترل سخت‌افزار",
+            /* hardware detector */
+            "Port Status": "راهنمای وضعیت پورت‌ها",
+            "Channel detected and not in service": "کانال شناسایی‌شده و خارج از سرویس",
+            "Channel detected and in service": "کانال شناسایی‌شده و در سرویس",
+            "Undetected Channel": "کانال شناسایی‌نشده",
+            "Empty Channel": "کانال خالی",
+            /* calendar */
+            "today": "امروز",
+            "month": "ماه",
+            "week": "هفته",
+            "day": "روز",
+            "Download ical calendar": "دریافت تقویم (iCal)",
+            /* email stats */
+            "Incoming email by hour": "ایمیل‌های دریافتی بر اساس ساعت",
+            "Incoming email by day": "ایمیل‌های دریافتی بر اساس روز",
+            "Incoming email by month": "ایمیل‌های دریافتی بر اساس ماه",
+            "Number of emails": "تعداد ایمیل‌ها",
+            "Nothing to show yet": "هنوز داده‌ای ثبت نشده است",
+            /* vacations */
+            "Period": "بازه",
+            "FROM": "از",
+            "TO": "تا",
+            "day(s)": "روز",
+            /* fax clients help */
+            "These IPs are allowed to send faxes through MyTel.": "فقط نشانی‌های IP زیر مجازند از این سامانه فکس ارسال کنند.",
+            "You must insert one IP per row. We recommend keeping localhost and 127.0.0.1 in the configuration because some processes could need them.": "هر نشانی IP را در یک سطر جدا وارد کنید. نگه‌داشتن localhost و 127.0.0.1 ضروری است، چون برخی فرایندهای داخلی سامانه به آن‌ها نیاز دارند.",
+            /* email template subjects */
+            "Fax Issabel": "فکس مای‌تل",
+            "Fax attached (ID: {NAME_PDF})": "فکس پیوست شد (شناسه: {NAME_PDF})"
         };
         var brandSwap = function (root) {
             var walker = document.createTreeWalker(root, NodeFilter.SHOW_TEXT, null, false);
@@ -211,5 +348,90 @@
                 if (this.value === 'www.issabel.org') { this.value = ''; this.placeholder = 'mytel.one'; }
             });
         }, 800);
+
+        /* ---------- strip server locale warnings from textarea content ---------- */
+        var cleanPerlNoise = function () {
+            $('.neo-module-content textarea').each(function () {
+                if (this.value.indexOf('perl: warning') === -1) return;
+                this.value = this.value.split('\n').filter(function (l) {
+                    return !/^perl: warning|^Please check that your locale|^LANGUAGE =|^LC_ALL =|^LANG =|^are supported and installed/.test(l.trim());
+                }).join('\n').replace(/^\n+/, '');
+            });
+        };
+        setTimeout(cleanPerlNoise, 900);
+
+        /* ---------- page helpers: contextual Persian guidance ---------- */
+        var addGuide = function (menuId, html) {
+            var c = document.querySelector('.neo-module-content');
+            if (!c || c.querySelector('.mt-guide') || location.search.indexOf('menu=' + menuId) === -1) return;
+            var d = document.createElement('div');
+            d.className = 'mt-guide';
+            d.innerHTML = html;
+            c.insertBefore(d, c.firstChild);
+        };
+        setTimeout(function () {
+            addGuide('betachannel', '<b>دریافت به‌روزرسانی‌های آزمایشی (کانال بتا)</b><p>با روشن‌کردن این کلید، سامانه نسخه‌های آزمایشی تازه را هم هنگام به‌روزرسانی پیشنهاد می‌دهد. این نسخه‌ها ویژگی‌های تازه دارند اما ممکن است ناپایدار باشند؛ <u>فقط روی سرورهای آزمایشی</u> روشن کنید. برای سرور عملیاتی همیشه خاموش بماند.</p>');
+            addGuide('shutdown', '<b>خاموش یا ریست دستی سرور</b><p>گزینهٔ «خاموش» سرور را کامل خاموش می‌کند و «راه اندازی دوباره» سرویس‌ها را ری‌استارت می‌کند. پیش از اقدام، از تماس‌های جاری مطمئن شوید؛ این عملیات مرکز تلفن را موقتاً از دسترس خارج می‌کند.</p>');
+            addGuide('faxmaster', '<b>صندوق فکس مرکزی</b><p>این بخش فکس‌های ورودی سرور را مدیریت می‌کند: صندوق پیش‌فرض سامانه که همهٔ فکس‌های بدون مقصد مشخص به آن می‌رسند و می‌توانید آن‌ها را ببینید، بگیرید یا به ایمیل تبدیل کنید.</p>');
+            addGuide('faxclients', '<b>کاربران مجاز فکس</b><p>این صفحه مشخص می‌کند کدام رایانه‌ها (نشانی‌های IP) اجازه دارند از طریق سامانه فکس ارسال کنند. هر IP را در یک سطر جدا بنویسید؛ localhost و 127.0.0.1 را حذف نکنید.</p>');
+            addGuide('vacations', '<b>پیام عدم حضور (تعطیلات)</b><p>با فعال‌کردن این بخش، هر کسی در بازهٔ تعیین‌شده تماس بگیرد یا ایمیل بزند، پیام «در دسترس نیستم» را به‌طور خودکار دریافت می‌کند. بازهٔ زمانی، آدرس ایمیل و متن پیام را مشخص کنید.</p>');
+            addGuide('email_relay', '<b>مجوز ارسال ایمیل (Relay)</b><p>این صفحه مشخص می‌کند کدام شبکه‌ها اجازه دارند از طریق سرور شما ایمیل به بیرون بفرستند. نشانی‌ها را به‌صورت CIDR وارد کنید؛ مثلاً 127.0.0.1/32 یعنی فقط خود سرور. هر شبکه‌ای که اضافه نکنید، اجازهٔ ارسال ندارد (جلوگیری از سوءاستفاده).</p>');
+            addGuide('antispam', '<b>پالایش هرزنامه</b><p>با فعال‌کردن این بخش، ایمیل‌های ورودی از نظر هرزنامه بررسی می‌شوند. «درجه» حساسیت پالایش است: عدد کمتر = سخت‌گیری بیشتر. در حالت «مبتدی» فقط سربرگ هرزنامه برچسب می‌خورد و در حالت «خبره» تصمیم‌گیری کامل به پالایش‌گر سپرده می‌شود.</p>');
+        }, 600);
+
+        /* ---------- Jalali overlay for the FullCalendar page ---------- */
+        var jalaliCalendar = function () {
+            var cal = document.querySelector('#calendar .fc');
+            if (!cal || cal.dataset.mtJalali === undefined) { if (cal) cal.dataset.mtJalali = '0'; }
+            if (!cal || cal.dataset.mtJalali === '1') return;
+            cal.dataset.mtJalali = '1';
+            cal.classList.add('mt-jalali');
+
+            var apply = function () {
+                /* month title */
+                var title = cal.querySelector('.fc-center h2, .fc-toolbar .fc-title');
+                var m = title ? title.textContent.match(/([A-Za-z]+)\s+(\d{4})/) : null;
+                if (m && title) {
+                    var monthsEn = { January:1, February:2, March:3, April:4, May:5, June:6, July:7, August:8, September:9, October:10, November:11, December:12 };
+                    var gm = monthsEn[m[1]], gy = +m[2];
+                    if (gm) {
+                        var anchor = MT.toJalali(new Date(gy, gm - 1, 15));
+                        var first = new Date(gy, gm - 1, 1);
+                        var jf = MT.toJalali(first);
+                        var jy = jf.jm === 12 && anchor.jm === 1 ? anchor.jy - 1 : anchor.jy;
+                        title.innerHTML = MT.JMONTHS[jf.jm - 1] + ' ' + MT.faNum(jy) +
+                            ' <small dir="ltr" class="mt-greg">' + m[1] + ' ' + m[2] + '</small>';
+                    }
+                }
+                /* weekday headers */
+                cal.querySelectorAll('.fc-day-header').forEach(function (th) {
+                    var en = (th.textContent || '').trim();
+                    var short = en.slice(0, 3);
+                    if (MT.GDAYS_SHORT[short] !== undefined) th.textContent = MT.GDAYS_SHORT[short];
+                });
+                /* day numbers + holiday highlight */
+                cal.querySelectorAll('.fc-day-number, .fc-content-skeleton td[data-date]').forEach(function () {});
+                cal.querySelectorAll('[data-date]').forEach(function (cell) {
+                    var parts = (cell.getAttribute('data-date') || '').split('-');
+                    if (parts.length !== 3) return;
+                    var dt = new Date(+parts[0], +parts[1] - 1, +parts[2]);
+                    var j = MT.toJalali(dt);
+                    var numHolder = cell.querySelector('.fc-day-number') || cell;
+                    if (numHolder && !numHolder.dataset.mtJ) {
+                        numHolder.dataset.mtJ = '1';
+                        var g = numHolder.textContent.trim();
+                        numHolder.innerHTML = '<b class="mt-jday">' + MT.faNum(j.jd) + '</b><small class="mt-gday">' + g + '</small>';
+                    }
+                    var hol = MT.holidayName(j.jy, j.jm, j.jd);
+                    cell.classList.toggle('mt-holiday', !!hol || dt.getDay() === 5);
+                    if (hol) { cell.setAttribute('title', hol); cell.classList.add('mt-has-name'); }
+                });
+            };
+            apply();
+            setInterval(apply, 1500);
+        };
+        setTimeout(function () {
+            if (location.search.indexOf('menu=calendar') !== -1) jalaliCalendar();
+        }, 1200);
     });
 })(jQuery);
