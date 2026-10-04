@@ -494,5 +494,48 @@
             });
         };
         setTimeout(persianizeEmailStats, 1500);
+
+        /* ---------- rebuild the Communication Activity applet:
+           the upstream PHP glues translation fragments in a broken
+           order, so re-render it as a clean Persian table ---------- */
+        var rebuildComm = function () {
+            var el = document.querySelector('#Applet_CommunicationActivity');
+            if (!el || el.dataset.mtRebuilt) return;
+            var txt = (el.innerText || '').replace(/\s+/g, ' ');
+            var grab = function (re) { var m = txt.match(re); return m ? m[1] : null; };
+            var calls = grab(/تماس\s*\((\d+)\)/);
+            var internal = grab(/\((\d+)\s*تماس هاي داخلي\)|\((\d+)\s*تماس های داخلی\)/);
+            var external = grab(/\((\d+)\s*تماس هاي خارجي\)|\((\d+)\s*تماس های خارجی\)/);
+            var channels = grab(/كل تماس ها:?\s*(\d+)|کل تماس ها:?\s*(\d+)/);
+            var waiting = grab(/تماس هاي در صف انتظار:?\s*(\d+)|(\d+)\s*منتظر|تماس های در صف انتظار:?\s*(\d+)/);
+            var sip = grab(/SIP داخلي هاي\s*\((\d+)\)|SIP داخلی های\s*\((\d+)\)/);
+            var pjsip = grab(/PJSIP داخلي هاي\s*\((\d+)\)|PJSIP داخلی های\s*\((\d+)\)/);
+            var iax = grab(/IAX داخلي هاي\s*\((\d+)\)|IAX داخلی های\s*\((\d+)\)/);
+            var trunks = grab(/ترانك ها\s*\((\d+)\)|ترانک ها\s*\((\d+)\)/);
+            var traffic = grab(/([\d.]+k?B\/s\)\s*=>\s*\([\d.]+k?B\/s)/);
+            if (calls === null && sip === null && channels === null) return; /* unknown shape */
+            var rows = [];
+            if (calls !== null) rows.push(['کل تماس‌ها', calls + ' (داخلی ' + (internal || '0') + ' | خارجی ' + (external || '0') + ')']);
+            if (channels !== null) rows.push(['کانال‌های فعال', channels]);
+            if (waiting !== null) rows.push(['در صف انتظار', waiting]);
+            var reg = function (base) {
+                var after = txt.slice(txt.indexOf(base));
+                var r = after.match(/\((\d+)\s*ثبت شده\)|\((\d+)\s*ثبت شده\)/) || after.match(/\((\d+)\s*ثبت شده\)/);
+                var u = after.match(/\((\d+)\s*ثبت نشده\)|\((\d+)\s*ثبت نشده\)/);
+                return (r ? (r[1] || r[2]) : '?') + ' / ' + (u ? (u[1] || u[2]) : '?');
+            };
+            if (sip !== null) rows.push(['داخلی‌های SIP', sip + ' (ثبت‌شده ' + reg('SIP داخلي').split(' / ')[0] + ' | ثبت‌نشده ' + reg('SIP داخلي').split(' / ')[1] + ')']);
+            if (pjsip !== null) rows.push(['داخلی‌های PJSIP', pjsip + ' (ثبت‌شده ' + reg('PJSIP داخلي').split(' / ')[0] + ' | ثبت‌نشده ' + reg('PJSIP داخلي').split(' / ')[1] + ')']);
+            if (iax !== null) rows.push(['داخلی‌های IAX', iax + ' (ثبت‌شده ' + reg('IAX داخلي').split(' / ')[0] + ' | ثبت‌نشده ' + reg('IAX داخلي').split(' / ')[1] + ')']);
+            if (trunks !== null) rows.push(['ترانک‌ها', trunks]);
+            if (traffic !== null) rows.push(['ترافیک شبکه', 'دریافتی ' + traffic.split('=>')[0].replace('(', '').replace(')', '').trim() + ' | ارسالی ' + traffic.split('=>')[1].replace('(', '').replace(')', '').trim()]);
+            var html = '<table class="mt-comm">' + rows.map(function (r) {
+                return '<tr><td>' + r[0] + '</td><td class="mt-num">' + r[1] + '</td></tr>';
+            }).join('') + '</table>';
+            var full = el.querySelector('.appletwindow_fullcontent') || el;
+            full.innerHTML = html;
+            el.dataset.mtRebuilt = '1';
+        };
+        setTimeout(function () { rebuildComm(); setTimeout(rebuildComm, 4000); }, 3500);
     });
 })(jQuery);

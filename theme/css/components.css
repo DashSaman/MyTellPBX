@@ -649,6 +649,13 @@ figure.mt-chart figcaption {
 figure.mt-chart .mt-chart-crop { height: 176px; overflow: hidden; }
 figure.mt-chart .mt-chart-crop img { margin-top: -34px; display: block; margin-inline: auto; }
 
+/* communication activity — rebuilt clean table */
+table.mt-comm { width: 100%; border-collapse: collapse; }
+table.mt-comm td { padding: 7px 10px; border-bottom: 1px solid var(--mt-border); font-size: var(--mt-fs-md); }
+table.mt-comm tr:last-child td { border-bottom: 0; }
+table.mt-comm td:first-child { font-weight: 600; color: var(--mt-text); }
+table.mt-comm td.mt-num { direction: ltr; text-align: left; color: var(--mt-text-muted); font-variant-numeric: tabular-nums; }
+
 /* legacy ON/OFF switches (edwidgets) */
 .neo-module-content .switcher, .neo-module-content .toggle, .neo-module-content [class*="edwidget"] img { vertical-align: middle; }
 
