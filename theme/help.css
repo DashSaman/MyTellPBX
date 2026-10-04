@@ -1,0 +1,7 @@
+/* MyTel theme — help frames */
+body { font-family: var(--mt-font); color: var(--mt-text); background: var(--mt-surface); font-size: var(--mt-fs-md); line-height: 1.7; margin: 0; padding: 10px 14px; }
+a { color: var(--mt-primary); }
+h1, h2, h3, h4 { font-weight: 700; color: var(--mt-text); }
+table { border-collapse: collapse; width: 100%; }
+th, td { border: 1px solid var(--mt-border); padding: 6px 10px; text-align: right; }
+th { background: var(--mt-surface-2); font-weight: 600; }

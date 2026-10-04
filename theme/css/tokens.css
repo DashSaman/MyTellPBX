@@ -1,0 +1,86 @@
+/* ============================================================
+   MyTel design system — single source of truth (tokens)
+   Palette derived from the MyTel brand: deep navy, brand indigo,
+   signal orange. Do not hardcode colors in other files.
+   ============================================================ */
+:root {
+    /* brand navy (sidebar / dark surfaces) */
+    --mt-navy-950: #080F1C;
+    --mt-navy-900: #0B1526;
+    --mt-navy-800: #101D33;
+    --mt-navy-700: #16263F;
+    --mt-navy-600: #1E3252;
+
+    /* brand indigo — primary actions */
+    --mt-primary: #2E3194;
+    --mt-primary-strong: #26287C;
+    --mt-primary-soft: #4A4DB8;
+    --mt-primary-tint: #EEEFFA;
+    --mt-primary-tint-2: #DDDEF5;
+
+    /* signal blue + accent orange (logo family) */
+    --mt-blue: #1E88E5;
+    --mt-blue-tint: #E3F0FC;
+    --mt-accent: #FF8A00;
+    --mt-accent-strong: #E67A00;
+    --mt-accent-tint: #FFF1E0;
+    --mt-accent-pale: #F9DFCC;
+
+    /* semantic */
+    --mt-success: #27965A;
+    --mt-success-tint: #E2F5EA;
+    --mt-warning: #F5A623;
+    --mt-warning-tint: #FCF3DD;
+    --mt-danger: #E5484D;
+    --mt-danger-tint: #FDEBEC;
+    --mt-info: #3E7BFA;
+    --mt-info-tint: #E9F0FE;
+
+    /* surfaces */
+    --mt-bg: #F3F5F9;
+    --mt-surface: #FFFFFF;
+    --mt-surface-2: #F8F9FC;
+    --mt-border: #E3E7EE;
+    --mt-border-strong: #CBD2DD;
+
+    /* text */
+    --mt-text: #232A35;
+    --mt-text-muted: #64708A;
+    --mt-text-faint: #9AA3B5;
+    --mt-text-invert: #FFFFFF;
+
+    /* sidebar palette */
+    --mt-side-text: #AAB6CE;
+    --mt-side-text-hover: #FFFFFF;
+    --mt-side-active-bg: rgba(255, 138, 0, 0.14);
+    --mt-side-active-text: #FFB25C;
+
+    /* radius */
+    --mt-radius-sm: 6px;
+    --mt-radius: 9px;
+    --mt-radius-lg: 14px;
+
+    /* shadows */
+    --mt-shadow-1: 0 1px 2px rgba(11, 21, 38, .05), 0 1px 3px rgba(11, 21, 38, .07);
+    --mt-shadow-2: 0 3px 10px rgba(11, 21, 38, .09);
+    --mt-shadow-3: 0 14px 38px rgba(11, 21, 38, .22);
+
+    /* typography */
+    --mt-font: 'Vazirmatn', Tahoma, Arial, sans-serif;
+    --mt-fs-xs: 11px;
+    --mt-fs-sm: 12px;
+    --mt-fs-md: 13.5px;
+    --mt-fs-base: 14.5px;
+    --mt-fs-lg: 16px;
+    --mt-fs-xl: 19px;
+    --mt-fs-2xl: 23px;
+
+    /* layout */
+    --mt-sidebar-w: 262px;
+    --mt-sidebar-w-collapsed: 66px;
+    --mt-topbar-h: 60px;
+
+    /* motion */
+    --mt-ease: cubic-bezier(.4, 0, .2, 1);
+    --mt-speed: .18s;
+}
