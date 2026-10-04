@@ -394,7 +394,7 @@
                 if (label !== null && value !== null && bestSize > 0) vals.push({ name: label, value: value });
             });
             if (vals.length < 3) return;
-            var names = { CPU: 'پردازنده (CPU)', RAM: 'حافظه (RAM)', SWAP: 'حافظه مبادله‌ای (Swap)' };
+            var names = { CPU: 'پردازنده (CPU)', RAM: 'حافظه (RAM)', SWAP: 'حافظه مبادله‌ای' };
             var host = document.createElement('div');
             host.className = 'mt-echart';
             host.style.cssText = 'width:100%;height:190px;';
@@ -403,7 +403,7 @@
                 return { name: names[v.name] || v.name, value: v.value, color: v.name === 'SWAP' ? MyTelCharts.T.accent : MyTelCharts.T.primary };
             }));
             /* retire the legacy Raphael gauges (data now lives in the ECharts layer) */
-            full.querySelectorAll(':scope > svg, :scope table svg').forEach(function (svg) { svg.style.display = 'none'; });
+            full.querySelectorAll('svg').forEach(function (svg) { svg.style.display = 'none'; });
             full.dataset.mtGauges = '1';
         };
         setTimeout(function () { migrateGauges(); setTimeout(migrateGauges, 5000); }, 4000);
