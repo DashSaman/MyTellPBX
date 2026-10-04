@@ -263,6 +263,11 @@
         };
         var $content = $('.neo-module-content');
         if ($content.length) brandSwap($content[0]);
+        /* late-loaded content (ajax charts, ribbons) gets swapped too */
+        setInterval(function () {
+            var c = document.querySelector('.neo-module-content');
+            if (c) brandSwap(c);
+        }, 3000);
 
         /* ---------- LTR-isolate legacy help cells (mostly-Latin text) ---------- */
         var latinRatio = function (s) {
@@ -431,5 +436,28 @@
             setInterval(apply, 1500);
         };
         setTimeout(jalaliCalendar, 1500);
+
+        /* ---------- email_stats: server-pixel charts get Persian captions
+           (the English title band inside the image is cropped away) ---------- */
+        var persianizeEmailStats = function () {
+            if (location.search.indexOf('menu=email_stats') === -1) return;
+            var c = document.querySelector('.neo-module-content');
+            if (!c) return;
+            var titles = ['ایمیل‌های دریافتی بر اساس ساعت', 'ایمیل‌های دریافتی بر اساس روز', 'ایمیل‌های دریافتی بر اساس ماه'];
+            c.querySelectorAll('img[src*="email_stats"][src*="rawmode"]').forEach(function (img, idx) {
+                if (img.closest('.mt-chart')) return;
+                var fig = document.createElement('figure');
+                fig.className = 'mt-chart';
+                var cap = document.createElement('figcaption');
+                cap.textContent = titles[idx] || '';
+                img.parentNode.insertBefore(fig, img);
+                var crop = document.createElement('div');
+                crop.className = 'mt-chart-crop';
+                fig.appendChild(cap);
+                fig.appendChild(crop);
+                crop.appendChild(img);
+            });
+        };
+        setTimeout(persianizeEmailStats, 1500);
     });
 })(jQuery);

@@ -628,6 +628,27 @@ table.tabForm > tbody > tr > td .slider, table.tabForm input[type=range] { accen
 .mt-jalali .fc-today { background: var(--mt-accent-tint) !important; }
 .mt-jalali .fc-today .mt-jday { color: var(--mt-accent-strong); font-weight: 700; }
 
+/* email_stats server-pixel charts: Persian caption + cropped title band */
+figure.mt-chart {
+    margin: 16px auto;
+    max-width: 600px;
+    background: var(--mt-surface);
+    border: 1px solid var(--mt-border);
+    border-radius: var(--mt-radius);
+    box-shadow: var(--mt-shadow-1);
+    padding: 10px 14px 4px;
+}
+figure.mt-chart figcaption {
+    font-family: var(--mt-font);
+    font-weight: 700;
+    font-size: var(--mt-fs-base);
+    color: var(--mt-text);
+    text-align: center;
+    padding-bottom: 6px;
+}
+figure.mt-chart .mt-chart-crop { height: 176px; overflow: hidden; }
+figure.mt-chart .mt-chart-crop img { margin-top: -34px; display: block; margin-inline: auto; }
+
 /* legacy ON/OFF switches (edwidgets) */
 .neo-module-content .switcher, .neo-module-content .toggle, .neo-module-content [class*="edwidget"] img { vertical-align: middle; }
 
