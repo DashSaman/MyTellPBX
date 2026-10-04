@@ -381,24 +381,24 @@
 
         /* ---------- Jalali overlay for the FullCalendar page ---------- */
         var jalaliCalendar = function () {
-            var cal = document.querySelector('#calendar .fc');
-            if (!cal || cal.dataset.mtJalali === undefined) { if (cal) cal.dataset.mtJalali = '0'; }
-            if (!cal || cal.dataset.mtJalali === '1') return;
+            var cal = document.querySelector('#calendar_main .fc, .fc');
+            if (!cal) return;
+            if (cal.dataset.mtJalali === '1') { return; }
             cal.dataset.mtJalali = '1';
             cal.classList.add('mt-jalali');
 
             var apply = function () {
-                /* month title */
-                var title = cal.querySelector('.fc-center h2, .fc-toolbar .fc-title');
+                /* month title (old FullCalendar: .fc-header-title h2) */
+                var title = cal.querySelector('.fc-header-title h2, .fc-center h2, .fc-toolbar .fc-title');
                 var m = title ? title.textContent.match(/([A-Za-z]+)\s+(\d{4})/) : null;
                 if (m && title) {
                     var monthsEn = { January:1, February:2, March:3, April:4, May:5, June:6, July:7, August:8, September:9, October:10, November:11, December:12 };
                     var gm = monthsEn[m[1]], gy = +m[2];
                     if (gm) {
-                        var anchor = MT.toJalali(new Date(gy, gm - 1, 15));
                         var first = new Date(gy, gm - 1, 1);
                         var jf = MT.toJalali(first);
-                        var jy = jf.jm === 12 && anchor.jm === 1 ? anchor.jy - 1 : anchor.jy;
+                        var mid = MT.toJalali(new Date(gy, gm - 1, 15));
+                        var jy = jf.jm === 12 && mid.jm === 1 ? mid.jy - 1 : mid.jy;
                         title.innerHTML = MT.JMONTHS[jf.jm - 1] + ' ' + MT.faNum(jy) +
                             ' <small dir="ltr" class="mt-greg">' + m[1] + ' ' + m[2] + '</small>';
                     }
@@ -410,19 +410,19 @@
                     if (MT.GDAYS_SHORT[short] !== undefined) th.textContent = MT.GDAYS_SHORT[short];
                 });
                 /* day numbers + holiday highlight */
-                cal.querySelectorAll('.fc-day-number, .fc-content-skeleton td[data-date]').forEach(function () {});
-                cal.querySelectorAll('[data-date]').forEach(function (cell) {
+                cal.querySelectorAll('td[data-date]').forEach(function (cell) {
                     var parts = (cell.getAttribute('data-date') || '').split('-');
                     if (parts.length !== 3) return;
                     var dt = new Date(+parts[0], +parts[1] - 1, +parts[2]);
-                    var j = MT.toJalali(dt);
-                    var numHolder = cell.querySelector('.fc-day-number') || cell;
+                    var numHolder = cell.querySelector('.fc-day-number');
                     if (numHolder && !numHolder.dataset.mtJ) {
+                        var j0 = MT.toJalali(dt);
                         numHolder.dataset.mtJ = '1';
                         var g = numHolder.textContent.trim();
-                        numHolder.innerHTML = '<b class="mt-jday">' + MT.faNum(j.jd) + '</b><small class="mt-gday">' + g + '</small>';
+                        numHolder.innerHTML = '<b class="mt-jday">' + MT.faNum(j0.jd) + '</b><small class="mt-gday">' + g + '</small>';
                     }
-                    var hol = MT.holidayName(j.jy, j.jm, j.jd);
+                    var jd = MT.toJalali(dt);
+                    var hol = MT.holidayName(jd.jy, jd.jm, jd.jd);
                     cell.classList.toggle('mt-holiday', !!hol || dt.getDay() === 5);
                     if (hol) { cell.setAttribute('title', hol); cell.classList.add('mt-has-name'); }
                 });
@@ -430,8 +430,6 @@
             apply();
             setInterval(apply, 1500);
         };
-        setTimeout(function () {
-            if (location.search.indexOf('menu=calendar') !== -1) jalaliCalendar();
-        }, 1200);
+        setTimeout(jalaliCalendar, 1500);
     });
 })(jQuery);
