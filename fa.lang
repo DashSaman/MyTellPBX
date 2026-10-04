@@ -345,10 +345,7 @@ $arrLang=array(
 "VI Lookup" => "جستجوی تماس گیرنده",
 
 "Unembedded IssabelPBX" => "تنظیمات",
-'Beta Channel'=>'کانال بتا'
-
-
-
+'Beta Channel'=>'کانال بتا',
 
 /* ---- MyTel additions ---- */
 "Delete User" => "حذف کاربر",
