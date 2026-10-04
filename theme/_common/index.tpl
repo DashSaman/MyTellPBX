@@ -20,7 +20,7 @@
     /* MyTel chart brand remap — intercepts flot assignment itself, so the
        wrapper is installed no matter when the chart library loads. */
     (function () {
-        var MAP = {'#33cc33':'#27965A','#00cc00':'#27965A','#3da8fb':'#1E88E5','#2da8fb':'#1E88E5','#cb4b4b':'#FF8A00','#e8b800':'#FF8A00'};
+        var MAP = {'#33cc33':'#27965A','#00cc00':'#27965A','#3da8fb':'#1E88E5','#2da8fb':'#1E88E5','#cb4b4b':'#FF8A00','#e8b800':'#FF8A00','#0000cc':'#1E88E5','#cc0000':'#FF8A00','#edc240':'#FF8A00','#afd8f8':'#1E88E5'};
         function remap(c) { if (typeof c !== 'string') return c; var k = c.toLowerCase(); return MAP[k] || c; }
         function wrap(orig) {
             var f = function (el, data, opts) {
