@@ -182,7 +182,13 @@
         for (var p = 0; p < PATTERNS.length; p++) {
             txt = txt.replace(PATTERNS[p][0], PATTERNS[p][1]);
         }
-        if (txt !== orig) node.nodeValue = txt;
+        if (txt !== orig) node.nodeValue = bidiIsolate(txt);
+    }
+
+    /* wrap Latin runs in LRI..PDI so mixed Persian/English keeps logical order */
+    function bidiIsolate(s) {
+        if (!/[\u0600-\u06FF]/.test(s) || !/[A-Za-z]/.test(s)) return s;
+        return s.replace(/([A-Za-z0-9][A-Za-z0-9 ()\u2192._\/:+-]{0,48}[A-Za-z0-9)٪%]|[A-Za-z0-9]+)/g, "\u2066$1\u2069");
     }
 
     function swap(root) {
