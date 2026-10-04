@@ -105,6 +105,38 @@
         $(document).ajaxComplete(fixSpinners);
         setInterval(fixSpinners, 3000);
 
+        /* ---------- brand text substitution in module content ---------- */
+        var brandSwap = function (root) {
+            var walker = document.createTreeWalker(root, NodeFilter.SHOW_TEXT, null, false);
+            var node, txt;
+            while ((node = walker.nextNode())) {
+                txt = node.nodeValue;
+                if (txt && txt.indexOf('Elastix') !== -1) {
+                    node.nodeValue = txt.split('Elastix').join('MyTel');
+                }
+            }
+        };
+        var $content = $('.neo-module-content');
+        if ($content.length) brandSwap($content[0]);
+
+        /* ---------- LTR-isolate legacy help cells (mostly-Latin text) ---------- */
+        var latinRatio = function (s) {
+            var latin = (s.match(/[A-Za-z0-9]/g) || []).length;
+            return latin / Math.max(1, s.replace(/\s/g, '').length);
+        };
+        var isolateLtrCells = function (root) {
+            root.querySelectorAll('td').forEach(function (td) {
+                if (td.querySelector('input, select, textarea, button')) return;
+                var t = td.textContent.trim();
+                if (t.length > 40 && latinRatio(t) > 0.72) td.classList.add('mt-ltr');
+            });
+            root.querySelectorAll('.tabForm td i, .tabForm td em').forEach(function (el) {
+                var t = el.textContent.trim();
+                if (t.length > 20 && latinRatio(t) > 0.6) el.classList.add('mt-ltr');
+            });
+        };
+        if ($content.length) isolateLtrCells($content[0]);
+
         /* ---------- flot recolor: defaults are baked inside the closure,
            so recolor the live series after each plot ---------- */
         var CHART_MAP = {

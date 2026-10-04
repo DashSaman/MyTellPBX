@@ -478,6 +478,70 @@ table.dataTable tbody td { border-bottom: 1px solid var(--mt-border); padding: 9
 .neo-module-content img { max-width: 100%; }
 .neo-module-content .text-muted, .neo-module-content small { color: var(--mt-text-muted); }
 
+/* ============================================================
+   Legacy raw-module normalization (email, fax, old tables)
+   ============================================================ */
+
+/* legacy form tables become MyTel cards */
+table.tabForm, .neo-module-content > form > table {
+    width: 100%;
+    background: var(--mt-surface);
+    border: 1px solid var(--mt-border);
+    border-radius: var(--mt-radius-lg);
+    box-shadow: var(--mt-shadow-1);
+    padding: 6px 18px 16px;
+    border-collapse: separate;
+    border-spacing: 0;
+    margin: 10px 0;
+}
+table.tabForm > tbody > tr > td { padding: 9px 12px; vertical-align: middle; border: 0; }
+table.tabForm > tbody > tr > td:first-child { font-weight: 600; color: var(--mt-text); white-space: nowrap; }
+table.tabForm i { color: var(--mt-text-muted); }
+table.tabForm td i, .tabForm td em { display: block; }
+td.mt-ltr, .tabForm td.mt-ltr, i.mt-ltr {
+    direction: ltr !important;
+    text-align: left !important;
+    unicode-bidi: isolate;
+    font-style: italic;
+    color: var(--mt-text-muted);
+    font-size: var(--mt-fs-sm);
+    line-height: 1.7;
+}
+
+/* legacy raw submit buttons */
+.neo-module-content input[type="submit"]:not(.btn):not(.button) {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    font-family: var(--mt-font);
+    font-size: var(--mt-fs-md);
+    font-weight: 600;
+    padding: 8px 22px;
+    border-radius: var(--mt-radius-sm);
+    border: 1px solid var(--mt-primary);
+    background: var(--mt-primary);
+    color: #fff;
+    cursor: pointer;
+    transition: all var(--mt-speed) var(--mt-ease);
+}
+.neo-module-content input[type="submit"]:not(.btn):not(.button):hover { background: var(--mt-primary-strong); border-color: var(--mt-primary-strong); }
+
+/* legacy plain tables */
+.neo-module-content table[width]:not(.tabForm):not([id*="applet"]) {
+    border-collapse: collapse;
+}
+.neo-module-content table[width] td { padding: 4px 8px; }
+
+/* technical values keep LTR inside RTL forms */
+.neo-module-content input[type="text"].mt-tech, .neo-module-content .mt-tech {
+    direction: ltr;
+    text-align: right;
+    unicode-bidi: plaintext;
+}
+
+/* empty-state text */
+.neo-module-content .nodata, .neo-module-content td[colspan] { line-height: 1.9; }
+
 /* popup pages (no shell) */
 body.mt-popup-body {
     font-family: var(--mt-font);
