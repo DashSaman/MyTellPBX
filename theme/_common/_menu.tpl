@@ -196,7 +196,7 @@
    {/foreach}
    <li id="tenant-sticky" class="dropdown mt-sticky-toggle">
        <a id="togglestickynote1" href="#">
-           <i class="fa fa-sticky-note-o"></i>
+           <i class="fa fa-file-text-o"></i>
        </a>
    </li>
 </ol>
