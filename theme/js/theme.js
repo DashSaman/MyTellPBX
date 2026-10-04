@@ -383,13 +383,15 @@
             var vals = [];
             svgs.forEach(function (svg) {
                 var texts = svg.querySelectorAll('text');
-                var label = null, value = null;
+                var label = null, value = null, bestSize = -1;
                 texts.forEach(function (t) {
                     var txt = (t.textContent || '').trim();
-                    if (/^[A-Za-z]+$/.test(txt) && label === null) label = txt;
-                    if (/^\d+(\.\d+)?$/.test(txt)) value = parseFloat(txt);
+                    if (!txt) return;
+                    var fs = parseFloat((t.getAttribute('font-size') || t.style.fontSize || '0')) || 0;
+                    if (/^[A-Za-z]{3,6}$/.test(txt) && label === null) label = txt;
+                    if (/^\d+(\.\d+)?$/.test(txt) && fs > bestSize) { bestSize = fs; value = parseFloat(txt); }
                 });
-                if (label !== null && value !== null) vals.push({ name: label, value: value });
+                if (label !== null && value !== null && bestSize > 0) vals.push({ name: label, value: value });
             });
             if (vals.length < 3) return;
             var names = { CPU: 'پردازنده (CPU)', RAM: 'حافظه (RAM)', SWAP: 'حافظه مبادله‌ای (Swap)' };
@@ -400,6 +402,8 @@
             MyTelCharts.gauge(host, null, vals.map(function (v) {
                 return { name: names[v.name] || v.name, value: v.value, color: v.name === 'SWAP' ? MyTelCharts.T.accent : MyTelCharts.T.primary };
             }));
+            /* retire the legacy Raphael gauges (data now lives in the ECharts layer) */
+            full.querySelectorAll(':scope > svg, :scope table svg').forEach(function (svg) { svg.style.display = 'none'; });
             full.dataset.mtGauges = '1';
         };
         setTimeout(function () { migrateGauges(); setTimeout(migrateGauges, 5000); }, 4000);
