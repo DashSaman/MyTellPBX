@@ -104,5 +104,29 @@
         fixSpinners();
         $(document).ajaxComplete(fixSpinners);
         setInterval(fixSpinners, 3000);
+
+        /* ---------- flot recolor: defaults are baked inside the closure,
+           so recolor the live series after each plot ---------- */
+        var CHART_MAP = {
+            '#00cc00': '#27965A', '#33cc33': '#27965A', '#004ce0': '#1E88E5',
+            '#0000cc': '#1E88E5', '#3da8fb': '#1E88E5', '#afd8f8': '#1E88E5',
+            '#cc0000': '#FF8A00', '#cb4b4b': '#FF8A00', '#cb4b16': '#FF8A00',
+            '#edc240': '#FFB25C', '#e8b800': '#FFB25C'
+        };
+        var recolorFlot = function () {
+            $('#dashboard-applet-performancegraph').each(function () {
+                var plot = $(this).data('plot');
+                if (!plot) return;
+                var changed = false;
+                var series = plot.getData();
+                series.forEach(function (s) {
+                    var c = (typeof s.color === 'string' ? s.color : '').toLowerCase();
+                    if (CHART_MAP[c] && s.color !== CHART_MAP[c]) { s.color = CHART_MAP[c]; changed = true; }
+                });
+                if (changed) { try { plot.setupGrid(); plot.draw(); } catch (e) {} }
+            });
+        };
+        $(document).ajaxComplete(function () { setTimeout(recolorFlot, 300); });
+        setInterval(recolorFlot, 2500);
     });
 })(jQuery);
