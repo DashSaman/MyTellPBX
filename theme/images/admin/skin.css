@@ -1,0 +1,55 @@
+/* MyTel skin for the IssabelPBX (Bulma) admin — loaded via BRAND_CSS_CUSTOM */
+
+@font-face {
+    font-family: 'Vazirmatn';
+    src: url('/themes/mytel/fonts/vazirmatn/Vazirmatn-var.woff2') format('woff2-variations');
+    font-weight: 100 900;
+    font-style: normal;
+    font-display: swap;
+}
+
+:root {
+    --mt-navy: #0B1526;
+    --mt-primary: #2E3194;
+    --mt-primary-strong: #26287C;
+    --mt-accent: #FF8A00;
+    --mt-text: #232A35;
+}
+
+body { font-family: 'Vazirmatn', Tahoma, Arial, sans-serif; color: var(--mt-text); }
+
+/* navbar */
+.navbar.is-dark {
+    background: linear-gradient(90deg, var(--mt-navy) 0%, #142441 100%);
+}
+.navbar.is-dark .navbar-item, .navbar.is-dark .navbar-link {
+    color: #AAB6CE;
+    font-weight: 600;
+}
+.navbar.is-dark .navbar-item:hover, .navbar.is-dark .navbar-link:hover,
+.navbar.is-dark .navbar-item.is-active, .navbar.is-dark a.navbar-item.is-tab.is-active {
+    color: #fff;
+    background: rgba(255,255,255,.07);
+}
+.navbar.is-dark .navbar-link::after { border-color: #AAB6CE; }
+.navbar.has-shadow { box-shadow: 0 2px 10px rgba(8,15,28,.25) !important; }
+
+#MENU_BRAND_IMAGE_TANGO_LEFT { height: 40px; width: auto; }
+
+/* buttons */
+.button.is-primary { background: var(--mt-primary); border-color: var(--mt-primary); }
+.button.is-primary:hover, .button.is-primary.is-hovered { background: var(--mt-primary-strong); border-color: var(--mt-primary-strong); }
+.button.is-link { background: transparent; border-color: transparent; color: var(--mt-primary); }
+.button { border-radius: 6px; font-weight: 600; }
+
+/* links + titles */
+a { color: var(--mt-primary); }
+.title, .subtitle { color: var(--mt-text); }
+.title strong, .title { font-weight: 700; }
+
+/* footer */
+#footer_logo1 { height: 34px; width: auto; }
+
+/* tables / boxes accents */
+.table th { font-weight: 700; }
+.box { border-radius: 10px; box-shadow: 0 1px 3px rgba(11,21,38,.07); border: 1px solid #E3E7EE; }
