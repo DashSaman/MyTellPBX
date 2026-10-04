@@ -426,6 +426,12 @@
             host.style.cssText = 'width:100%;height:90px;';
             full.insertBefore(host, full.firstChild);
             MyTelCharts.bars(host, null, [{ name: '/', used: used, total: total, unit: 'GB' }]);
+            /* retire the legacy flot donut + floating legend */
+            full.querySelectorAll('canvas').forEach(function (cv) { cv.style.display = 'none'; });
+            full.querySelectorAll('.ui-widget-content, .legend, [style*="float"]').forEach(function (el) {
+                if (el.closest('.mt-echart')) return;
+                el.style.display = 'none';
+            });
             full.dataset.mtDisks = '1';
         };
         setTimeout(function () { migrateDisks(); setTimeout(migrateDisks, 5000); }, 4500);
