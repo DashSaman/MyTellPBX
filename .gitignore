@@ -5,3 +5,6 @@ shots/
 *.tar.gz
 Thumbs.db
 .mimosa/
+fa-orig.lang
+en-orig.lang
+reference-*.txt
