@@ -273,6 +273,37 @@
             if (c) brandSwap(c);
         }, 3000);
 
+        /* ---------- submit inputs whose label is an untranslated value:
+           swap to a Persian button + a hidden input preserving name/value ---------- */
+        var swapSubmitLabels = function (root) {
+            root.querySelectorAll('input[type=submit], input[type=button]').forEach(function (inp) {
+                var fa = TEXT_MAP[inp.value];
+                if (!fa || inp.dataset.mtSwapped) return;
+                inp.dataset.mtSwapped = '1';
+                if (inp.type === 'button') { inp.value = fa; return; }
+                var btn = document.createElement('button');
+                btn.type = 'submit';
+                btn.className = inp.className + ' mt-fa-submit';
+                btn.textContent = fa;
+                btn.name = inp.name || '';
+                btn.value = inp.value;
+                var hidden = document.createElement('input');
+                hidden.type = 'hidden';
+                hidden.name = inp.name || '';
+                hidden.value = inp.value;
+                inp.parentNode.insertBefore(btn, inp);
+                inp.parentNode.insertBefore(hidden, inp);
+                inp.remove();
+            });
+        };
+        if ($content.length) setTimeout(function () { swapSubmitLabels($content[0]); }, 700);
+        $(document).ajaxComplete(function () {
+            setTimeout(function () {
+                var c = document.querySelector('.neo-module-content');
+                if (c) swapSubmitLabels(c);
+            }, 400);
+        });
+
         /* ---------- LTR-isolate legacy help cells (mostly-Latin text) ---------- */
         var latinRatio = function (s) {
             var latin = (s.match(/[A-Za-z0-9]/g) || []).length;
