@@ -57,11 +57,14 @@
 #neo-contentbox .imageSpin { animation: mt-rotate 1.1s linear infinite; }
 @keyframes mt-rotate { to { transform: rotate(360deg); } }
 
-/* gauges + donuts: shift stock olive/purple into brand hues (grays unaffected) */
+/* gauges + donuts: shift stock lime/purple into brand hues (grays unaffected) */
 #neo-contentbox #Applet_SystemResources svg,
+#neo-contentbox #Applet_SystemResources canvas {
+    filter: hue-rotate(130deg) saturate(1.12);
+}
 #neo-contentbox #Applet_HardDrives svg,
 #neo-contentbox #Applet_HardDrives canvas {
-    filter: hue-rotate(130deg) saturate(1.12);
+    filter: hue-rotate(-40deg) saturate(1.15);
 }
 
 /* hard drives applet legend box */

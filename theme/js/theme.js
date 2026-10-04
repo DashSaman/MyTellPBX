@@ -104,11 +104,5 @@
         fixSpinners();
         $(document).ajaxComplete(fixSpinners);
         setInterval(fixSpinners, 3000);
-
-        /* redraw the performance chart with brand colors (wrap installs early) */
-        setTimeout(function () {
-            var $ref = $('#portlet-Applet_PerformanceGraphic .appletwindow_topbar a:has(i.fa-refresh)').first();
-            if ($ref.length) $ref.trigger('click');
-        }, 1200);
     });
 })(jQuery);

@@ -15,6 +15,7 @@
     <link rel="stylesheet" media="screen" type="text/css" href="{$WEBPATH}libs/js/sticky_note/sticky_note.css" >
 
     {$HEADER_LIBS_JQUERY}
+    {literal}
     <script>
     /* MyTel chart brand remap: wraps chart entry points as soon as they exist */
     (function () {
@@ -38,6 +39,7 @@
         setTimeout(function () { clearInterval(iv); }, 8000);
     })();
     </script>
+    {/literal}
     <script src="libs/js/base.js"></script>
     <script src="libs/js/sticky_note/sticky_note.js"></script>
     <script src="libs/js/iframe.js"></script>
