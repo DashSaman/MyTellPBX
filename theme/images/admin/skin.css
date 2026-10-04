@@ -53,3 +53,16 @@ a { color: var(--mt-primary); }
 /* tables / boxes accents */
 .table th { font-weight: 700; }
 .box { border-radius: 10px; box-shadow: 0 1px 3px rgba(11,21,38,.07); border: 1px solid #E3E7EE; }
+
+/* de-purple: replace the stock IssabelPBX violet with MyTel brand hues */
+.navbar { border-bottom: 0 !important; }
+#footer { border-top: 3px solid var(--mt-primary) !important; }
+a, .navbar-item.is-active, .is-purple { color: var(--mt-primary) !important; }
+.bg-purple, .panel-purple, .navbar-purple { background: var(--mt-primary) !important; }
+.text-purple, .is-purple-text { color: var(--mt-primary) !important; }
+.button.is-info, .btn-info { background: var(--mt-blue, #1E88E5); border-color: #1E88E5; }
+input[type="submit"], button[type="submit"].button { border-radius: 6px; }
+
+/* sweetalert + grid accents */
+.swal2-confirm { background: var(--mt-primary) !important; }
+.pagination-link.is-current { background: var(--mt-primary); border-color: var(--mt-primary); }
