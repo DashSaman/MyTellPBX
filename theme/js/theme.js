@@ -95,5 +95,20 @@
             clearTimeout(unclipTimer);
             unclipTimer = setTimeout(unclip, 250);
         });
+
+        /* ---------- brand spinner: replace stock logo wait images ---------- */
+        var fixSpinners = function () {
+            $('.appletwindow_wait img[src*="issabel_logo_pattern"], img.imageSpin[src*="issabel_logo_pattern"]')
+                .attr('src', '/themes/mytel/images/mt-spinner.svg');
+        };
+        fixSpinners();
+        $(document).ajaxComplete(fixSpinners);
+        setInterval(fixSpinners, 3000);
+
+        /* redraw the performance chart with brand colors (wrap installs early) */
+        setTimeout(function () {
+            var $ref = $('#portlet-Applet_PerformanceGraphic .appletwindow_topbar a:has(i.fa-refresh)').first();
+            if ($ref.length) $ref.trigger('click');
+        }, 1200);
     });
 })(jQuery);

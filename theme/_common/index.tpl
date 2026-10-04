@@ -11,9 +11,33 @@
     <link rel="stylesheet" href="{$WEBPATH}themes/{$THEMENAME}/css/tokens.css">
     <link rel="stylesheet" href="{$WEBPATH}themes/{$THEMENAME}/css/base.css">
     <link rel="stylesheet" href="{$WEBPATH}themes/{$THEMENAME}/css/components.css">
+    <link rel="stylesheet" href="{$WEBPATH}themes/{$THEMENAME}/css/applet.css">
     <link rel="stylesheet" media="screen" type="text/css" href="{$WEBPATH}libs/js/sticky_note/sticky_note.css" >
 
     {$HEADER_LIBS_JQUERY}
+    <script>
+    /* MyTel chart brand remap: wraps chart entry points as soon as they exist */
+    (function () {
+        var MAP = {'#33cc33':'#27965A','#00cc00':'#27965A','#3da8fb':'#1E88E5','#2da8fb':'#1E88E5','#cb4b4b':'#FF8A00','#e8b800':'#FF8A00'};
+        function remap(c) { if (typeof c !== 'string') return c; var k = c.toLowerCase(); return MAP[k] || c; }
+        var iv = setInterval(function () {
+            if (window.jQuery && jQuery.plot && !jQuery.plot.__mt) {
+                var orig = jQuery.plot;
+                jQuery.plot = function (el, data, opts) {
+                    try {
+                        if (data) data = data.map(function (s) { if (s && s.color) s.color = remap(s.color); return s; });
+                        if (opts && opts.colors) opts.colors = opts.colors.map(remap);
+                        if (opts && opts.yaxes) opts.yaxes.forEach(function (ax) { if (ax && ax.font) ax.font.color = remap(ax.font.color); });
+                    } catch (e) {}
+                    return orig.apply(this, arguments);
+                };
+                jQuery.plot.__mt = true;
+                clearInterval(iv);
+            }
+        }, 15);
+        setTimeout(function () { clearInterval(iv); }, 8000);
+    })();
+    </script>
     <script src="libs/js/base.js"></script>
     <script src="libs/js/sticky_note/sticky_note.js"></script>
     <script src="libs/js/iframe.js"></script>

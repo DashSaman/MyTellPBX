@@ -1,0 +1,88 @@
+/* ============================================================
+   MyTel applet chrome — dashboard widgets (overrides module css
+   via #neo-contentbox specificity). RTL-first.
+   ============================================================ */
+
+#neo-contentbox #applet_grid {
+    width: 100% !important;
+    border-collapse: separate !important;
+    border-spacing: 12px 0 !important;
+    margin: 0 -12px;
+    box-shadow: none;
+    background: none;
+}
+#neo-contentbox .appletcolumn { padding: 0 !important; vertical-align: top; }
+
+/* applet card */
+#neo-contentbox .appletwindow {
+    background: var(--mt-surface);
+    border: 1px solid var(--mt-border);
+    border-radius: var(--mt-radius-lg);
+    box-shadow: var(--mt-shadow-1);
+    margin-bottom: 12px;
+    overflow: hidden;
+}
+#neo-contentbox .appletwindow_topbar {
+    background: var(--mt-surface-2);
+    border-bottom: 1px solid var(--mt-border);
+    padding: 0 16px;
+    height: 44px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+}
+#neo-contentbox .appletwindow_title {
+    font-weight: 700;
+    font-size: var(--mt-fs-md);
+    color: var(--mt-text);
+    float: none !important;
+}
+#neo-contentbox .appletwindow_widgets { float: none !important; }
+#neo-contentbox .appletwindow_widgets a {
+    color: var(--mt-text-faint);
+    font-size: 14px;
+    padding: 4px 6px;
+    border-radius: var(--mt-radius-sm);
+    transition: color var(--mt-speed) var(--mt-ease), background var(--mt-speed) var(--mt-ease);
+}
+#neo-contentbox .appletwindow_widgets a:hover { color: var(--mt-primary); background: var(--mt-primary-tint); }
+#neo-contentbox .appletwindow_widgets a i { color: inherit !important; }
+
+#neo-contentbox .appletwindow_content { padding: 6px 16px 12px; }
+#neo-contentbox .appletwindow_fullcontent { padding: 10px 6px 8px; }
+#neo-contentbox .appletwindow_content table { box-shadow: none; background: none; }
+
+/* wait overlay spinner */
+#neo-contentbox .appletwindow_wait { text-align: center; padding: 18px; }
+#neo-contentbox .imageSpin { animation: mt-rotate 1.1s linear infinite; }
+@keyframes mt-rotate { to { transform: rotate(360deg); } }
+
+/* gauges + donuts: shift stock olive/purple into brand hues (grays unaffected) */
+#neo-contentbox #Applet_SystemResources svg,
+#neo-contentbox #Applet_HardDrives svg,
+#neo-contentbox #Applet_HardDrives canvas {
+    filter: hue-rotate(130deg) saturate(1.12);
+}
+
+/* hard drives applet legend box */
+#neo-contentbox #Applet_HardDrives .ui-widget-content,
+#neo-contentbox #Applet_HardDrives .ui-corner-all {
+    border-radius: var(--mt-radius-sm);
+    font-family: var(--mt-font);
+}
+
+/* processes status rows */
+#neo-contentbox #Applet_ProcessesStatus table td { border-bottom: 1px solid var(--mt-border); padding: 8px 6px; }
+#neo-contentbox #Applet_ProcessesStatus table tr:last-child td { border-bottom: 0; }
+#neo-contentbox #Applet_ProcessesStatus select { height: 28px; font-size: var(--mt-fs-sm); }
+
+/* communication activity */
+#neo-contentbox #Applet_CommunicationActivity td { padding: 6px 8px; vertical-align: top; }
+#neo-contentbox #Applet_CommunicationActivity b, #neo-contentbox #Applet_CommunicationActivity strong { font-weight: 600; }
+
+/* flot chart container */
+#neo-contentbox .dashboard-applet-performancegraph, #neo-contentbox [id*="performancegraph"] { font-family: var(--mt-font); }
+#neo-contentbox .legend > div { box-shadow: none !important; border: 0 !important; background: transparent !important; }
+
+/* news applet removed (external Issabel feed) */
+#neo-contentbox #portlet-Applet_News { display: none !important; }
