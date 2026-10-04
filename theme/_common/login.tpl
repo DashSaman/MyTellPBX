@@ -6,7 +6,7 @@
 	<meta name="viewport" content="width=device-width, initial-scale=1.0" />
 	<meta name="description" content="سامانه مدیریت مرکز تماس" />
 	<title>مای‌تل | سامانه مدیریت مرکز تماس</title>
-	<link rel="shortcut icon" href="{$WEBPATH}themes/{$THEMENAME}/images/favicon.ico" />
+	<link rel="shortcut icon" href="{$WEBPATH}themes/{$THEMENAME}/images/favicon.png" />
 	<link rel="stylesheet" href="{$WEBPATH}themes/{$THEMENAME}/css/fonts.css">
 	<link rel="stylesheet" href="{$WEBPATH}themes/{$THEMENAME}/css/tokens.css">
 	<link rel="stylesheet" href="{$WEBPATH}themes/{$THEMENAME}/css/login.css">

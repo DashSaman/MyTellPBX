@@ -4,3 +4,4 @@ shots/
 *.tgz
 *.tar.gz
 Thumbs.db
+.mimosa/
