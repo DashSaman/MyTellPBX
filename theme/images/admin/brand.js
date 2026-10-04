@@ -1,7 +1,7 @@
 /* MyTel brand text layer for the IssabelPBX admin (presentation-only substitution). */
 (function () {
     "use strict";
-    var MAP = { "IssabelPBX": "MyTel PBX", "Issabel PBX": "MyTel PBX", "FreePBX": "MyTel PBX" };
+    var MAP = { "IssabelPBX": "MyTel PBX", "Issabel PBX": "MyTel PBX", "Issabel Foundation": "MyTel", "FreePBX": "MyTel PBX", "Issabel": "MyTel", "Elastix": "MyTel" };
 
     function swap(root) {
         var walker = document.createTreeWalker(root, NodeFilter.SHOW_TEXT, null, false);
