@@ -1,0 +1,42 @@
+/* Glyphicons (Bootstrap icon font) — needed by legacy DataTables buttons.
+   Font file lives locally at ../fonts/glyphicons-halflings-regular.woff2 */
+@font-face {
+    font-family: 'Glyphicons Halflings';
+    src: url('../fonts/glyphicons-halflings-regular.woff') format('woff');
+    font-display: block;
+}
+.glyphicon {
+    position: relative;
+    top: 1px;
+    display: inline-block;
+    font-family: 'Glyphicons Halflings';
+    font-style: normal;
+    font-weight: 400;
+    line-height: 1;
+    -webkit-font-smoothing: antialiased;
+}
+.glyphicon-eye-open:before { content: "\e105"; }
+.glyphicon-check:before { content: "\e067"; }
+.glyphicon-unchecked:before { content: "\e157"; }
+.glyphicon-stats:before { content: "\e185"; }
+.glyphicon-filter:before { content: "\e138"; }
+.glyphicon-download-alt:before { content: "\e025"; }
+.glyphicon-refresh:before { content: "\e031"; }
+.glyphicon-trash:before { content: "\e020"; }
+.glyphicon-pencil:before { content: "\270f"; }
+.glyphicon-plus:before { content: "\2b"; }
+.glyphicon-search:before { content: "\e003"; }
+.glyphicon-cog:before { content: "\e019"; }
+.glyphicon-remove:before { content: "\e014"; }
+.glyphicon-ok:before { content: "\e013"; }
+.glyphicon-warning-sign:before { content: "\e107"; }
+.glyphicon-info-sign:before { content: "\e086"; }
+.glyphicon-play:before { content: "\e072"; }
+.glyphicon-pause:before { content: "\e073"; }
+.glyphicon-stop:before { content: "\e074"; }
+.glyphicon-arrow-left:before { content: "\e091"; }
+.glyphicon-arrow-right:before { content: "\e092"; }
+.glyphicon-chevron-left:before { content: "\e079"; }
+.glyphicon-chevron-right:before { content: "\e080"; }
+.glyphicon-chevron-down:before { content: "\e114"; }
+.glyphicon-chevron-up:before { content: "\e113"; }

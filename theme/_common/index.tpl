@@ -8,6 +8,7 @@
     <link rel="icon" type="image/svg+xml" href="{$WEBPATH}themes/{$THEMENAME}/images/mytel-emblem.svg" />
 
     <link rel="stylesheet" href="{$WEBPATH}themes/{$THEMENAME}/css/fonts.css">
+    <link rel="stylesheet" href="{$WEBPATH}themes/{$THEMENAME}/css/glyphicons.css">
     <link rel="stylesheet" href="{$WEBPATH}themes/{$THEMENAME}/css/tokens.css">
     <link rel="stylesheet" href="{$WEBPATH}themes/{$THEMENAME}/css/base.css">
     <link rel="stylesheet" href="{$WEBPATH}themes/{$THEMENAME}/css/components.css">

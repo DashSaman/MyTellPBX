@@ -80,6 +80,11 @@
     border-radius: var(--mt-radius-sm);
     font-family: var(--mt-font);
 }
+#neo-contentbox #Applet_HardDrives .ui-widget-content {
+    float: none !important;
+    position: relative !important;
+    margin: 0 auto 12px !important;
+}
 
 /* processes status rows */
 #neo-contentbox #Applet_ProcessesStatus table td { border-bottom: 1px solid var(--mt-border); padding: 8px 6px; }
