@@ -3,6 +3,30 @@
 (function ($) {
     "use strict";
 
+    /* ---------- capture Chart.js instances at construction time
+       (legacy Chart.js lacks Chart.getChart; wrap the constructor) ---------- */
+    (function wrapChartJs() {
+        var iv = setInterval(function () {
+            if (!window.Chart || window.Chart.__mtWrapped) { if (window.Chart && window.Chart.__mtWrapped) clearInterval(iv); return; }
+            try {
+                var Orig = window.Chart;
+                var Wrapped = function (ctx, cfg) {
+                    var inst = new Orig(ctx, cfg);
+                    try {
+                        var cv = (ctx && ctx.canvas) ? ctx.canvas : ctx;
+                        if (cv && cv.tagName === 'CANVAS') cv.__mtChart = inst;
+                    } catch (e) {}
+                    return inst;
+                };
+                Wrapped.prototype = Orig.prototype;
+                Object.keys(Orig).forEach(function (k) { try { Wrapped[k] = Orig[k]; } catch (e) {} });
+                Wrapped.__mtWrapped = true;
+                window.Chart = Wrapped;
+            } catch (e) {}
+        }, 10);
+        setTimeout(function () { clearInterval(iv); }, 10000);
+    })();
+
     /* ============ Jalali (Solar Hijri) date core ============ */
     var MT = window.MTJalali = (function () {
         var div = function (a, b) { return ~~(a / b); };
@@ -441,7 +465,7 @@
            read the existing Chart instance data and re-render with ECharts ---- */
         var migrateChartJs = function (canvas) {
             if (!E() || !window.Chart || canvas.dataset.mtDone === '1') return;
-            var inst = window.Chart.getChart ? window.Chart.getChart(canvas) : null;
+            var inst = canvas.__mtChart || (window.Chart.getChart ? window.Chart.getChart(canvas) : null);
             if (!inst) return;
             var cfg = inst.config;
             var labels = (cfg.data && cfg.data.labels) || [];
