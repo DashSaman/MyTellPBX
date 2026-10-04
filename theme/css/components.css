@@ -449,6 +449,7 @@ a.list-group-item:hover { background: var(--mt-primary-tint); }
 /* let wide tables scroll instead of collapsing every column (Responsive) */
 .dataTables_wrapper { overflow-x: auto; }
 .dataTables_wrapper table.dataTable { min-width: 1100px; }
+tr.mt-empty-placeholder { display: none !important; }
 .dataTables_wrapper .dataTables_filter input { font-family: var(--mt-font); border: 1px solid var(--mt-border-strong); border-radius: var(--mt-radius-sm); padding: 5px 10px; outline: none; }
 .dataTables_wrapper .dataTables_length select { border: 1px solid var(--mt-border-strong); border-radius: var(--mt-radius-sm); padding: 3px 6px; font-family: var(--mt-font); }
 .dataTables_wrapper .dataTables_paginate .paginate_button { border-radius: var(--mt-radius-sm) !important; border: 1px solid var(--mt-border-strong) !important; background: var(--mt-surface) !important; color: var(--mt-text) !important; margin-inline-start: 4px; }

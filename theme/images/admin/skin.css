@@ -63,6 +63,18 @@ a { color: var(--mt-primary); }
 .text-purple, .is-purple-text { color: var(--mt-primary) !important; }
 .button.is-info, .btn-info { background: #1E88E5; border-color: #1E88E5; }
 .button.is-danger { background: var(--mt-accent) !important; border-color: var(--mt-accent) !important; }
+
+/* right-nav panel buttons (Add / Submit / Reset / Back) — readable, brand */
+a.button.is-link, button.button.is-link, input.button.is-link {
+    background: #fff !important;
+    color: var(--mt-primary) !important;
+    border: 1px solid var(--mt-border, #E3E7EE) !important;
+}
+a.button.is-link:hover, button.button.is-link:hover, input.button.is-link:hover {
+    background: var(--mt-primary) !important;
+    color: #fff !important;
+    border-color: var(--mt-primary) !important;
+}
 input[type="submit"], button[type="submit"].button { border-radius: 6px; }
 
 /* sweetalert + grid accents */

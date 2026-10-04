@@ -128,5 +128,20 @@
         };
         $(document).ajaxComplete(function () { setTimeout(recolorFlot, 300); });
         setInterval(recolorFlot, 2500);
+
+        /* ---------- hide the upstream hardcoded placeholder row in the
+           CDR datatables template (a row of fully empty <td>s) ---------- */
+        var hideEmptyPlaceholderRows = function () {
+            $('.dataTables_wrapper table tbody tr').each(function () {
+                var $tr = $(this);
+                if ($tr.hasClass('child') || $tr.hasClass('group')) return;
+                var tds = $tr.find('td').not('.dtr-control');
+                if (tds.length && tds.toArray().every(function (td) { return !$(td).text().trim() && !$(td).children().length; })) {
+                    $tr.addClass('mt-empty-placeholder');
+                }
+            });
+        };
+        $(document).ajaxComplete(function () { setTimeout(hideEmptyPlaceholderRows, 250); });
+        setTimeout(hideEmptyPlaceholderRows, 1500);
     });
 })(jQuery);
