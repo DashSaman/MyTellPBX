@@ -237,6 +237,44 @@ img[class*=help], span.help-circle { filter: hue-rotate(255deg) saturate(.9); }
 /* ---------- grid type pages (extensions list etc.) ---------- */
 .typegrid, .type-grid { border-radius: 10px; }
 span.grid-icon img { border-radius: 8px; }
+
+/* ---------- radiotoggle (SIP settings yes/no pills) ---------- */
+.radiotoggle { display: inline-flex; gap: 2px; }
+.radiotoggle input[type=radio] { position: absolute; opacity: 0; pointer-events: none; }
+.radiotoggle label {
+    background: #F8F9FC !important;
+    color: #232A35 !important;
+    border: 1px solid #CBD2DD !important;
+    border-radius: 6px !important;
+    padding: 4px 14px !important;
+    font-weight: 500 !important;
+    cursor: pointer;
+    text-shadow: none !important;
+    box-shadow: none !important;
+}
+.radiotoggle label:hover { border-color: #4A4DB8 !important; color: #26287C !important; }
+.radiotoggle input:checked + label,
+.radiotoggle label.on, .radiotoggle label.checked {
+    background: #2E3194 !important;
+    color: #fff !important;
+    border-color: #2E3194 !important;
+    font-weight: 700 !important;
+}
+.radiotoggle input:focus-visible + label { box-shadow: 0 0 0 3px #DDDEF5 !important; }
+
+/* ---------- checkbox pills (module repos etc.) ---------- */
+label.is-checkbox {
+    background: #fff !important;
+    border: 1px solid #CBD2DD !important;
+    color: #232A35 !important;
+    border-radius: 999px !important;
+}
+label.is-checkbox:has(input:checked),
+label.is-checkbox.checked {
+    background: #2E3194 !important;
+    border-color: #2E3194 !important;
+    color: #fff !important;
+}
 input[type="submit"], button[type="submit"].button { border-radius: 6px; }
 
 /* sweetalert + grid accents */
