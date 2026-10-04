@@ -248,7 +248,11 @@
             "You must insert one IP per row. We recommend keeping localhost and 127.0.0.1 in the configuration because some processes could need them.": "هر نشانی IP را در یک سطر جدا وارد کنید. نگه‌داشتن localhost و 127.0.0.1 ضروری است، چون برخی فرایندهای داخلی سامانه به آن‌ها نیاز دارند.",
             /* email template subjects */
             "Fax Issabel": "فکس مای‌تل",
-            "Fax attached (ID: {NAME_PDF})": "فکس پیوست شد (شناسه: {NAME_PDF})"
+            "Fax attached (ID: {NAME_PDF})": "فکس پیوست شد (شناسه: {NAME_PDF})",
+            /* backup_restore toolbar (untranslated in module) */
+            "Upload": "بارگذاری",
+            "Delete backups older than": "حذف پشتیبان‌های قدیمی‌تر از",
+            "New backup": "پشتیبان جدید"
         };
         var brandSwap = function (root) {
             var walker = document.createTreeWalker(root, NodeFilter.SHOW_TEXT, null, false);
