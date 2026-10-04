@@ -153,6 +153,12 @@ body.mt-login-body {
     gap: 8px;
 }
 .mt-login-foot span:first-child { font-weight: 700; color: var(--mt-text-muted); }
+.mt-login-foot .mt-foot-link {
+    font-weight: 700;
+    color: var(--mt-text-muted);
+    transition: color var(--mt-speed) var(--mt-ease);
+}
+.mt-login-foot .mt-foot-link:hover { color: var(--mt-primary); }
 
 @media (max-width: 900px) {
     .mt-login-brandpane { display: none; }

@@ -7,9 +7,9 @@
 	<meta name="description" content="سامانه مدیریت مرکز تماس" />
 	<title>مای‌تل | سامانه مدیریت مرکز تماس</title>
 	<link rel="shortcut icon" href="{$WEBPATH}themes/{$THEMENAME}/images/favicon.png" />
-	<link rel="stylesheet" href="{$WEBPATH}themes/{$THEMENAME}/css/fonts.css?v=19">
-	<link rel="stylesheet" href="{$WEBPATH}themes/{$THEMENAME}/css/tokens.css?v=19">
-	<link rel="stylesheet" href="{$WEBPATH}themes/{$THEMENAME}/css/login.css?v=19">
+	<link rel="stylesheet" href="{$WEBPATH}themes/{$THEMENAME}/css/fonts.css?v=20">
+	<link rel="stylesheet" href="{$WEBPATH}themes/{$THEMENAME}/css/tokens.css?v=20">
+	<link rel="stylesheet" href="{$WEBPATH}themes/{$THEMENAME}/css/login.css?v=20">
 	{$HEADER_LIBS_JQUERY}
 </head>
 <body class="mt-login-body">
@@ -66,9 +66,9 @@
 			</form>
 
 			<div class="mt-login-foot">
-				<span>مای‌تل</span>
+				<a href="https://mytel.one" target="_blank" rel="noopener" class="mt-foot-link">مای‌تل</a>
 				<span class="mt-dot">&bull;</span>
-				<span>&copy; {$currentyear}</span>
+				<span dir="rtl">&copy; ۲۰۰۵–۲۰۲۷</span>
 			</div>
 
 		</div>
