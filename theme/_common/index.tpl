@@ -17,26 +17,37 @@
     {$HEADER_LIBS_JQUERY}
     {literal}
     <script>
-    /* MyTel chart brand remap: wraps chart entry points as soon as they exist */
+    /* MyTel chart brand remap — intercepts flot assignment itself, so the
+       wrapper is installed no matter when the chart library loads. */
     (function () {
         var MAP = {'#33cc33':'#27965A','#00cc00':'#27965A','#3da8fb':'#1E88E5','#2da8fb':'#1E88E5','#cb4b4b':'#FF8A00','#e8b800':'#FF8A00'};
         function remap(c) { if (typeof c !== 'string') return c; var k = c.toLowerCase(); return MAP[k] || c; }
+        function wrap(orig) {
+            var f = function (el, data, opts) {
+                try {
+                    if (data && data.map) data = data.map(function (s) { if (s && s.color) s.color = remap(s.color); return s; });
+                    if (opts && opts.colors) opts.colors = opts.colors.map(remap);
+                    if (opts && opts.yaxes) opts.yaxes.forEach(function (ax) { if (ax && ax.font) ax.font.color = remap(ax.font.color); });
+                } catch (e) {}
+                return orig.apply(this, arguments);
+            };
+            f.__mt = true;
+            return f;
+        }
         var iv = setInterval(function () {
-            if (window.jQuery && jQuery.plot && !jQuery.plot.__mt) {
-                var orig = jQuery.plot;
-                jQuery.plot = function (el, data, opts) {
-                    try {
-                        if (data) data = data.map(function (s) { if (s && s.color) s.color = remap(s.color); return s; });
-                        if (opts && opts.colors) opts.colors = opts.colors.map(remap);
-                        if (opts && opts.yaxes) opts.yaxes.forEach(function (ax) { if (ax && ax.font) ax.font.color = remap(ax.font.color); });
-                    } catch (e) {}
-                    return orig.apply(this, arguments);
-                };
-                jQuery.plot.__mt = true;
-                clearInterval(iv);
-            }
-        }, 15);
-        setTimeout(function () { clearInterval(iv); }, 8000);
+            if (!window.jQuery || jQuery.plot === undefined || jQuery.plot === null) return;
+            if (jQuery.plot.__mt) { clearInterval(iv); return; }
+            try {
+                var real = jQuery.plot;
+                Object.defineProperty(jQuery, 'plot', {
+                    configurable: true,
+                    get: function () { return real.__mt ? real : (real = wrap(real)); },
+                    set: function (fn) { real = fn && fn.__mt ? fn : wrap(fn); }
+                });
+            } catch (e) { jQuery.plot = wrap(jQuery.plot); }
+            clearInterval(iv);
+        }, 5);
+        setTimeout(function () { clearInterval(iv); }, 15000);
     })();
     </script>
     {/literal}
