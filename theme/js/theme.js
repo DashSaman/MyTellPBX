@@ -447,7 +447,14 @@
                 '</div>';
             parent.insertBefore(dash, grid);
         };
+        /* applets can arrive long after ready (ajax menu navigation) —
+           keep looking for the grid until the shell is in place */
         dashInit();
+        var dashTries = 0;
+        var dashIv = setInterval(function () {
+            dashInit();
+            if (document.getElementById('mt-dash') || ++dashTries > 40) clearInterval(dashIv);
+        }, 1200);
 
         /* ---- 1) dashboard performance chart: flot data -> ECharts line ---- */
         var mtPerf = null;
@@ -585,10 +592,37 @@
         setInterval(sysTick, 30000); /* JustGage values settle after first paint */
         $(document).ajaxComplete(function () { setTimeout(sysTick, 1200); });
 
-        /* ---- 2c) sidebar surgery: hide the same-named first child every
-           expandable item ships, drop the "میز کار" item (replaced by the
-           custom dashboard), and insert faint group labels so ten root
-           items read as organized sections ---- */
+        /* ---- 2c) sidebar surgery: a dedicated root «داشبورد» entry at the
+           top of the menu (the custom control-room landing), the system
+           status page renamed «داشبورد سیستم», duplicate legacy dashboard
+           links hidden, same-named first children deduped, and faint group
+           labels so root items read as organized sections ---- */
+        document.querySelectorAll('.mt-sidebar #main-menu li').forEach(function (li) {
+            var a = li.querySelector(':scope > a');
+            if (!a) return;
+            var href = a.getAttribute('href') || '';
+            var span = a.querySelector('span') || a;
+            if ((a.textContent || '').trim() === 'میز کار' && /menu=sysdash/.test(href)) {
+                span.textContent = 'داشبورد سیستم';
+                li.style.display = '';
+            } else if (/menu=dashboard/.test(href) && !li.dataset.mtDashRoot) {
+                li.style.display = 'none'; /* covered by the root entry below */
+            }
+        });
+        (function addDashboardRoot() {
+            var menu = document.querySelector('.mt-sidebar #main-menu');
+            if (!menu || menu.querySelector('li[data-mt-dash-root="1"]')) return;
+            var li = document.createElement('li');
+            li.className = 'root-level';
+            li.dataset.mtDashRoot = '1';
+            li.innerHTML = '<a href="index.php?menu=index"><i class="fa fa-dashboard"></i><span>داشبورد</span></a>';
+            /* insert right after the search box, before the first group label */
+            var anchor = menu.querySelector('.mt-menu-label') || menu.querySelector('li.root-level');
+            menu.insertBefore(li, anchor);
+            var onLanding = /menu=index/.test(location.search) ||
+                (!/menu=/.test(location.search) && /index\.php$/.test(location.pathname.replace(/\/$/, '')));
+            if (onLanding) li.classList.add('active');
+        })();
         document.querySelectorAll('.mt-sidebar #main-menu li.has-sub > ul').forEach(function (ul) {
             var pa = ul.parentNode.querySelector(':scope > a');
             var la = ul.querySelector(':scope > li > a');
@@ -596,10 +630,6 @@
             var pl = (pa.querySelector('span') || pa).textContent.trim();
             var ll = (la.querySelector('span') || la).textContent.trim();
             if (pl && pl === ll) la.parentNode.style.display = 'none';
-        });
-        document.querySelectorAll('.mt-sidebar #main-menu li').forEach(function (li) {
-            var a = li.querySelector(':scope > a');
-            if (a && (a.textContent || '').trim() === 'میز کار') li.style.display = 'none';
         });
         (function menuGroups() {
             var menu = document.querySelector('.mt-sidebar #main-menu');
