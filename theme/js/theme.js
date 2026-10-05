@@ -464,9 +464,11 @@
         /* ---- 4) Chart.js canvases (cdr/monitoring/channelusage/graphic_report):
            read the existing Chart instance data and re-render with ECharts ---- */
         var migrateChartJs = function (canvas) {
-            if (!E() || !window.Chart || canvas.dataset.mtDone === '1') return;
-            var inst = canvas.__mtChart || (window.Chart.getChart ? window.Chart.getChart(canvas) : null);
-            if (!inst) return;
+            if (!E() || canvas.dataset.mtDone === '1') return;
+            var inst = canvas.__mtChart
+                || (window.Chart && window.Chart.getChart ? window.Chart.getChart(canvas) : null)
+                || (canvas.id && window[canvas.id] && window[canvas.id].data ? window[canvas.id] : null);
+            if (!inst || !inst.data) return;
             var cfg = inst.config;
             var labels = (cfg.data && cfg.data.labels) || [];
             var datasets = (cfg.data && cfg.data.datasets) || [];
