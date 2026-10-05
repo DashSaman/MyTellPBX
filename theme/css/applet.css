@@ -1,155 +1,273 @@
 /* ============================================================
-   MyTel dashboard — clean card grid layout (RTL, Vazirmatn).
-   Replaces the uneven legacy applet table with a tidy 2-column
-   grid; every applet is an equal-width MyTel card.
+   MyTel dashboard — custom "control room" layout (RTL, Vazirmatn).
+   The legacy applet grid stays in the DOM only as a data source
+   and is hidden; everything visible lives in #mt-dash.
    ============================================================ */
 
-/* the module renders applets inside a table; neutralize the table
-   and lay the columns out with flex for a real grid */
-#neo-contentbox #applet_grid,
-#neo-contentbox #applet_grid > tbody,
-#neo-contentbox #applet_grid > tbody > tr {
-    display: block;
-    width: 100% !important;
-}
+/* the applet grid stays as the hidden data source — fixed offscreen with
+   measurable dimensions so Flot can initialize; position:fixed keeps it
+   out of the document's scrollable overflow (no horizontal scrollbar) */
 #neo-contentbox #applet_grid {
-    margin: 0;
-    border-spacing: 0;
+    position: fixed !important;
+    left: -9999px !important;
+    top: 0 !important;
+    width: 1200px !important;
+    visibility: hidden !important;
+    pointer-events: none !important;
 }
-#neo-contentbox #applet_grid > tbody > tr > td.appletcolumn {
+#neo-contentbox #appletbar { display: none !important; }
+
+#mt-dash {
+    max-width: 1440px;
+    margin: 0 auto;
     display: flex;
     flex-direction: column;
-    gap: 14px;
-    width: 100% !important;
-    margin: 0 !important;
-    padding: 0 !important;
-    vertical-align: top;
-}
-@media (min-width: 1280px) {
-    #neo-contentbox #applet_grid > tbody > tr {
-        display: flex;
-        align-items: flex-start;
-        gap: 14px;
-    }
-    #neo-contentbox #applet_grid > tbody > tr > td.appletcolumn {
-        flex: 1 1 0;
-        min-width: 0;
-    }
+    gap: 20px;
+    padding: 4px 0 16px;
 }
 
-/* applet card */
-#neo-contentbox .appletwindow {
-    background: var(--mt-surface);
-    border: 1px solid var(--mt-border);
-    border-radius: var(--mt-radius-lg);
-    box-shadow: var(--mt-shadow-1);
-    margin-bottom: 0;
-    width: 100%;
-    height: auto !important;
-    min-height: 0 !important;
-    overflow: hidden;
-}
-#neo-contentbox .appletwindow_content {
-    position: static !important;
-    padding: 10px 18px 14px;
-}
-#neo-contentbox .appletwindow_wait { position: static !important; }
-#neo-contentbox .appletwindow_topbar {
-    background: var(--mt-surface);
-    border-bottom: 1px solid var(--mt-border);
-    padding: 0 18px;
-    height: 46px;
+/* ---------- header ---------- */
+.mt-dash-head {
     display: flex;
-    align-items: center;
+    align-items: flex-end;
     justify-content: space-between;
+    gap: 16px;
+    padding: 2px 4px 0;
 }
-#neo-contentbox .appletwindow_title {
-    font-weight: 700;
-    font-size: var(--mt-fs-base);
+.mt-dash-head h1 {
+    margin: 0;
+    font-size: 21px;
+    font-weight: 800;
     color: var(--mt-text);
-    float: none !important;
+    letter-spacing: -0.01em;
+}
+.mt-dash-sub { font-size: 13px; color: var(--mt-text-muted); margin-top: 4px; }
+.mt-dash-fresh {
     display: flex;
     align-items: center;
     gap: 8px;
+    font-size: 12px;
+    color: var(--mt-text-muted);
+    font-variant-numeric: tabular-nums;
 }
-#neo-contentbox .appletwindow_title::before {
+.mt-dash-fresh .mt-dot {
+    width: 8px; height: 8px;
+    border-radius: 50%;
+    background: var(--mt-success, #27965A);
+    box-shadow: 0 0 0 0 rgba(39,150,90,.5);
+    animation: mt-pulse 2.2s infinite;
+}
+.mt-dash-fresh.stale .mt-dot { background: var(--mt-text-faint); animation: none; box-shadow: none; }
+.mt-dash-fresh.stale { color: var(--mt-text-faint); }
+@keyframes mt-pulse {
+    0% { box-shadow: 0 0 0 0 rgba(39,150,90,.45); }
+    70% { box-shadow: 0 0 0 7px rgba(39,150,90,0); }
+    100% { box-shadow: 0 0 0 0 rgba(39,150,90,0); }
+}
+
+/* ---------- cards ---------- */
+#mt-dash .mt-card {
+    background: var(--mt-surface);
+    border: 1px solid #E8ECF3;
+    border-radius: 20px;
+    box-shadow: 0 6px 24px rgba(21,27,61,.045);
+    padding: 22px 24px;
+    min-width: 0;
+}
+#mt-dash .mt-card-title {
+    display: flex;
+    align-items: center;
+    gap: 9px;
+    font-size: 15px;
+    font-weight: 700;
+    color: var(--mt-text);
+}
+#mt-dash .mt-card-title::before {
     content: '';
-    width: 3px; height: 15px;
+    width: 4px; height: 16px;
     border-radius: 2px;
     background: var(--mt-accent);
 }
-#neo-contentbox .appletwindow_widgets { float: none !important; }
-#neo-contentbox .appletwindow_widgets a {
-    color: var(--mt-text-faint);
-    font-size: 14px;
-    padding: 4px 7px;
-    border-radius: var(--mt-radius-sm);
-    transition: color var(--mt-speed) var(--mt-ease), background var(--mt-speed) var(--mt-ease);
+.mt-card-title-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 12px;
 }
-#neo-contentbox .appletwindow_widgets a:hover { color: var(--mt-primary); background: var(--mt-primary-tint); }
-#neo-contentbox .appletwindow_widgets a i { color: inherit !important; }
+.mt-card-title-row .mt-card-title { margin-bottom: 0; }
+.mt-card-hint {
+    font-size: 12px;
+    color: var(--mt-text-faint);
+    font-variant-numeric: tabular-nums;
+    direction: ltr;
+}
 
-#neo-contentbox .appletwindow_fullcontent { padding: 12px 4px 6px; }
-#neo-contentbox .appletwindow_content table { box-shadow: none; background: none; }
+/* ---------- hero row ---------- */
+.mt-hero-row {
+    display: grid;
+    grid-template-columns: minmax(0, 2fr) minmax(0, 1fr);
+    gap: 20px;
+}
+.mt-hero-figs {
+    display: flex;
+    align-items: center;
+    gap: 22px;
+    margin-bottom: 4px;
+}
+.mt-fig-num {
+    font-size: 46px;
+    font-weight: 800;
+    line-height: 1.05;
+    color: var(--mt-text);
+    font-variant-numeric: tabular-nums;
+}
+.mt-fig-num--sm { font-size: 26px; color: var(--mt-primary); }
+.mt-fig-lab { font-size: 12.5px; color: var(--mt-text-muted); margin-top: 4px; }
+.mt-fig-sep { width: 1px; height: 40px; background: #E8ECF3; }
+#mt-dash-calls { margin-top: 4px; }
 
-/* wait overlay spinner */
-#neo-contentbox .appletwindow_wait { position: static !important; text-align: center; padding: 18px; }
-#neo-contentbox .imageSpin { animation: mt-rotate 1.1s linear infinite; }
-@keyframes mt-rotate { to { transform: rotate(360deg); } }
+/* ---------- health card ---------- */
+#mt-health-rows { display: flex; flex-direction: column; margin-top: 14px; }
+.mt-hrow {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 9px 0;
+}
+.mt-hlab { font-size: 13px; color: var(--mt-text); font-weight: 600; white-space: nowrap; }
+.mt-hmeter {
+    flex: 1;
+    height: 6px;
+    border-radius: 3px;
+    background: #EDF0F5;
+    overflow: hidden;
+}
+.mt-hmeter > span {
+    display: block;
+    height: 100%;
+    border-radius: 3px;
+    transition: width .6s var(--mt-ease), background .3s;
+}
+.mt-hpct {
+    width: 44px;
+    text-align: left;
+    font-size: 13px;
+    color: var(--mt-text-muted);
+    font-variant-numeric: tabular-nums;
+}
+.mt-disk-panel {
+    margin-top: 14px;
+    background: #F7F9FC;
+    border-radius: 14px;
+    padding: 13px 15px;
+}
+.mt-disk-top {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--mt-text);
+    margin-bottom: 9px;
+}
+.mt-disk-top b { font-variant-numeric: tabular-nums; color: var(--mt-primary); }
+.mt-disk-panel .mt-hmeter { display: block; width: 100%; margin-bottom: 8px; }
+.mt-disk-sub { font-size: 11.5px; color: var(--mt-text-faint); text-align: left; font-variant-numeric: tabular-nums; }
 
-/* ECharts renders native MyTel colors — legacy hue-rotate filters removed
-   (they were distorting the migrated ECharts canvases). */
+/* ---------- detail row ---------- */
+.mt-detail-row {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+    gap: 20px;
+}
 
-/* ECharts surfaces */
-.mt-echart { min-height: 120px; direction: ltr; }
-.appletwindow_fullcontent .mt-echart { margin-top: 2px; }
+/* communication card */
+.mt-cmix {
+    font-size: 12px;
+    color: var(--mt-text-muted);
+    background: var(--mt-primary-tint, rgba(46,49,148,.06));
+    border-radius: 10px;
+    padding: 7px 12px;
+    margin: 12px 0 2px;
+}
+.mt-cfigs {
+    display: flex;
+    gap: 12px;
+    margin-top: 12px;
+}
+.mt-cfig {
+    flex: 1;
+    background: #F7F9FC;
+    border-radius: 14px;
+    padding: 13px 10px 11px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 3px;
+}
+.mt-cfig b { font-size: 26px; font-weight: 800; color: var(--mt-text); font-variant-numeric: tabular-nums; line-height: 1; }
+.mt-cfig span { font-size: 11.5px; color: var(--mt-text-muted); }
+.mt-crows { margin-top: 10px; }
+.mt-crow {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 8px 2px;
+    border-bottom: 1px dashed var(--mt-border);
+    font-size: 13px;
+}
+.mt-crow:last-child { border-bottom: 0; }
+.mt-crow span { color: var(--mt-text); font-weight: 600; }
+.mt-crow b { color: var(--mt-text-muted); font-weight: 500; font-variant-numeric: tabular-nums; }
+.mt-ctraffic {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-top: 12px;
+    background: rgba(255,138,0,.07);
+    border-radius: 10px;
+    padding: 8px 12px;
+    font-size: 12px;
+}
+.mt-ctraffic span { color: var(--mt-text); font-weight: 600; }
+.mt-ctraffic b { color: var(--mt-text-muted); font-weight: 500; }
 
-/* system spec rows under the resource gauges */
-.mt-sysinfo { margin-top: 8px; border-top: 1px solid var(--mt-border); padding-top: 2px; }
+/* system info rows */
+.mt-sysinfo { margin-top: 10px; }
 .mt-sysrow {
     display: flex;
     align-items: baseline;
     justify-content: space-between;
     gap: 14px;
-    padding: 7px 2px;
+    padding: 9px 2px;
     border-bottom: 1px dashed var(--mt-border);
 }
 .mt-sysrow:last-child { border-bottom: 0; }
-.mt-syslabel { font-weight: 600; color: var(--mt-text); font-size: var(--mt-fs-sm); white-space: nowrap; }
+.mt-syslabel { font-weight: 600; color: var(--mt-text); font-size: 13px; white-space: nowrap; }
 .mt-sysval {
     color: var(--mt-text-muted);
-    font-size: var(--mt-fs-sm);
+    font-size: 12.5px;
     font-variant-numeric: tabular-nums;
     unicode-bidi: isolate;
     text-align: left;
     overflow-wrap: anywhere;
 }
 
-/* KPI cards row */
-.mt-kpi-row { display: flex; flex-wrap: wrap; gap: 12px; margin: 0 0 14px; }
-.mt-kpi {
-    flex: 1 1 140px;
-    background: var(--mt-surface);
-    border: 1px solid var(--mt-border);
-    border-radius: var(--mt-radius);
-    box-shadow: var(--mt-shadow-1);
-    padding: 14px 18px;
+/* ---------- shared chart surfaces ---------- */
+.mt-echart { min-height: 120px; direction: ltr; }
+/* loading skeleton for dashboard hosts until ECharts attaches */
+.mt-echart[data-mt-keep="1"]:not(:has(canvas))::after {
+    content: 'در حال دریافت داده…';
     display: flex;
-    flex-direction: column;
     align-items: center;
-    gap: 2px;
+    justify-content: center;
+    height: 100%;
+    min-height: 120px;
+    color: var(--mt-text-faint);
+    font-size: 13px;
+    animation: mt-fade 1.4s ease infinite alternate;
 }
-.mt-kpi-value { font-size: 24px; font-weight: 700; font-variant-numeric: tabular-nums; line-height: 1.2; }
-.mt-kpi-title { font-size: var(--mt-fs-sm); color: var(--mt-text-muted); }
-.mt-kpi-bar {
-    width: 76px;
-    height: 4px;
-    border-radius: 2px;
-    background: var(--mt-border);
-    overflow: hidden;
-    margin-top: 4px;
-}
-.mt-kpi-bar > span { display: block; height: 100%; border-radius: 2px; transition: width .5s ease; }
+@keyframes mt-fade { from { opacity: .45; } to { opacity: 1; } }
 
 .mt-empty-state {
     min-height: 150px;
@@ -163,57 +281,7 @@
     font-family: var(--mt-font);
 }
 
-/* hard drives applet: hide legacy flot donut + floating legend box;
-   the ECharts horizontal bars above carry the same data.
-   (CSS survives flot re-renders; ECharts canvas inside .mt-echart stays.) */
-#neo-contentbox #Applet_HardDrives .appletwindow_fullcontent canvas { display: none !important; }
-#neo-contentbox #Applet_HardDrives .appletwindow_fullcontent .mt-echart canvas { display: block !important; }
-/* the legacy donut is a Raphael SVG inside a plain div — hide all SVGs in
-   this applet (ECharts bars use canvas, so nothing legit is lost) and the
-   floating used/available legend box */
-#neo-contentbox #Applet_HardDrives svg { display: none !important; }
-#neo-contentbox #Applet_HardDrives .appletwindow_fullcontent > div:has(svg),
-#neo-contentbox #Applet_HardDrives .appletwindow_fullcontent .ui-widget-content { display: none !important; }
-#neo-contentbox #Applet_HardDrives .legend { display: none !important; }
-
-/* ---------- processes status: clean list rows ---------- */
-#neo-contentbox #Applet_ProcessesStatus .appletwindow_fullcontent { padding: 4px 0 0; }
-#neo-contentbox #Applet_ProcessesStatus table { width: 100%; }
-#neo-contentbox #Applet_ProcessesStatus table td {
-    border-bottom: 1px solid var(--mt-border);
-    padding: 10px 4px;
-    vertical-align: middle;
-    font-size: var(--mt-fs-md);
-    background: none !important;
-}
-#neo-contentbox #Applet_ProcessesStatus table tr:last-child td { border-bottom: 0; }
-#neo-contentbox #Applet_ProcessesStatus td:first-child img { vertical-align: middle; margin-inline-end: 8px; }
-#neo-contentbox #Applet_ProcessesStatus select {
-    height: 30px;
-    font-size: var(--mt-fs-sm);
-    font-family: var(--mt-font);
-    border: 1px solid var(--mt-border-strong);
-    border-radius: var(--mt-radius-sm);
-    color: var(--mt-text);
-    background: var(--mt-surface);
-    padding: 2px 8px;
-}
-
-/* ---------- communication activity: clean label/value list ---------- */
-table.mt-comm { width: 100%; border-collapse: collapse; }
-table.mt-comm td { padding: 8px 10px; border-bottom: 1px solid var(--mt-border); font-size: var(--mt-fs-md); }
-table.mt-comm tr:last-child td { border-bottom: 0; }
-table.mt-comm td:first-child { font-weight: 600; color: var(--mt-text); }
-table.mt-comm td.mt-num { direction: ltr; text-align: left; color: var(--mt-text-muted); font-variant-numeric: tabular-nums; }
-
-/* performance chart card */
-#neo-contentbox .dashboard-applet-performancegraph, #neo-contentbox [id*="performancegraph"] { font-family: var(--mt-font); }
-#neo-contentbox .legend > div { box-shadow: none !important; border: 0 !important; background: transparent !important; }
-#neo-contentbox #dashboard-applet-performancegraph + .legend { display: none !important; }
-
-/* news applet removed (external Issabel feed) */
-#neo-contentbox #portlet-Applet_News { display: none !important; }
-
 @media (max-width: 1279px) {
-    #neo-contentbox #applet_grid > tbody > tr > td.appletcolumn { max-width: none; }
+    .mt-hero-row, .mt-detail-row { grid-template-columns: minmax(0, 1fr); }
+    #mt-dash .mt-card { padding: 18px 16px; }
 }

@@ -355,43 +355,91 @@
 
         var E = function () { return window.MyTelCharts && window.echarts; };
 
-        /* ---- 0) headline KPI strip: values already parsed from applets ---- */
-        var renderKpis = function () {
-            if (!window.MyTelCharts) return;
-            var grid = document.querySelector('#neo-contentbox #applet_grid');
-            if (!grid) return;
-            var fa = function (n) { return window.MTJalali ? MTJalali.faNum(String(n)) : String(n); };
-            var Tk = window.MyTelCharts.T;
-            var cards = [];
-            var sys = window.__mtSys || {};
-            var pct = function (v) { return (typeof v === 'number' && v >= 0) ? fa(Math.round(v)) + '٪' : null; };
-            if (window.__mtPerfNow !== undefined && window.__mtPerfNow !== null)
-                cards.push({ title: 'تماس‌های همزمان', value: fa(window.__mtPerfNow), tone: Tk.primary, bar: null });
-            if (window.__mtReg !== undefined && window.__mtReg !== null)
-                cards.push({ title: 'داخلی‌های ثبت‌شده', value: fa(window.__mtReg), tone: Tk.blue, bar: null });
-            var cpu = pct(sys.CPU), ram = pct(sys.RAM);
-            var disk = (window.__mtDisk && typeof window.__mtDisk.usedPct === 'number') ? pct(window.__mtDisk.usedPct) : null;
-            if (cpu) cards.push({ title: 'مصرف پردازنده', value: cpu, tone: Tk.primary, bar: sys.CPU });
-            if (ram) cards.push({ title: 'مصرف حافظه', value: ram, tone: Tk.blue, bar: sys.RAM });
-            if (disk) cards.push({ title: 'فضای دیسک', value: disk, tone: Tk.accent, bar: window.__mtDisk.usedPct });
-            if (!cards.length) return;
-            var row = document.getElementById('mt-kpi-row');
-            if (!row || row.parentNode !== grid.parentNode) {
-                if (row && row.parentNode) row.parentNode.removeChild(row);
-                row = document.createElement('div');
-                row.id = 'mt-kpi-row';
-                row.className = 'mt-kpi-row';
-                grid.parentNode.insertBefore(row, grid);
-            }
-            row.innerHTML = cards.map(function (c) {
-                var bar = (typeof c.bar === 'number')
-                    ? '<span class="mt-kpi-bar"><span style="width:' + Math.min(100, Math.max(0, c.bar)) + '%;background:' + (c.bar >= 85 ? Tk.danger : c.tone) + '"></span></span>'
-                    : '';
-                return '<div class="mt-kpi"><span class="mt-kpi-value" style="color:' + c.tone + '">' + c.value + '</span>' + bar + '<span class="mt-kpi-title">' + c.title + '</span></div>';
-            }).join('');
+        /* ---- 0) custom MyTel dashboard ("control room") — replaces the
+           legacy applet grid, which stays in the DOM only as a data source ---- */
+        var mtFa = function (n) { return window.MTJalali ? MTJalali.faNum(String(n)) : String(n); };
+        var mtFresh = function () {
+            window.__mtFreshAt = Date.now();
+            var el = document.getElementById('mt-fresh');
+            if (!el) return;
+            var d = new Date();
+            el.textContent = 'به‌روزرسانی: ' + mtFa(('0' + d.getHours()).slice(-2) + ':' + ('0' + d.getMinutes()).slice(-2) + ':' + ('0' + d.getSeconds()).slice(-2));
+            var wrap = el.closest('.mt-dash-fresh');
+            if (wrap) wrap.classList.remove('stale');
         };
-        setTimeout(renderKpis, 2500);
-        setInterval(renderKpis, 4000);
+        setInterval(function () {
+            var el = document.getElementById('mt-fresh');
+            var wrap = el ? el.closest('.mt-dash-fresh') : null;
+            if (wrap && window.__mtFreshAt && Date.now() - window.__mtFreshAt > 90000) wrap.classList.add('stale');
+        }, 15000);
+
+        var renderHealth = function () {
+            var wrap = document.getElementById('mt-health-rows');
+            if (!wrap) return;
+            var Tk = window.MyTelCharts ? MyTelCharts.T : { primary: '#2E3194', danger: '#E5484D' };
+            var sys = window.__mtSys || {};
+            var rows = [['پردازنده', sys.CPU], ['حافظه', sys.RAM], ['حافظه مبادله‌ای', sys.SWAP]];
+            var html = rows.map(function (r) {
+                var has = typeof r[1] === 'number' && r[1] >= 0;
+                var pct = has ? Math.round(r[1]) : null;
+                var col = has && pct >= 85 ? Tk.danger : Tk.primary;
+                return '<div class="mt-hrow"><span class="mt-hlab">' + r[0] + '</span>' +
+                    '<span class="mt-hmeter"><span style="width:' + (has ? Math.min(100, pct) : 0) + '%;background:' + col + '"></span></span>' +
+                    '<span class="mt-hpct">' + (has ? mtFa(pct) + '٪' : '—') + '</span></div>';
+            }).join('');
+            if (!wrap.innerHTML || wrap.dataset.sig !== html) { wrap.innerHTML = html; wrap.dataset.sig = html; }
+            /* disk panel below the meters */
+            var panel = document.getElementById('mt-disk-panel');
+            var d = window.__mtDisk;
+            if (panel && d && typeof d.usedPct === 'number') {
+                var used = Math.round(d.total * d.usedPct / 100 * 10) / 10;
+                var col = d.usedPct >= 85 ? Tk.danger : Tk.primary;
+                panel.innerHTML =
+                    '<div class="mt-disk-top"><span>فضای دیسک</span><b>' + mtFa(d.usedPct) + '٪</b></div>' +
+                    '<span class="mt-hmeter"><span style="width:' + Math.min(100, d.usedPct) + '%;background:' + col + '"></span></span>' +
+                    '<div class="mt-disk-sub" dir="ltr">' + used + ' GB / ' + d.total + ' GB</div>';
+            }
+        };
+
+        var dashInit = function () {
+            var grid = document.querySelector('#neo-contentbox #applet_grid');
+            if (!grid || document.getElementById('mt-dash')) return;
+            var parent = grid.parentNode;
+            var dash = document.createElement('div');
+            dash.id = 'mt-dash';
+            dash.innerHTML =
+                '<div class="mt-dash-head">' +
+                    '<div><h1>نمای کلی مرکز تماس</h1>' +
+                    '<div class="mt-dash-sub">وضعیت زندهٔ سامانهٔ تلفنی مای‌تل</div></div>' +
+                    '<div class="mt-dash-fresh"><span class="mt-dot"></span><span id="mt-fresh">در حال دریافت…</span></div>' +
+                '</div>' +
+                '<div class="mt-hero-row">' +
+                    '<section class="mt-card mt-hero-main">' +
+                        '<div class="mt-hero-figs">' +
+                            '<div class="mt-fig"><div class="mt-fig-num" id="mt-fig-calls">—</div><div class="mt-fig-lab">تماس‌های هم‌زمان</div></div>' +
+                            '<div class="mt-fig-sep"></div>' +
+                            '<div class="mt-fig"><div class="mt-fig-num mt-fig-num--sm" id="mt-fig-reg">—</div><div class="mt-fig-lab">داخلی ثبت‌شده</div></div>' +
+                        '</div>' +
+                        '<div class="mt-echart" id="mt-dash-calls" data-mt-keep="1" style="height:225px"></div>' +
+                    '</section>' +
+                    '<section class="mt-card mt-hero-health">' +
+                        '<div class="mt-card-title">سلامت منابع</div>' +
+                        '<div id="mt-health-rows"></div>' +
+                        '<div class="mt-disk-panel" id="mt-disk-panel"></div>' +
+                    '</section>' +
+                '</div>' +
+                '<section class="mt-card">' +
+                    '<div class="mt-card-title-row"><span class="mt-card-title">عملکرد در یک ساعت گذشته</span>' +
+                    '<span class="mt-card-hint" id="mt-perf-range"></span></div>' +
+                    '<div class="mt-echart" id="mt-dash-perf" data-mt-keep="1" style="height:280px"></div>' +
+                '</section>' +
+                '<div class="mt-detail-row">' +
+                    '<section class="mt-card"><div class="mt-card-title">وضعیت ارتباطات</div><div id="mt-dash-comm"></div></section>' +
+                    '<section class="mt-card"><div class="mt-card-title">اطلاعات سیستم</div><div class="mt-sysinfo" id="mt-dash-sys"></div></section>' +
+                '</div>';
+            parent.insertBefore(dash, grid);
+        };
+        dashInit();
 
         /* ---- 1) dashboard performance chart: flot data -> ECharts line ---- */
         var mtPerf = null;
@@ -417,48 +465,48 @@
                 return hm;
             };
             s0.forEach(function (p) { cats.push(fmt(p[0])); });
-            var perfNames = {
-                'Sim. calls': 'تماس‌های همزمان',
-                'CPU usage (%)': 'مصرف پردازنده',
-                'Mem. usage (MB)': 'مصرف حافظه'
-            };
-            var series = data.map(function (s) {
-                return { name: perfNames[s.label] || s.label, data: (s.data || []).map(function (p) { return p[1]; }) };
-            });
-            /* last concurrent-calls point feeds the KPI strip */
+            /* last concurrent-calls point feeds the hero figure */
             if (s0.length && s0[s0.length - 1]) window.__mtPerfNow = s0[s0.length - 1][1];
-            var chartHost = host.parentElement.querySelector('.mt-echart');
-            if (!chartHost) {
-                host.style.display = 'none';
-                var legend = host.parentElement.querySelector('.legend');
-                if (legend) legend.style.display = 'none';
-                chartHost = document.createElement('div');
-                chartHost.className = 'mt-echart';
-                chartHost.style.cssText = 'width:100%;height:300px;direction:ltr;';
-                host.parentNode.insertBefore(chartHost, host);
+            var fig = document.getElementById('mt-fig-calls');
+            if (fig && window.__mtPerfNow !== undefined) fig.textContent = mtFa(window.__mtPerfNow);
+            /* hero card: orange one-hour concurrent-calls area chart */
+            var callsHost = document.getElementById('mt-dash-calls');
+            if (callsHost) {
+                var callsSrc = data.filter(function (s) { return /sim/i.test(s.label); });
+                var cs = callsSrc.length ? callsSrc[0] : data[0];
+                MyTelCharts.line(callsHost, null, cats, [{
+                    name: 'تماس‌های هم‌زمان',
+                    data: (cs.data || []).map(function (p) { return p[1]; }),
+                    color: MyTelCharts.T.accent
+                }], { area: true, force: true });
             }
-            mtPerf = MyTelCharts.line(chartHost, null, cats, series, { area: false, unit: '' });
-            /* restyle the Last-login line under the gauges */
-            var gauges = document.querySelector('#Applet_SystemResources .appletwindow_fullcontent');
-            if (gauges && !gauges.dataset.mtLogin) {
-                gauges.dataset.mtLogin = '1';
-                gauges.querySelectorAll('b').forEach(function (b) {
-                    if (/Last login/i.test(b.textContent)) {
-                        b.style.fontWeight = '500';
-                        b.style.color = 'var(--mt-text-muted)';
-                        b.style.direction = 'ltr';
-                        b.style.unicodeBidi = 'isolate';
-                        b.style.display = 'inline-block';
-                    }
+            /* diagnostics card: CPU% (indigo) + RAM MB (teal) */
+            var perfHost = document.getElementById('mt-dash-perf');
+            if (perfHost) {
+                var diag = [];
+                data.forEach(function (s) {
+                    if (/cpu/i.test(s.label)) diag.push({ name: 'مصرف پردازنده (٪)', data: (s.data || []).map(function (p) { return p[1]; }), color: MyTelCharts.T.primary });
+                    else if (/mem/i.test(s.label)) diag.push({ name: 'مصرف حافظه (MB)', data: (s.data || []).map(function (p) { return p[1]; }), color: '#318C96' });
                 });
+                if (diag.length) MyTelCharts.line(perfHost, null, cats, diag, { area: true });
             }
+            var range = document.getElementById('mt-perf-range');
+            if (range && cats.length > 1) range.textContent = 'بازه: ' + cats[0] + ' تا ' + cats[cats.length - 1];
+            /* freshness only advances when the source actually moved — the
+               latest sample timestamp catches rolling-window updates whose
+               values happen to be unchanged */
+            var sig = data.map(function (s) {
+                var d = s.data || [];
+                return d.length + ':' + (d.length ? d[d.length - 1][0] + '@' + d[d.length - 1][1] : '');
+            }).join(';');
+            if (sig !== window.__mtPerfSig) { window.__mtPerfSig = sig; mtFresh(); }
         };
         $(document).ajaxComplete(function () { setTimeout(migratePerf, 500); });
         setInterval(migratePerf, 60000); /* live applet refresh keeps data fresh */
 
-        /* ---- 2) system resource gauges: read Raphael SVG values -> ECharts radial ---- */
+        /* ---- 2) system resources: harvest JustGage SVG values (the applet
+           grid is hidden — textContent still works) -> health-card meters ---- */
         var migrateGauges = function () {
-            if (!E()) return;
             var full = document.querySelector('#Applet_SystemResources .appletwindow_fullcontent');
             if (!full) return;
             var svgs = full.querySelectorAll('svg');
@@ -477,58 +525,26 @@
                 if (label !== null && value !== null && bestSize > 0) vals.push({ name: label, value: value });
             });
             if (vals.length < 3) return;
-            /* share parsed values with the KPI strip */
+            /* freshness only advances on genuinely new gauge readings */
+            var gsig = vals.map(function (v) { return v.name + v.value; }).join(',');
+            var gNew = gsig !== window.__mtGaugeSig;
+            window.__mtGaugeSig = gsig;
             window.__mtSys = {};
             vals.forEach(function (v) { window.__mtSys[v.name] = v.value; });
-            var host = full.querySelector('.mt-echart');
-            if (full.dataset.mtGauges === '1' && host) {
-                /* JustGage animates 0 -> real after our first read; sync the
-                   radials with later parses instead of rebuilding. Gauge
-                   values live in series[i].data — top-level value is ignored */
-                var inst = window.echarts.getInstanceByDom(host);
-                var names2 = { CPU: 'پردازنده', RAM: 'حافظه', SWAP: 'حافظه مبادله‌ای' };
-                if (inst) {
-                    var dataArr = vals.map(function (v) {
-                        return { value: v.value, name: names2[v.name] || v.name };
-                    });
-                    inst.setOption({ series: dataArr.map(function (d) { return { data: [d] }; }) });
-                    /* keep the font-ready repaint from reverting the readings */
-                    var saved = inst.__mtOption;
-                    if (saved && saved.series) {
-                        dataArr.forEach(function (d, i) {
-                            if (saved.series[i] && saved.series[i].data && saved.series[i].data[0]) {
-                                saved.series[i].data[0] = d;
-                            }
-                        });
-                    }
-                }
-                return;
-            }
-            if (host) return; /* build in progress — wait for a module re-render */
-            var names = { CPU: 'پردازنده', RAM: 'حافظه', SWAP: 'حافظه مبادله‌ای' };
-            host = document.createElement('div');
-            host.className = 'mt-echart';
-            host.style.cssText = 'width:100%;height:190px;';
-            full.insertBefore(host, full.firstChild);
-            MyTelCharts.gauge(host, null, vals.map(function (v) {
-                return { name: names[v.name] || v.name, value: v.value, color: v.name === 'SWAP' ? MyTelCharts.T.accent : MyTelCharts.T.primary };
-            }));
-            /* retire the legacy Raphael gauges (data now lives in the ECharts layer) */
-            full.querySelectorAll('svg').forEach(function (svg) { svg.style.display = 'none'; });
-            full.dataset.mtGauges = '1';
+            renderHealth();
+            if (gNew) mtFresh();
         };
         setTimeout(function () { migrateGauges(); setTimeout(migrateGauges, 5000); }, 4000);
         $(document).ajaxComplete(function () { setTimeout(migrateGauges, 1200); });
 
-        /* ---- 2b) system spec lines: Persian labels with isolated LTR values.
-           The upstream rows mix Persian and Latin in single runs and the
-           legacy gauge container reserves dead space — rebuild cleanly. ---- */
+        /* ---- 2b) system info card: Persian labels, isolated LTR values.
+           Source rows live in the hidden applet grid — textContent still
+           works, so every tick repaints with fresh values. ---- */
         var buildSysInfo = function () {
+            var box = document.getElementById('mt-dash-sys');
+            if (!box) return;
             var full = document.querySelector('#Applet_SystemResources .appletwindow_fullcontent');
             if (!full) return;
-            /* runs on every tick: rows are repainted from the (possibly
-               hidden but still readable) legacy values so uptime stays live */
-            var fa = function (n) { return window.MTJalali ? MTJalali.faNum(String(n)) : String(n); };
             var cpu = '', up = '', speed = '', mem = '', login = '';
             full.querySelectorAll('.neo-applet-tline').forEach(function (ln) {
                 var lab = ((ln.querySelector('.neo-applet-titem') || {}).textContent || '');
@@ -542,43 +558,29 @@
             if (ll) login = (ll.textContent || '').replace(/\s+/g, ' ').replace(/Last login:\s*/i, '').trim();
             var m = up.match(/(\d+)\s*روز\(s\)\s*(\d+)\s*hour\(s\)\s*(\d+)\s*minute\(s\)/i)
                  || up.match(/(\d+)\s*day\(s\)\s*(\d+)\s*hour\(s\)\s*(\d+)\s*minute\(s\)/i);
-            if (m) up = fa(m[1]) + ' روز، ' + fa(m[2]) + ' ساعت و ' + fa(m[3]) + ' دقیقه';
+            if (m) up = mtFa(m[1]) + ' روز، ' + mtFa(m[2]) + ' ساعت و ' + mtFa(m[3]) + ' دقیقه';
             if (!cpu && !up && !speed && !mem && !login) return;
-            var row = function (label, value, ltr) {
+            var row = function (label, value) {
                 return '<div class="mt-sysrow"><span class="mt-syslabel">' + label + '</span>' +
-                       '<span class="mt-sysval"' + (ltr ? ' dir="ltr"' : '') + '>' + value + '</span></div>';
+                       '<span class="mt-sysval" dir="ltr">' + value + '</span></div>';
             };
             var html = '';
-            if (cpu) html += row('پردازنده', cpu, true);
-            if (speed) html += row('سرعت پردازنده', speed, true);
-            if (up) html += row('زمان فعال بودن سیستم', up, false);
-            if (mem) html += row('مصرف حافظه', mem, true);
-            if (login) html += row('آخرین ورود', login.replace(/\.$/, ''), true);
-            var box = full.querySelector('.mt-sysinfo');
-            if (!box) {
-                /* retire the legacy block once: mixed runs + 165px dead space */
-                Array.prototype.forEach.call(full.children, function (el) {
-                    if (el.classList.contains('mt-echart') || el.classList.contains('mt-sysinfo')) return;
-                    if (el.tagName !== 'DIV') return; /* stylesheet/script tags stay */
-                    el.style.display = 'none';
-                });
-                box = document.createElement('div');
-                box.className = 'mt-sysinfo';
-                full.appendChild(box);
-            }
-            /* uptime/memory keep counting — repaint the rows on every tick
-               (source rows are display:none but their text stays readable) */
-            box.innerHTML = html;
-            full.dataset.mtInfo = '1';
+            if (cpu) html += row('پردازنده', cpu);
+            if (speed) html += row('سرعت پردازنده', speed);
+            if (up) html += row('زمان فعال بودن سیستم', up);
+            if (mem) html += row('مصرف حافظه', mem);
+            if (login) html += row('آخرین ورود', login.replace(/\.$/, ''));
+            if (box.dataset.sig !== html) { box.innerHTML = html; box.dataset.sig = html; }
         };
-        var sysTick = function () { migrateGauges(); buildSysInfo(); };
+        var sysTick = function () { migrateGauges(); buildSysInfo(); renderComm(); };
         setTimeout(function () { sysTick(); setTimeout(sysTick, 5000); }, 4000);
         setInterval(sysTick, 30000); /* JustGage values settle after first paint */
         $(document).ajaxComplete(function () { setTimeout(sysTick, 1200); });
 
-        /* ---- 2c) menu data ships a same-named first child under every
-           expandable item (parent links to an overview page) — hide the
-           duplicate row for a tighter hierarchy ---- */
+        /* ---- 2c) sidebar surgery: hide the same-named first child every
+           expandable item ships, drop the "میز کار" item (replaced by the
+           custom dashboard), and insert faint group labels so ten root
+           items read as organized sections ---- */
         document.querySelectorAll('.mt-sidebar #main-menu li.has-sub > ul').forEach(function (ul) {
             var pa = ul.parentNode.querySelector(':scope > a');
             var la = ul.querySelector(':scope > li > a');
@@ -587,12 +589,38 @@
             var ll = (la.querySelector('span') || la).textContent.trim();
             if (pl && pl === ll) la.parentNode.style.display = 'none';
         });
+        document.querySelectorAll('.mt-sidebar #main-menu li').forEach(function (li) {
+            var a = li.querySelector(':scope > a');
+            if (a && (a.textContent || '').trim() === 'میز کار') li.style.display = 'none';
+        });
+        (function menuGroups() {
+            var menu = document.querySelector('.mt-sidebar #main-menu');
+            if (!menu || menu.dataset.mtGroups === '1') return;
+            menu.dataset.mtGroups = '1';
+            var groups = {
+                'سیستم': 'مرکز و عملیات',
+                'ایمیل': 'ارتباطات',
+                'گزارشات': 'گزارشات و تحلیل',
+                'برنامه های جانبی': 'ابزارها'
+            };
+            document.querySelectorAll('.mt-sidebar #main-menu > li.root-level').forEach(function (li) {
+                var t = ((li.querySelector(':scope > a span') || {}).textContent || '').trim();
+                if (!groups[t]) return;
+                var lab = document.createElement('li');
+                lab.className = 'mt-menu-label';
+                lab.textContent = groups[t];
+                li.parentNode.insertBefore(lab, li);
+            });
+        })();
 
         /* ---- 3) hard drives: table text -> horizontal utilization bars ---- */
         /* when DOM data is stripped by module re-render, fetch fresh values
            from the applet's own getContent endpoint (presentation-only GET) */
         var mtDiskFetching = false;
         var fetchDiskData = function () {
+            /* only the dashboard carries the HardDrives applet — never poll
+               this endpoint from unrelated module pages */
+            if (!document.querySelector('#Applet_HardDrives')) return;
             if (mtDiskFetching || window.__mtDisk) return;
             mtDiskFetching = true;
             window.jQuery.get('index.php', {
@@ -625,62 +653,29 @@
             } catch (e) {}
         });
         var migrateDisks = function () {
-            if (!E()) return;
+            /* harvest GB/% from the hidden applet text (first % is the
+               donut center = used), then paint the health-card disk panel */
             var full = document.querySelector('#Applet_HardDrives .appletwindow_fullcontent');
-            if (!full || full.dataset.mtDisks === '1') return;
-            if (full.querySelector('.mt-echart')) { full.dataset.mtDisks = '1'; return; }
-            var txt = (full.textContent || ''); /* includes CSS-hidden legend/SVG text */
-            var m = txt.match(/([\d.]+)\s*GB/i);
-            var pct = txt.match(/(\d{1,3})\s*%/); /* first % is the donut center = used */
-            if (m && pct) {
-                var up = parseInt(pct[1], 10);
-                if (up >= 0 && up <= 100) {
-                    window.__mtDisk = { total: parseFloat(m[1]), usedPct: up };
+            if (!full && !window.__mtDisk) return; /* not a dashboard page */
+            if (full) {
+                var txt = (full.textContent || '');
+                var m = txt.match(/([\d.]+)\s*GB/i);
+                var pct = txt.match(/(\d{1,3})\s*%/);
+                if (m && pct) {
+                    var up = parseInt(pct[1], 10);
+                    if (up >= 0 && up <= 100) {
+                        window.__mtDisk = { total: parseFloat(m[1]), usedPct: up };
+                    }
                 }
             }
-            var disk = window.__mtDisk;
-            if (!disk) return;
-            var used = Math.round(disk.total * disk.usedPct / 100 * 10) / 10;
-            var host = document.createElement('div');
-            host.className = 'mt-echart';
-            host.style.cssText = 'width:100%;height:90px;';
-            full.insertBefore(host, full.firstChild);
-            MyTelCharts.bars(host, null, [{ name: '/', used: used, total: disk.total, unit: 'GB' }]);
-            /* retire the legacy flot donut + floating legend */
-            full.querySelectorAll('canvas').forEach(function (cv) { cv.style.display = 'none'; });
-            full.querySelectorAll('.ui-widget-content, .legend, [style*="float"]').forEach(function (el) {
-                if (el.closest('.mt-echart')) return;
-                el.style.display = 'none';
-            });
-            /* the fetch-report hint ships untranslated — swap the English
-               sentence wherever it sits and flow the block right-to-left */
-            Array.prototype.forEach.call(full.children, function (d) {
-                if (d.tagName !== 'DIV' || !/Click below to fetch/i.test(d.textContent)) return;
-                if (d.dataset.mtHint) return;
-                d.dataset.mtHint = '1';
-                d.style.direction = 'rtl';
-                (function walk(node) {
-                    Array.prototype.forEach.call(node.childNodes, function (n) {
-                        if (n.nodeType === 3) {
-                            if (/Click below/i.test(n.textContent)) {
-                                n.textContent = 'برای تهیهٔ گزارش پوشه‌ها روی دکمهٔ زیر بزنید. هشدار: این عملیات زمان‌بر است و بر کارایی سامانه اثر می‌گذارد.';
-                            }
-                        } else if (n.nodeType === 1) walk(n);
-                    });
-                })(d);
-            });
-            full.dataset.mtDisks = '1';
+            renderHealth();
         };
-        /* applet content arrives via its own ajax — keep retrying until the
-           bars exist, then re-create them if a module re-render wipes them */
+        /* keep the disk cache alive: fetch from the applet's own endpoint
+           when a module re-render strips the DOM text (dashboard only) */
         var diskLoop = function () {
-            var full = document.querySelector('#Applet_HardDrives .appletwindow_fullcontent');
-            if (!full) return;
-            if (!full.querySelector('.mt-echart')) {
-                full.dataset.mtDisks = '0';
-                if (!window.__mtDisk) fetchDiskData();
-                migrateDisks();
-            }
+            if (!document.querySelector('#Applet_HardDrives')) return;
+            if (!window.__mtDisk) fetchDiskData();
+            migrateDisks();
         };
         setInterval(diskLoop, 3000);
         setTimeout(diskLoop, 6000);
@@ -750,6 +745,8 @@
             /* drop orphaned hosts whose module re-render removed their canvas
                — the ECharts canvas lives INSIDE the host, so count it */
             document.querySelectorAll('.mt-echart').forEach(function (el) {
+                /* dashboard hosts are long-lived placeholders — never reap them */
+                if (el.dataset.mtKeep === '1') return;
                 var hasCanvas = !!el.querySelector('canvas');
                 var inst = window.echarts.getInstanceByDom(el);
                 if (!hasCanvas && (!inst || inst.isDisposed())) el.remove();
@@ -924,63 +921,67 @@
         };
         setTimeout(persianizeEmailStats, 1500);
 
-        /* ---------- rebuild the Communication Activity applet:
-           the upstream PHP glues translation fragments in a broken
-           order, so re-render it as a clean Persian table ---------- */
-        var rebuildComm = function () {
+        /* ---------- Communication Activity: the upstream PHP glues Persian
+           fragments in broken order — parse the applet text (works hidden)
+           and paint the dashboard "وضعیت ارتباطات" card instead ---------- */
+        var renderComm = function () {
+            var box = document.getElementById('mt-dash-comm');
+            if (!box) return;
             var el = document.querySelector('#Applet_CommunicationActivity');
-            if (!el || el.dataset.mtRebuilt) return;
-            var txt = (el.innerText || '').replace(/\s+/g, ' ');
+            if (!el) return;
+            var txt = (el.textContent || el.innerText || '').replace(/\s+/g, ' ');
             var grab = function (re) { var m = txt.match(re); if (!m) return null; for (var i = 1; i < m.length; i++) { if (m[i] !== undefined) return m[i]; } return null; };
-            var calls = grab(/تماس\s*\((\d+)\)/);
             var internal = grab(/\((\d+)\s*تماس هاي داخلي\)|\((\d+)\s*تماس های داخلی\)/);
             var external = grab(/\((\d+)\s*تماس هاي خارجي\)|\((\d+)\s*تماس های خارجی\)/);
-            var channels = grab(/كل تماس ها:?\s*(\d+)|کل تماس ها:?\s*(\d+)/);
+            /* the applet mixes Arabic/Persian kaf-yeh forms inconsistently —
+               anchor on the unique Latin "channels" word instead */
+            var channels = grab(/(\d+)\s*channels/i) || grab(/كل تماس ها:?\s*(\d+)|کل تماس ها:?\s*(\d+)/);
             var waiting = grab(/تماس هاي در صف انتظار:?\s*(\d+)|(\d+)\s*منتظر|تماس های در صف انتظار:?\s*(\d+)/);
             var sip = grab(/SIP داخلي هاي\s*\((\d+)\)|SIP داخلی های\s*\((\d+)\)/);
             var pjsip = grab(/PJSIP داخلي هاي\s*\((\d+)\)|PJSIP داخلی های\s*\((\d+)\)/);
             var iax = grab(/IAX داخلي هاي\s*\((\d+)\)|IAX داخلی های\s*\((\d+)\)/);
             var trunks = grab(/ترانك ها\s*\((\d+)\)|ترانک ها\s*\((\d+)\)/);
-            var traffic = grab(/([\d.]+k?B\/s\)\s*=>\s*\([\d.]+k?B\/s)/);
-            if (calls === null || trunks === null) return; /* data not complete yet — retry */
-            var rows = [];
-            if (calls !== null) rows.push(['کل تماس‌ها', calls + ' (داخلی ' + (internal || '0') + ' | خارجی ' + (external || '0') + ')']);
-            if (channels !== null) rows.push(['کانال‌های فعال', channels]);
-            if (waiting !== null) rows.push(['در صف انتظار', waiting]);
-            var reg = function (base) {
+            var rxT = grab(/\(([\d.]+\s*k?B\/s)\)\s*<=\s*RX/);
+            var txT = grab(/TX\s*=>\s*\(([\d.]+\s*k?B\/s)\)/);
+            if (channels === null && trunks === null) return; /* data not complete yet */
+            var regCount = function (base) {
                 var after = txt.slice(txt.indexOf(base));
-                var r = after.match(/\((\d+)\s*ثبت شده\)|\((\d+)\s*ثبت شده\)/) || after.match(/\((\d+)\s*ثبت شده\)/);
-                var u = after.match(/\((\d+)\s*ثبت نشده\)|\((\d+)\s*ثبت نشده\)/);
-                return (r ? (r[1] || r[2]) : '?') + ' / ' + (u ? (u[1] || u[2]) : '?');
+                var r = after.match(/\((\d+)\s*ثبت شده\)/);
+                return r ? r[1] : null;
             };
-            /* total registered SIP/PJSIP/IAX extensions feed the KPI strip;
-               a parsed zero is real data and must still reach the strip */
-            var regKnown = false, regSum = 0;
-            ['SIP داخلي', 'PJSIP داخلي', 'IAX داخلي'].forEach(function (base) {
-                var first = reg(base).split(' / ')[0];
-                if (first !== '?') { regKnown = true; regSum += (parseInt(first, 10) || 0); }
+            var regSum = 0, regKnown = false;
+            [['SIP داخلي', sip], ['PJSIP داخلي', pjsip], ['IAX داخلي', iax]].forEach(function (p) {
+                var rc = regCount(p[0]);
+                if (p[1] !== null && rc !== null) { regKnown = true; regSum += parseInt(rc, 10) || 0; }
             });
             if (regKnown) window.__mtReg = regSum;
-            if (sip !== null) rows.push(['داخلی‌های SIP', sip + ' (ثبت‌شده ' + reg('SIP داخلي').split(' / ')[0] + ' | ثبت‌نشده ' + reg('SIP داخلي').split(' / ')[1] + ')']);
-            if (pjsip !== null) rows.push(['داخلی‌های PJSIP', pjsip + ' (ثبت‌شده ' + reg('PJSIP داخلي').split(' / ')[0] + ' | ثبت‌نشده ' + reg('PJSIP داخلي').split(' / ')[1] + ')']);
-            if (iax !== null) rows.push(['داخلی‌های IAX', iax + ' (ثبت‌شده ' + reg('IAX داخلي').split(' / ')[0] + ' | ثبت‌نشده ' + reg('IAX داخلي').split(' / ')[1] + ')']);
-            if (trunks !== null) rows.push(['ترانک‌ها', trunks]);
-            if (traffic !== null) rows.push(['ترافیک شبکه', 'دریافتی ' + traffic.split('=>')[0].replace('(', '').replace(')', '').trim() + ' | ارسالی ' + traffic.split('=>')[1].replace('(', '').replace(')', '').trim()]);
-            var html = '<table class="mt-comm">' + rows.map(function (r) {
-                return '<tr><td>' + r[0] + '</td><td class="mt-num">' + r[1] + '</td></tr>';
-            }).join('') + '</table>';
-            var full = el.querySelector('.appletwindow_fullcontent') || el;
-            full.innerHTML = html;
-            el.dataset.mtRebuilt = '1';
-        };
-        var rebuildAttempts = 0;
-        var rebuildLoop = function () {
-            if (rebuildAttempts++ > 12) return;
-            if (!document.querySelector('#Applet_CommunicationActivity[data-mt-rebuilt="1"]')) {
-                rebuildComm();
-                setTimeout(rebuildLoop, 2500);
+            var fig = document.getElementById('mt-fig-reg');
+            if (fig && window.__mtReg !== undefined) fig.textContent = mtFa(window.__mtReg);
+            var figs = '';
+            if (channels !== null) figs += '<div class="mt-cfig"><b>' + mtFa(channels) + '</b><span>کانال فعال</span></div>';
+            if (waiting !== null) figs += '<div class="mt-cfig"><b>' + mtFa(waiting) + '</b><span>در صف انتظار</span></div>';
+            if (trunks !== null) figs += '<div class="mt-cfig"><b>' + mtFa(trunks) + '</b><span>ترانک</span></div>';
+            var regRow = function (label, base, total) {
+                if (total === null) return '';
+                var rc = regCount(base);
+                return '<div class="mt-crow"><span>' + label + '</span><b dir="ltr">' +
+                    (rc !== null ? mtFa(rc) : '—') + ' / ' + mtFa(total) + '</b></div>';
+            };
+            var regs = regRow('داخلی‌های SIP', 'SIP داخلي', sip) +
+                       regRow('داخلی‌های PJSIP', 'PJSIP داخلي', pjsip) +
+                       regRow('داخلی‌های IAX', 'IAX داخلي', iax);
+            var inner = '';
+            if (internal !== null || external !== null)
+                inner += '<div class="mt-cmix">ترکیب تماس‌ها — داخلی ' + mtFa(internal || '0') + ' / خارجی ' + mtFa(external || '0') + '</div>';
+            inner += (figs ? '<div class="mt-cfigs">' + figs + '</div>' : '') +
+                     (regs ? '<div class="mt-crows">' + regs + '</div>' : '');
+            if (rxT || txT) {
+                inner += '<div class="mt-ctraffic"><span>ترافیک شبکه</span><b dir="ltr">↓ ' + (rxT || '—') + ' • ↑ ' + (txT || '—') + '</b></div>';
             }
+            if (!inner) return;
+            if (box.dataset.sig !== inner) { box.innerHTML = inner; box.dataset.sig = inner; }
         };
-        setTimeout(rebuildLoop, 5000);
+        setTimeout(renderComm, 5000);
+        setInterval(renderComm, 30000);
     });
 })(jQuery);
