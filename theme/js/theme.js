@@ -483,6 +483,13 @@
             });
             full.dataset.mtDisks = '1';
         };
+        /* applet content arrives via its own ajax — keep retrying until the
+           bars exist, then re-create them if a module re-render wipes them */
+        var diskLoop = function () {
+            var full = document.querySelector('#Applet_HardDrives .appletwindow_fullcontent');
+            if (full && !full.querySelector('.mt-echart')) { full.dataset.mtDisks = '0'; migrateDisks(); }
+        };
+        setInterval(diskLoop, 3000);
         setTimeout(function () { migrateDisks(); setTimeout(migrateDisks, 5000); }, 4500);
         $(document).ajaxComplete(function () { setTimeout(migrateDisks, 1200); });
 
