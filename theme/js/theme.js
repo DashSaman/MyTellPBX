@@ -466,8 +466,16 @@
         var migrateChartJs = function (canvas) {
             if (!E() || canvas.dataset.mtDone === '1') return;
             var inst = canvas.__mtChart
-                || (window.Chart && window.Chart.getChart ? window.Chart.getChart(canvas) : null)
-                || (canvas.id && window[canvas.id] && window[canvas.id].data ? window[canvas.id] : null);
+                || (window.Chart && window.Chart.getChart ? window.Chart.getChart(canvas) : null);
+            if (!inst && window.Chart && window.Chart.instances) {
+                /* Chart.js 2 registry: find the instance bound to this canvas */
+                Object.keys(window.Chart.instances).some(function (k) {
+                    var c = window.Chart.instances[k];
+                    if (c && c.canvas === canvas) { inst = c; return true; }
+                    return false;
+                });
+            }
+            if (!inst && canvas.id && window[canvas.id] && window[canvas.id].data) inst = window[canvas.id];
             if (!inst || !inst.data) return;
             /* legacy channelusage passes epoch-ms labels — must be recognized as time */
             var isTime = inst.data.labels.length && typeof inst.data.labels[0] === 'number' && inst.data.labels[0] > 1e12;
