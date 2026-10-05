@@ -458,14 +458,14 @@
             var full = document.querySelector('#Applet_HardDrives .appletwindow_fullcontent');
             if (!full || full.dataset.mtDisks === '1') return;
             if (full.querySelector('.mt-echart')) { full.dataset.mtDisks = '1'; return; }
-            var txt = (full.innerText || '');
+            var txt = (full.textContent || ''); /* includes CSS-hidden legend/SVG text */
             var m = txt.match(/([\d.]+)\s*GB/i);
-            var pct = txt.match(/(\d+)\s*٪|(\d+)\s*%/);
+            var pct = txt.match(/(\d{1,3})\s*%/); /* first % is the donut center = used */
             if (m && pct) {
-                window.__mtDisk = {
-                    total: parseFloat(m[1]),
-                    usedPct: parseInt(pct[1] || pct[2], 10)
-                };
+                var up = parseInt(pct[1], 10);
+                if (up >= 0 && up <= 100) {
+                    window.__mtDisk = { total: parseFloat(m[1]), usedPct: up };
+                }
             }
             var disk = window.__mtDisk;
             if (!disk) return;
