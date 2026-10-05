@@ -465,6 +465,7 @@
            read the existing Chart instance data and re-render with ECharts ---- */
         var migrateChartJs = function (canvas) {
             if (!E() || canvas.dataset.mtDone === '1') return;
+            if (!canvas.offsetParent) return; /* hidden — will retry when visible */
             var inst = canvas.__mtChart
                 || (window.Chart && window.Chart.getChart ? window.Chart.getChart(canvas) : null);
             if (!inst && window.Chart && window.Chart.instances) {
@@ -528,11 +529,17 @@
             canvas.dataset.mtDone = '1';
         };
         var chartScan = function () {
+            /* drop orphaned hosts whose module re-render removed their canvas */
+            document.querySelectorAll('.mt-echart').forEach(function (el) {
+                var hasCanvas = el.parentElement && el.parentElement.querySelector(':scope > canvas');
+                var inst = window.echarts.getInstanceByDom(el);
+                if (!hasCanvas && (!inst || inst.isDisposed())) el.remove();
+            });
             document.querySelectorAll('canvas').forEach(function (c) {
                 if (c.id === 'myChart' || c.closest('.chart-container, #chart')) migrateChartJs(c);
             });
         };
-        setTimeout(function () { chartScan(); setTimeout(chartScan, 5000); setTimeout(chartScan, 12000); }, 5000);
+        setTimeout(function () { chartScan(); setTimeout(chartScan, 5000); setTimeout(chartScan, 12000); setTimeout(chartScan, 20000); }, 5000);
         $(document).ajaxComplete(function () { setTimeout(chartScan, 800); });
 
         /* ---------- hide the upstream hardcoded placeholder row in the
