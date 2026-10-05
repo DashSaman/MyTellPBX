@@ -662,7 +662,11 @@ table.mt-comm td.mt-num { direction: ltr; text-align: left; color: var(--mt-text
 .appletwindow_fullcontent > .mt-echart + svg, .appletwindow_fullcontent > .mt-echart ~ svg { display: none; }
 #Applet_HardDrives .mt-echart ~ * { margin-top: 8px; }
 .mt-empty-state {
-    padding: 26px 16px;
+    min-height: 150px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 20px 16px;
     text-align: center;
     color: var(--mt-text-faint);
     font-size: var(--mt-fs-md);
