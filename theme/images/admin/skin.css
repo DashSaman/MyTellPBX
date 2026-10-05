@@ -444,3 +444,296 @@ input[type="submit"], button[type="submit"].button { border-radius: 6px; }
     border-radius: 8px !important;
 }
 .button.is-primary:hover { background: var(--mt-primary-strong) !important; }
+
+/* ================= v10 — legacy table-form RTL + "?" help styling ================= */
+
+/* parameter rows: label column narrow and strong, field column flexible */
+html[dir="rtl"] table.table td { text-align: start; vertical-align: middle; }
+html[dir="rtl"] form table tr > td:first-child {
+    width: 34%;
+    min-width: 210px;
+    font-weight: 600;
+    color: #232A35;
+    padding: 12px 14px 12px 8px;
+    line-height: 1.9;
+}
+html[dir="rtl"] form table tr > td:last-child { padding: 10px 8px 10px 14px; }
+
+/* section header rows (guielToggle): full-width, calm surface */
+html[dir="rtl"] tr.guielToggle td {
+    background: #F3F5F9 !important;
+    border-radius: 10px;
+    padding: 10px 14px !important;
+}
+html[dir="rtl"] tr.guielToggle h5 {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-size: 14px;
+    font-weight: 800;
+    color: var(--mt-primary) !important;
+    margin: 0;
+    cursor: pointer;
+}
+html[dir="rtl"] tr.guielToggle h5 .guielToggleBut {
+    order: 2;
+    margin-inline-start: auto;
+    color: var(--mt-text-muted);
+}
+
+/* the "?" mark: brand pill, calm hover */
+.infohelp {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 17px; height: 17px;
+    margin-inline-start: 7px;
+    border-radius: 50%;
+    background: rgba(46,49,148,.10);
+    color: var(--mt-primary) !important;
+    font-size: 11px !important;
+    font-weight: 800;
+    line-height: 1;
+    cursor: help;
+    vertical-align: middle;
+}
+.infohelp:hover { background: var(--mt-primary); color: #fff !important; }
+/* the pop-up help bubble (hidden span shown on hover by legacy CSS) */
+.infohelp > span {
+    direction: rtl;
+    right: auto;
+    left: auto;
+    margin-inline-start: -4px;
+    background: #0B1526 !important;
+    border: 0 !important;
+    border-radius: 12px !important;
+    box-shadow: 0 12px 32px rgba(11,21,38,.35) !important;
+    color: #EDF1FA !important;
+    font-family: 'Vazirmatn', Tahoma, sans-serif !important;
+    font-size: 12.5px !important;
+    font-weight: 400 !important;
+    line-height: 2 !important;
+    padding: 12px 16px !important;
+    width: 340px !important;
+    max-width: 78vw;
+    text-align: right !important;
+    white-space: normal !important;
+    z-index: 30060 !important;
+}
+.infohelp > span[dir="rtl"] { direction: rtl; }
+.infohelp > span:not([dir]) { direction: ltr; } /* untranslated English help */
+
+/* technical inputs flagged by brand.js read left-to-right */
+input.mt-ltr, textarea.mt-ltr {
+    direction: ltr !important;
+    text-align: left !important;
+    font-family: Consolas, Menlo, monospace;
+    font-size: 12.5px;
+}
+
+/* radio/checkbox toggle rows: tidy RTL alignment */
+html[dir="rtl"] fieldset.radio .radiotoggle,
+html[dir="rtl"] .radiotoggle {
+    display: inline-flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    direction: rtl;
+}
+html[dir="rtl"] .radiotoggle input[type="radio"],
+html[dir="rtl"] .radiotoggle input[type="checkbox"] { margin: 0; }
+html[dir="rtl"] .radiotoggle label {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    margin: 0 0 0 4px;
+    cursor: pointer;
+}
+
+/* tables listing records (extensions list etc.): calm header + row rules */
+html[dir="rtl"] table.table thead th,
+html[dir="rtl"] table.table tr:first-child td strong {
+    background: #F7F8FC;
+    color: #42506B !important;
+    font-weight: 700;
+}
+html[dir="rtl"] table.table td { border-color: #EEF1F6; }
+
+/* dropdown (chosen) select RTL polish */
+html[dir="rtl"] .chosen-container .chosen-single,
+html[dir="rtl"] .chosen-container .chosen-drop {
+    border-radius: 9px;
+    border-color: #CBD2DD;
+    background: #fff;
+    text-align: right;
+    direction: rtl;
+}
+html[dir="rtl"] .chosen-container .chosen-single span { margin-inline-end: 8px; }
+html[dir="rtl"] .chosen-container .chosen-drop .chosen-results li {
+    text-align: right;
+    padding: 7px 12px;
+}
+html[dir="rtl"] .chosen-container-active.chosen-with-drop .chosen-single { border-color: var(--mt-primary); }
+
+/* tab strips inside settings pages */
+html[dir="rtl"] .fpbx-tabs, html[dir="rtl"] ul.tabs, html[dir="rtl"] .tabs {
+    direction: rtl;
+}
+html[dir="rtl"] .fpbx-tabs li a, html[dir="rtl"] ul.tabs li a {
+    font-family: 'Vazirmatn', Tahoma, sans-serif;
+    border-radius: 9px 9px 0 0;
+}
+
+/* ================= v11 — balanced MyTel scale (13px portal rhythm) ================= */
+
+/* base type: match the portal's compact 13px body */
+html[dir=rtl] body { font-size: 13px !important; line-height: 1.65; color: #232A35; }
+
+/* headings — proportional, not Bulma-default huge */
+html[dir=rtl] h1,
+html[dir=rtl] h2,
+html[dir=rtl] #fpbx-title,
+html[dir=rtl] .title {
+    font-size: 16px !important;
+    line-height: 24px !important;
+    font-weight: 700 !important;
+    margin: 0 0 16px !important;
+}
+html[dir=rtl] td h2#title { margin: 4px 0 8px !important; }
+html[dir=rtl] h3 { font-size: 14.5px !important; font-weight: 700 !important; }
+html[dir=rtl] h4 { font-size: 14px !important; font-weight: 700 !important; }
+html[dir=rtl] tr.guielToggle h5 { font-size: 14px !important; line-height: 22px !important; }
+html[dir=rtl] small, html[dir=rtl] .help, html[dir=rtl] .help-block {
+    font-size: 12px !important; line-height: 18px !important;
+}
+
+/* controls: uniform 36px language, radius 8 */
+html[dir=rtl] .input,
+html[dir=rtl] .select select,
+html[dir=rtl] input[type="text"],
+html[dir=rtl] input[type="password"],
+html[dir=rtl] input[type="number"],
+html[dir=rtl] input[type="search"] {
+    height: 36px !important;
+    font-size: 13px !important;
+    font-family: 'Vazirmatn', Tahoma, sans-serif !important;
+    border-radius: 8px !important;
+    border-color: #CBD2DD !important;
+    box-shadow: none !important;
+    padding: 0 12px !important;
+}
+html[dir=rtl] .input:focus,
+html[dir=rtl] input[type="text"]:focus {
+    border-color: var(--mt-primary) !important;
+    box-shadow: 0 0 0 3px rgba(46,49,148,.12) !important;
+}
+html[dir=rtl] textarea.input, html[dir=rtl] textarea {
+    height: auto !important;
+    min-height: 88px !important;
+    padding: 8px 12px !important;
+    font-size: 13px !important;
+    line-height: 1.8 !important;
+    font-family: 'Vazirmatn', Tahoma, sans-serif !important;
+    border-radius: 8px !important;
+    border-color: #CBD2DD !important;
+}
+html[dir=rtl] .button,
+html[dir=rtl] input[type="submit"],
+html[dir=rtl] button.button {
+    height: 36px !important;
+    font-size: 13px !important;
+    font-weight: 600 !important;
+    font-family: 'Vazirmatn', Tahoma, sans-serif !important;
+    border-radius: 8px !important;
+    padding: 0 14px !important;
+    border-width: 1px !important;
+}
+html[dir=rtl] .button.is-small { height: 30px !important; font-size: 12px !important; padding: 0 10px !important; }
+html[dir=rtl] .button.is-medium { height: 40px !important; }
+html[dir=rtl] .button:focus { box-shadow: 0 0 0 3px rgba(46,49,148,.14) !important; }
+
+/* form rows: compact 50px rhythm (overrides v10's 12px paddings) */
+html[dir=rtl] form table tr > td:first-child {
+    padding: 7px 12px 7px 8px !important;
+    line-height: 21px !important;
+    font-weight: 500 !important;
+    font-size: 13px !important;
+}
+html[dir=rtl] form table tr > td:last-child { padding: 7px 8px 7px 14px !important; }
+html[dir=rtl] form table tr > td:first-child b { font-weight: 600 !important; }
+
+/* section headers: tighter band */
+html[dir=rtl] tr.guielToggle td { padding: 11px 14px 9px !important; }
+
+/* list tables: 38-40px rows, quiet header */
+html[dir=rtl] table.table:not(:has(form)) td,
+html[dir=rtl] table.is-hoverable td,
+html[dir=rtl] table.is-striped td { padding: 8px 12px !important; }
+html[dir=rtl] table.table thead th,
+html[dir=rtl] table.is-hoverable thead th,
+html[dir=rtl] table.is-striped thead th,
+html[dir=rtl] table.table tr:first-child td strong {
+    font-size: 12px !important;
+    font-weight: 600 !important;
+    padding: 8px 12px !important;
+    background: #F3F5F9 !important;
+}
+
+/* navbar: slimmer brand bar, 13px items */
+html[dir=rtl] .navbar { min-height: 52px !important; height: auto; }
+html[dir=rtl] .navbar-brand img,
+html[dir=rtl] .navbar-item img { max-height: 30px !important; height: 30px !important; }
+html[dir=rtl] .navbar-item,
+html[dir=rtl] .navbar-link {
+    font-size: 13px !important;
+    font-weight: 600 !important;
+    line-height: 20px !important;
+    padding: 6px 12px !important;
+}
+html[dir=rtl] .navbar-dropdown { padding: 6px !important; }
+html[dir=rtl] .navbar-dropdown .navbar-item {
+    min-height: 36px !important;
+    padding: 8px 12px !important;
+    font-size: 13px !important;
+    font-weight: 500 !important;
+}
+
+/* chosen selects join the 36px language */
+html[dir=rtl] .chosen-container-single .chosen-single {
+    height: 36px !important;
+    line-height: 34px !important;
+    border-radius: 8px !important;
+    border-color: #CBD2DD !important;
+    background: #fff !important;
+    font-size: 13px !important;
+    font-family: 'Vazirmatn', Tahoma, sans-serif !important;
+    padding: 0 12px !important;
+}
+html[dir=rtl] .chosen-container-single .chosen-single div b {
+    background-position-y: 8px !important;
+}
+html[dir=rtl] .chosen-container-active.chosen-with-drop .chosen-single { border-color: var(--mt-primary) !important; }
+html[dir=rtl] .chosen-drop {
+    border-radius: 10px !important;
+    border-color: #E8ECF3 !important;
+    box-shadow: 0 12px 32px rgba(21,27,61,.14) !important;
+}
+html[dir=rtl] .chosen-drop .chosen-results li { font-size: 13px; padding: 8px 12px; }
+
+/* radio/checkbox pills keep scale with the compact rows */
+html[dir=rtl] .radiotoggle label,
+html[dir=rtl] fieldset.radio label {
+    font-size: 13px !important;
+    padding: 5px 10px;
+}
+
+/* pagination + misc controls */
+html[dir=rtl] .pagination-link, html[dir=rtl] .pagination-ellipsis {
+    font-size: 13px !important; min-width: 32px; height: 32px;
+    border-radius: 8px !important;
+}
+
+/* content frame: calmer page background */
+html[dir=rtl] .fpbx-view, html[dir=rtl] main, html[dir=rtl] #page_body {
+    background: #F3F5F9;
+}
+html[dir=rtl] main .container { padding-bottom: 24px; }
