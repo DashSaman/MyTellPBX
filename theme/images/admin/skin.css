@@ -1,8 +1,10 @@
 /* ============================================================
-   MyTel skin for the STOCK IssabelPBX console (v16, 2026-10-05)
+   MyTel skin for the STOCK IssabelPBX console (v17, 2026-10-05)
    Policy: stock Issabel words, structure, direction (LTR) and
    behavior are untouched — this file only re-skins the visuals:
    brand navbar, card surfaces, controls, typography, tooltips.
+   v17: navbar submenus keep stock metrics/spacing (dropdown arrow
+   never touches the label; burger panel boxes fill the width).
    ============================================================ */
 
 :root {
@@ -43,8 +45,12 @@ a { color: var(--mt-primary); }
     font-weight: 600;
     font-size: 13px;
     line-height: 20px;
-    padding: 6px 12px;
 }
+.navbar.is-dark .navbar-item { padding: 6px 12px; }
+/* stock Bulma reserves 2.5em of right padding on .navbar-link so the
+   ▾ arrow (::after pinned near the right edge) stays clear of the
+   label — never shrink it, the arrow would overlap the text */
+.navbar.is-dark .navbar-link { padding: 6px 40px 6px 12px; }
 .navbar.is-dark .navbar-item:hover, .navbar.is-dark .navbar-link:hover,
 .navbar-item.has-dropdown:hover .navbar-link, .navbar-link.is-active {
     color: #FFB84D;
@@ -56,22 +62,34 @@ a { color: var(--mt-primary); }
     font-weight: 700 !important;
 }
 
-/* dropdown menus: white cards */
+/* dropdown menus: stock geometry (the 3-column 600px multicolumn grid
+   only fits with ZERO horizontal padding/border — any side chrome drops
+   it to 2 columns and the list starts scrolling); theme = colors only */
 .navbar-dropdown {
     background: #fff !important;
-    border: 1px solid var(--mt-border) !important;
-    border-radius: 12px !important;
+    border: 0 !important;
+    border-radius: 0 !important;
     box-shadow: 0 12px 32px rgba(21,27,61,.14) !important;
-    padding: 6px !important;
+    padding: 8px 0 !important;
     min-width: 230px;
 }
 .navbar-dropdown .navbar-item {
     color: var(--mt-text) !important;
-    border-radius: 8px !important;
-    min-height: 36px;
-    padding: 8px 12px !important;
+    min-height: 0;                 /* stock metric — taller rows push
+                                      the burger panel past its height */
+    padding: 8px 24px !important;  /* stock indent */
     font-size: 13px;
-    line-height: 1.4;
+    line-height: 17px;             /* stock row ≈33px */
+}
+/* burger mode (narrow window/iframe): same stock items, grouping and
+   scroll behavior — only the fixed 600px box goes full panel width so
+   the multicolumn engine spreads into more, shorter columns and the
+   dead space on the right disappears */
+.navbar-menu.is-active .navbar-item.has-dropdown,
+.navbar-menu.is-active .navbar-dropdown,
+.navbar-menu.is-active .navbar-dropdown .multicolumn {
+    width: 100% !important;
+    max-width: 100% !important;
 }
 .navbar-dropdown .navbar-item:hover { background: #F3F5F9 !important; color: var(--mt-primary) !important; }
 .navbar-dropdown .navbar-item.is-active,
@@ -160,7 +178,7 @@ input[type="submit"] { border-radius: 6px; }
 
 /* ---------- page frame ---------- */
 #page, #page_body { background: var(--mt-bg); }
-.content { padding: 20px 22px 28px; }
+.content { padding: 20px 22px 24px; }
 
 /* ---------- the module form = a card ---------- */
 form.popover-form, .content > form {
