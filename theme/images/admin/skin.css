@@ -1,10 +1,14 @@
+@charset "UTF-8";
 /* ============================================================
-   MyTel skin for the STOCK IssabelPBX console (v17, 2026-10-05)
+   MyTel skin for the STOCK IssabelPBX console (v18, 2026-10-05)
    Policy: stock Issabel words, structure, direction (LTR) and
    behavior are untouched — this file only re-skins the visuals:
    brand navbar, card surfaces, controls, typography, tooltips.
    v17: navbar submenus keep stock metrics/spacing (dropdown arrow
    never touches the label; burger panel boxes fill the width).
+   v18: tiny Persian subtitles under every dropdown item (pure CSS
+   ::after on the mapped stock hrefs — DOM text stays stock) and a
+   visible active/current item replacing stock's dark purple.
    ============================================================ */
 
 :root {
@@ -81,6 +85,121 @@ a { color: var(--mt-primary); }
     font-size: 13px;
     line-height: 17px;             /* stock row ≈33px */
 }
+/* ---------- Persian one-line subtitles under dropdown items ----------
+   Pure CSS decoration: stock <a> text and hrefs stay untouched; the
+   Persian line exists only as ::after content matched by stock href
+   suffix. Items without a mapping render no pseudo-element at all. */
+@font-face {
+    font-family: 'VazirmatnSub';
+    src: url('fonts/vazirmatn-regular.woff') format('woff2');
+    font-weight: 400;
+    font-style: normal;
+    font-display: swap;
+}
+/* row budget: Applications = 25 items = 9 rows in 3 columns; the stock
+   box max-height is 420px, so a row must stay <= ~44px — taller rows
+   summon the internal scrollbar, which eats ~10px of width and knocks
+   the third 200px float column to the next line (stock engine) */
+.navbar.is-dark .navbar-dropdown a.navbar-item {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 1px;
+    padding: 4px 24px 5px !important;
+    line-height: 15px;              /* beats .navbar.is-dark .navbar-item's 20px */
+}
+.navbar-dropdown a.navbar-item::after {
+    display: block;
+    font-family: 'VazirmatnSub', 'Vazirmatn', Tahoma, sans-serif;
+    font-size: 10px;
+    line-height: 13px;
+    font-weight: 500;
+    color: var(--mt-muted);
+    direction: rtl;
+    text-align: left;              /* sit under the English label's edge */
+    opacity: .92;
+}
+/* hover must beat stock's dark-purple !important (higher specificity) */
+.navbar.is-dark .navbar-dropdown a.navbar-item:hover {
+    background: #EEF1FA !important;
+    color: var(--mt-primary) !important;
+}
+/* current page item: stock paints it rgb(75,8,132) !important (nearly
+   invisible) — replace with a MyTel tint + accent bar; background
+   shorthand so stock's purple/image cannot leak through */
+.navbar.is-dark .navbar-dropdown a.navbar-item.is-active {
+    background: linear-gradient(90deg, rgba(46,49,148,.14), rgba(46,49,148,.05)) !important;
+    color: var(--mt-primary) !important;
+    box-shadow: inset 3px 0 0 var(--mt-accent);
+    border-radius: 8px;
+    font-weight: 700;
+}
+.navbar.is-dark .navbar-dropdown a.navbar-item.is-active::after {
+    color: var(--mt-primary);
+    opacity: 1;
+}
+.navbar.is-dark .navbar-dropdown a.navbar-item:focus-visible {
+    outline: 2px solid var(--mt-primary);
+    outline-offset: -2px;
+}
+/* the mapped stock submenu items (display key -> Persian subtitle) */
+.navbar-dropdown a.navbar-item[href$="display=blacklist"]::after          { content: 'فهرست سیاه'; }
+.navbar-dropdown a.navbar-item[href$="display=cidlookup"]::after         { content: 'منابع شماره‌یابی'; }
+.navbar-dropdown a.navbar-item[href$="display=customcontextsadmin"]::after { content: 'مدیریت دسترسی'; }
+.navbar-dropdown a.navbar-item[href$="display=customdests"]::after       { content: 'مقصدهای سفارشی'; }
+.navbar-dropdown a.navbar-item[href$="display=customextens"]::after      { content: 'داخلی‌های سفارشی'; }
+.navbar-dropdown a.navbar-item[href$="display=featurecodeadmin"]::after  { content: 'کدهای خدمات'; }
+.navbar-dropdown a.navbar-item[href$="display=modules"]::after           { content: 'مدیریت ماژول‌ها'; }
+.navbar-dropdown a.navbar-item[href$="display=recordings"]::after        { content: 'پیام‌های ضبط‌شده'; }
+.navbar-dropdown a.navbar-item[href$="display=ttsadmin"]::after          { content: 'موتورهای گفتارساز'; }
+.navbar-dropdown a.navbar-item[href$="display=announcement"]::after      { content: 'اعلان صوتی'; }
+.navbar-dropdown a.navbar-item[href$="display=bosssecretary"]::after     { content: 'رئیس و منشی'; }
+.navbar-dropdown a.navbar-item[href$="display=daynight"]::after          { content: 'کنترل تماس'; }
+.navbar-dropdown a.navbar-item[href$="display=callrecording"]::after     { content: 'ضبط تماس'; }
+.navbar-dropdown a.navbar-item[href$="display=callback"]::after          { content: 'تماس بازگشتی'; }
+.navbar-dropdown a.navbar-item[href$="display=conferences"]::after       { content: 'کنفرانس‌ها'; }
+.navbar-dropdown a.navbar-item[href$="display=disa"]::after              { content: 'دسترسی بیرونی'; }
+.navbar-dropdown a.navbar-item[href$="display=dynamicfeatures"]::after   { content: 'قابلیت‌های پویا'; }
+.navbar-dropdown a.navbar-item[href$="display=extensions"]::after        { content: 'داخلی‌ها'; }
+.navbar-dropdown a.navbar-item[href$="display=findmefollow"]::after      { content: 'پیگیری تماس'; }
+.navbar-dropdown a.navbar-item[href$="display=ivr"]::after               { content: 'منوی صوتی'; }
+.navbar-dropdown a.navbar-item[href$="display=languages"]::after         { content: 'زبان‌ها'; }
+.navbar-dropdown a.navbar-item[href$="display=miscapps"]::after          { content: 'برنامه‌های متفرقه'; }
+.navbar-dropdown a.navbar-item[href$="display=miscdests"]::after         { content: 'مقصدهای متفرقه'; }
+.navbar-dropdown a.navbar-item[href$="display=paging"]::after            { content: 'پیجینگ داخلی'; }
+.navbar-dropdown a.navbar-item[href$="display=parking"]::after           { content: 'پارک تماس'; }
+.navbar-dropdown a.navbar-item[href$="display=queueprio"]::after         { content: 'اولویت صف‌ها'; }
+.navbar-dropdown a.navbar-item[href$="display=queues"]::after            { content: 'صف‌ها'; }
+.navbar-dropdown a.navbar-item[href$="display=ringgroups"]::after        { content: 'گروه‌های زنگ'; }
+.navbar-dropdown a.navbar-item[href$="display=setcid"]::after            { content: 'تنظیم شناسه'; }
+.navbar-dropdown a.navbar-item[href$="display=tts"]::after               { content: 'گفتارساز'; }
+.navbar-dropdown a.navbar-item[href$="display=timeconditions"]::after    { content: 'شرایط زمانی'; }
+.navbar-dropdown a.navbar-item[href$="display=timegroups"]::after        { content: 'گروه‌های زمانی'; }
+.navbar-dropdown a.navbar-item[href$="display=vmblast"]::after           { content: 'پیام گروهی'; }
+.navbar-dropdown a.navbar-item[href$="display=writequeuelog"]::after     { content: 'ثبت صف'; }
+.navbar-dropdown a.navbar-item[href$="display=customcontexts"]::after    { content: 'سطح دسترسی'; }
+.navbar-dropdown a.navbar-item[href$="display=dahdichandids"]::after     { content: 'شماره‌های DAHDI'; }
+.navbar-dropdown a.navbar-item[href$="display=did"]::after               { content: 'مسیرهای ورودی'; }
+.navbar-dropdown a.navbar-item[href$="display=routing"]::after           { content: 'مسیرهای خروجی'; }
+.navbar-dropdown a.navbar-item[href$="display=trunks"]::after            { content: 'ترانک‌ها'; }
+.navbar-dropdown a.navbar-item[href$="display=asteriskinfo"]::after      { content: 'اطلاعات استریسک'; }
+.navbar-dropdown a.navbar-item[href$="display=logfiles"]::after          { content: 'فایل‌های گزارش'; }
+.navbar-dropdown a.navbar-item[href$="display=extensionsettings"]::after { content: 'تنظیمات داخلی'; }
+.navbar-dropdown a.navbar-item[href$="display=index"]::after             { content: 'وضعیت سامانه'; }
+.navbar-dropdown a.navbar-item[href$="display=printextensions"]::after   { content: 'چاپ داخلی‌ها'; }
+.navbar-dropdown a.navbar-item[href$="display=weakpasswords"]::after     { content: 'گذرواژه‌های ضعیف'; }
+.navbar-dropdown a.navbar-item[href$="display=advancedsettings"]::after  { content: 'تنظیمات پیشرفته'; }
+.navbar-dropdown a.navbar-item[href$="display=iaxsettings"]::after       { content: 'تنظیمات IAX'; }
+.navbar-dropdown a.navbar-item[href$="display=logfiles_settings"]::after { content: 'تنظیمات گزارش‌ها'; }
+.navbar-dropdown a.navbar-item[href$="display=managersettings"]::after   { content: 'تنظیمات AMI'; }
+.navbar-dropdown a.navbar-item[href$="display=pjsipsettings"]::after     { content: 'تنظیمات PJSIP'; }
+.navbar-dropdown a.navbar-item[href$="display=sipsettings"]::after       { content: 'تنظیمات سیپ'; }
+.navbar-dropdown a.navbar-item[href$="display=music"]::after             { content: 'موسیقی انتظار'; }
+.navbar-dropdown a.navbar-item[href$="display=pinsets"]::after           { content: 'مجموعه‌های پین'; }
+.navbar-dropdown a.navbar-item[href$="display=outroutemsg"]::after       { content: 'پیام ازدحام'; }
+.navbar-dropdown a.navbar-item[href$="display=voicemail"]::after         { content: 'مدیریت پیامگیر'; }
+.navbar-dropdown a.navbar-item[href$="display=dialplaninjection"]::after { content: 'تزریق دیال‌پلن'; }
+.navbar-dropdown a.navbar-item[href$="display=dynroute"]::after          { content: 'مسیرهای پویا'; }
+.navbar-dropdown a.navbar-item[href$="display=trunkbalance"]::after      { content: 'توازن ترانک‌ها'; }
 /* burger mode (narrow window/iframe): same stock items, grouping and
    scroll behavior — only the fixed 600px box goes full panel width so
    the multicolumn engine spreads into more, shorter columns and the
