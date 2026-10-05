@@ -453,6 +453,23 @@
         $(document).ajaxComplete(function () { setTimeout(migrateGauges, 1200); });
 
         /* ---- 3) hard drives: table text -> horizontal utilization bars ---- */
+        /* when DOM data is stripped by module re-render, fetch fresh values
+           from the applet's own getContent endpoint (presentation-only GET) */
+        var mtDiskFetching = false;
+        var fetchDiskData = function () {
+            if (mtDiskFetching || window.__mtDisk) return;
+            mtDiskFetching = true;
+            window.jQuery.get('index.php', {
+                menu: 'index', rawmode: 'yes',
+                applet: 'HardDrives', action: 'getContent'
+            }, function (html) {
+                mtDiskFetching = false;
+                var t = String(html);
+                var m = t.match(/([\d.]+)\s*GB/i);
+                var p = t.match(/percent=(\d{1,3})/) || t.match(/(\d{1,3})\s*%/);
+                if (m && p) window.__mtDisk = { total: parseFloat(m[1]), usedPct: parseInt(p[1], 10) };
+            }, 'text').fail(function () { mtDiskFetching = false; });
+        };
         /* capture disk values from the applet ajax response the moment it
            arrives — the module strips this data on its own re-render */
         $(document).on('ajaxComplete', function (ev, xhr, settings) {
@@ -505,9 +522,15 @@
            bars exist, then re-create them if a module re-render wipes them */
         var diskLoop = function () {
             var full = document.querySelector('#Applet_HardDrives .appletwindow_fullcontent');
-            if (full && !full.querySelector('.mt-echart')) { full.dataset.mtDisks = '0'; migrateDisks(); }
+            if (!full) return;
+            if (!full.querySelector('.mt-echart')) {
+                full.dataset.mtDisks = '0';
+                if (!window.__mtDisk) fetchDiskData();
+                migrateDisks();
+            }
         };
         setInterval(diskLoop, 3000);
+        setTimeout(diskLoop, 6000);
         setTimeout(function () { migrateDisks(); setTimeout(migrateDisks, 5000); }, 4500);
         $(document).ajaxComplete(function () { setTimeout(migrateDisks, 1200); });
 
