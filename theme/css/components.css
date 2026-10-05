@@ -874,14 +874,33 @@ input.mt-date-mirror:focus {
 .mt-dp-greg { font-size: 11px; color: var(--mt-text-faint); direction: ltr; }
 
 /* email_stats server-pixel charts: Persian caption + cropped title band */
+.mt-charts-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+    gap: 20px;
+    padding: 4px 0 12px;
+}
 figure.mt-chart {
-    margin: 16px auto;
-    max-width: 600px;
+    margin: 0;
     background: var(--mt-surface);
-    border: 1px solid var(--mt-border);
-    border-radius: var(--mt-radius);
-    box-shadow: var(--mt-shadow-1);
-    padding: 10px 14px 4px;
+    border: 1px solid #E8ECF3;
+    border-radius: 18px;
+    box-shadow: 0 6px 24px rgba(21,27,61,.05);
+    padding: 14px 16px 10px;
+    overflow: hidden;
+    position: relative;
+    transition: transform .18s var(--mt-ease), box-shadow .18s var(--mt-ease);
+}
+figure.mt-chart::before {
+    content: '';
+    position: absolute;
+    inset: 0 0 auto 0;
+    height: 3px;
+    background: linear-gradient(90deg, var(--mt-primary), var(--mt-accent));
+}
+figure.mt-chart:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 10px 30px rgba(21,27,61,.09);
 }
 figure.mt-chart figcaption {
     font-family: var(--mt-font);
@@ -889,10 +908,248 @@ figure.mt-chart figcaption {
     font-size: var(--mt-fs-base);
     color: var(--mt-text);
     text-align: center;
-    padding-bottom: 6px;
+    padding: 2px 0 8px;
 }
 figure.mt-chart .mt-chart-crop { height: 176px; overflow: hidden; }
-figure.mt-chart .mt-chart-crop img { margin-top: -34px; display: block; margin-inline: auto; }
+figure.mt-chart .mt-chart-crop img {
+    display: block;
+    margin-inline: auto;
+    max-width: 100%;
+    height: auto;
+    /* top offset set proportionally by theme.js (scaled title-band crop) */
+}
+
+/* ---------- calendar side panel (Jalali jump + mini month) ---------- */
+.mt-calside {
+    background: var(--mt-surface);
+    border: 1px solid #E8ECF3;
+    border-radius: 18px;
+    box-shadow: 0 6px 24px rgba(21,27,61,.05);
+    padding: 14px 16px 16px;
+    margin: 12px 0;
+}
+.mt-calside-title {
+    display: flex;
+    align-items: center;
+    gap: 9px;
+    font-size: 14px;
+    font-weight: 700;
+    color: var(--mt-text);
+    margin-bottom: 12px;
+}
+.mt-calside-title::before {
+    content: '';
+    width: 4px; height: 16px;
+    border-radius: 2px;
+    background: var(--mt-accent);
+}
+.mt-calside-jump {
+    display: flex;
+    gap: 8px;
+    margin-bottom: 12px;
+}
+.mt-calside-jump select {
+    flex: 1;
+    height: 34px;
+    border: 1px solid var(--mt-border-strong);
+    border-radius: 9px;
+    background: var(--mt-surface);
+    color: var(--mt-text);
+    font-family: var(--mt-font);
+    font-size: 13px;
+    padding: 0 8px;
+    outline: none;
+}
+.mt-calside-jump select:focus { border-color: var(--mt-primary); }
+.mt-calside-week {
+    display: grid;
+    grid-template-columns: repeat(7, 1fr);
+    gap: 2px;
+    margin-bottom: 2px;
+}
+.mt-calside-week span {
+    text-align: center;
+    font-size: 11px;
+    font-weight: 700;
+    color: var(--mt-text-muted);
+    padding: 4px 0;
+}
+.mt-calside-week span:first-child { color: #D64B55; }
+.mt-calside-grid {
+    display: grid;
+    grid-template-columns: repeat(7, 1fr);
+    gap: 2px;
+}
+.mt-mini {
+    height: 32px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    border: 0;
+    background: none;
+    border-radius: 8px;
+    font-family: var(--mt-font);
+    font-size: 12.5px;
+    color: var(--mt-text);
+    cursor: pointer;
+    transition: background .14s ease;
+}
+.mt-mini:hover { background: rgba(46,49,148,.08); color: var(--mt-primary); }
+.mt-mini.fri { color: #D64B55; }
+.mt-mini.today { box-shadow: inset 0 0 0 2px var(--mt-primary); font-weight: 700; }
+.mt-mini.hol { color: #D64B55; }
+.mt-mini.hol::after { content: '•'; font-size: 9px; vertical-align: super; }
+.mt-calside-today {
+    width: 100%;
+    margin-top: 12px;
+    height: 36px;
+    border: 0;
+    border-radius: 10px;
+    background: var(--mt-accent-tint, rgba(255,138,0,.12));
+    color: var(--mt-accent-strong);
+    font-family: var(--mt-font);
+    font-size: 13px;
+    font-weight: 700;
+    cursor: pointer;
+    transition: background .16s ease;
+}
+.mt-calside-today:hover { background: rgba(255,138,0,.22); }
+/* kept stock extras (iCal export link) join the card language */
+.mt-calside-extra a {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin: 10px 2px 0;
+    padding: 9px 12px;
+    border: 1px dashed var(--mt-border-strong);
+    border-radius: 10px;
+    color: var(--mt-text-muted);
+    font-family: var(--mt-font);
+    font-size: 12.5px;
+    text-decoration: none;
+    transition: color var(--mt-speed) var(--mt-ease), border-color var(--mt-speed) var(--mt-ease);
+}
+.mt-calside-extra a:hover { color: var(--mt-primary); border-color: var(--mt-primary); }
+/* the stock "new event" button joins the card language */
+#calendar_newevent,
+button#calendar_newevent {
+    background: var(--mt-primary) !important;
+    color: #fff !important;
+    border: 0 !important;
+    border-radius: 10px !important;
+    height: 38px;
+    padding: 0 16px;
+    font-family: var(--mt-font);
+    font-size: 13px;
+    font-weight: 700;
+    cursor: pointer;
+    box-shadow: none !important;
+}
+
+/* ---------- email_template card ---------- */
+.mt-tpl {
+    max-width: 720px;
+    background: var(--mt-surface);
+    border: 1px solid #E8ECF3;
+    border-radius: 18px;
+    box-shadow: 0 6px 24px rgba(21,27,61,.05);
+    padding: 20px 24px 24px;
+    margin: 8px 0 20px;
+}
+.mt-tpl-title {
+    display: flex;
+    align-items: center;
+    gap: 9px;
+    font-size: 16px;
+    font-weight: 800;
+    color: var(--mt-text);
+    margin-bottom: 6px;
+}
+.mt-tpl-title::before {
+    content: '';
+    width: 4px; height: 17px;
+    border-radius: 2px;
+    background: var(--mt-accent);
+}
+.mt-tpl-sub {
+    font-size: 12.5px;
+    color: var(--mt-text-muted);
+    line-height: 1.9;
+    margin: 0 0 14px;
+}
+.mt-tpl-vartitle { font-size: 12px; font-weight: 700; color: var(--mt-text); margin-bottom: 6px; }
+.mt-chips { display: flex; flex-wrap: wrap; gap: 10px 6px; margin-bottom: 6px; align-items: center; }
+.mt-chip {
+    background: rgba(46,49,148,.07);
+    border: 1px solid rgba(46,49,148,.18);
+    color: var(--mt-primary);
+    border-radius: 7px;
+    padding: 3px 8px;
+    font-size: 12px;
+    font-weight: 600;
+}
+.mt-chips small { font-size: 11px; color: var(--mt-text-faint); }
+.mt-tpl-row { margin-bottom: 14px; }
+.mt-tpl-row label {
+    display: block;
+    font-size: 13px;
+    font-weight: 700;
+    color: var(--mt-text);
+    margin-bottom: 6px;
+}
+.mt-tpl-field {
+    width: 100%;
+    height: 38px;
+    border: 1px solid var(--mt-border-strong);
+    border-radius: 10px;
+    padding: 0 12px;
+    font-size: 13px;
+    color: var(--mt-text);
+    background: var(--mt-surface);
+    outline: none;
+    direction: ltr;
+    text-align: left;
+    box-shadow: none;
+    transition: border-color var(--mt-speed) var(--mt-ease), box-shadow var(--mt-speed) var(--mt-ease);
+}
+.mt-tpl-field:focus {
+    border-color: var(--mt-primary);
+    box-shadow: 0 0 0 3px rgba(46,49,148,.12);
+}
+textarea.mt-tpl-content {
+    height: 150px;
+    padding: 10px 12px;
+    font-family: Consolas, Menlo, monospace;
+    font-size: 12.5px;
+    line-height: 1.7;
+    resize: vertical;
+}
+button.mt-tpl-save {
+    height: 40px;
+    padding: 0 28px;
+    border: 0;
+    border-radius: 10px;
+    background: var(--mt-primary);
+    color: #fff;
+    font-family: var(--mt-font);
+    font-size: 14px;
+    font-weight: 700;
+    cursor: pointer;
+    transition: background .16s ease;
+}
+button.mt-tpl-save:hover { background: var(--mt-primary-strong); }
+input[type="submit"].mt-tpl-field {
+    background: var(--mt-primary);
+    color: #fff;
+    font-family: var(--mt-font);
+    font-weight: 700;
+    border: 0;
+    cursor: pointer;
+    direction: rtl;
+    text-align: center;
+    max-width: 220px;
+}
+input[type="submit"].mt-tpl-field:hover { background: var(--mt-primary-strong); }
 
 /* communication activity — rebuilt clean table */
 table.mt-comm { width: 100%; border-collapse: collapse; }

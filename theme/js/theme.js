@@ -268,6 +268,12 @@
             "Incoming email by hour": "ایمیل‌های دریافتی بر اساس ساعت",
             "Incoming email by day": "ایمیل‌های دریافتی بر اساس روز",
             "Incoming email by month": "ایمیل‌های دریافتی بر اساس ماه",
+            /* email template — the shipped Persian labels read broken */
+            "موضع ایمیل:": "موضوع ایمیل:",
+            "ارسال ایمیل از :": "نشانی ایمیل فرستنده:",
+            "نام فرستنده ایمیل:": "نام نمایشی فرستنده:",
+            "محتوای ایمیل:": "متن ایمیل:",
+            "تغيير پارامترها": "ذخیرهٔ تغییرات",
             "Number of emails": "تعداد ایمیل‌ها",
             "Nothing to show yet": "هنوز داده‌ای ثبت نشده است",
             /* vacations */
@@ -608,6 +614,8 @@
             } else if (/menu=dashboard/.test(href) && !li.dataset.mtDashRoot) {
                 li.style.display = 'none'; /* covered by the root entry below */
             }
+            /* applet management and out-of-office are not used in MyTel */
+            if (/menu=applet_admin|menu=vacations/.test(href)) li.style.display = 'none';
         });
         (function addDashboardRoot() {
             var menu = document.querySelector('.mt-sidebar #main-menu');
@@ -891,6 +899,7 @@
             cal.dataset.mtJalali = '1';
             cal.classList.add('mt-jalali');
 
+            var applyHandlers = []; /* side-panel sync hooks, run after each apply */
             var apply = function () {
                 /* month title: big Persian line + tiny Gregorian line below */
                 var title = cal.querySelector('.fc-header-title h2, .fc-center h2, .fc-toolbar .fc-title');
@@ -936,9 +945,120 @@
                     cell.classList.toggle('fc-fri', dt.getDay() === 5);
                     if (hol) { cell.setAttribute('title', hol); cell.classList.add('mt-has-name'); }
                 });
+                applyHandlers.forEach(function (h) { try { h(); } catch (e) {} });
             };
             apply();
             setInterval(apply, 1500);
+
+            /* ---- side panel: replace the English jump controls (month/year
+               selects + jQuery-UI inline datepicker) with a native Jalali
+               mini calendar that drives the same fullCalendar API ---- */
+            var btnNew = document.getElementById('calendar_newevent');
+            var sideCell = btnNew ? btnNew.closest('td') : null;
+            if (sideCell && !sideCell.querySelector('.mt-calside')) {
+                var jump = function (jy, jm, jdd) {
+                    var g = MT.toGregorian(jy, jm, jdd);
+                    try {
+                        window.jQuery('#calendar_main').fullCalendar('gotoDate', g.getFullYear(), g.getMonth(), g.getDate());
+                    } catch (e) {}
+                };
+                var side = document.createElement('div');
+                side.className = 'mt-calside';
+                side.innerHTML =
+                    '<div class="mt-calside-title">رفتن به تاریخ</div>' +
+                    '<div class="mt-calside-jump">' +
+                        '<select class="mt-cal-jm" aria-label="ماه"></select>' +
+                        '<select class="mt-cal-jy" aria-label="سال"></select>' +
+                    '</div>' +
+                    '<div class="mt-calside-week"></div>' +
+                    '<div class="mt-calside-grid"></div>' +
+                    '<button type="button" class="mt-calside-today">امروز</button>';
+                sideCell.appendChild(side);
+                var selM = side.querySelector('.mt-cal-jm');
+                var selY = side.querySelector('.mt-cal-jy');
+                MT.JMONTHS.forEach(function (m, i) {
+                    var o = document.createElement('option');
+                    o.value = i + 1; o.textContent = m;
+                    selM.appendChild(o);
+                });
+                for (var y = 1395; y <= 1415; y++) {
+                    var oy = document.createElement('option');
+                    oy.value = y; oy.textContent = MT.faNum(y);
+                    selY.appendChild(oy);
+                }
+                ['ش','ی','د','س','چ','پ','ج'].forEach(function (w) {
+                    var s = document.createElement('span');
+                    s.textContent = w;
+                    side.querySelector('.mt-calside-week').appendChild(s);
+                });
+                var miniRender = function (jy, jm) {
+                    var grid = side.querySelector('.mt-calside-grid');
+                    var todayJ = MT.toJalali(new Date());
+                    var first = MT.toGregorian(jy, jm, 1);
+                    var lead = (first.getDay() + 1) % 7; /* Saturday-first */
+                    var len = 29;
+                    while (len < 31 && MT.toJalali(MT.toGregorian(jy, jm, len + 1)).jm === jm) len++;
+                    var html = '';
+                    for (var i2 = 0; i2 < lead; i2++) html += '<span class="mt-mini out"></span>';
+                    for (var d2 = 1; d2 <= len; d2++) {
+                        var cls = 'mt-mini';
+                        var g2 = MT.toGregorian(jy, jm, d2);
+                        if (g2.getDay() === 5) cls += ' fri';
+                        if (todayJ.jy === jy && todayJ.jm === jm && todayJ.jd === d2) cls += ' today';
+                        var hol = MT.holidayName(jy, jm, d2);
+                        if (hol) cls += ' hol';
+                        html += '<button type="button" class="' + cls + '" data-d="' + d2 + '" title="' + (hol || '') + '">' + MT.faNum(d2) + '</button>';
+                    }
+                    grid.innerHTML = html;
+                };
+                side.querySelector('.mt-calside-grid').addEventListener('click', function (ev) {
+                    var b = ev.target.closest('.mt-mini');
+                    if (!b || !b.dataset.d) return;
+                    jump(+selY.value, +selM.value, +b.dataset.d);
+                });
+                selM.addEventListener('change', function () { jump(+selY.value, +selM.value, 1); });
+                selY.addEventListener('change', function () { jump(+selY.value, +selM.value, 1); });
+                side.querySelector('.mt-calside-today').addEventListener('click', function () {
+                    var t = MT.toJalali(new Date());
+                    jump(t.jy, t.jm, t.jd);
+                });
+                /* keep the side panel in sync with the main view */
+                var syncSide = function () {
+                    var cur = null;
+                    try { cur = window.jQuery('#calendar_main').fullCalendar('getDate'); } catch (e) {}
+                    var j = cur ? MT.toJalali(cur) : MT.toJalali(new Date());
+                    /* the main view can move outside 1395–1415 — extend the
+                       selector so it always represents the current year */
+                    if (!selY.querySelector('option[value="' + j.jy + '"]')) {
+                        var oyx = document.createElement('option');
+                        oyx.value = j.jy;
+                        oyx.textContent = MT.faNum(j.jy);
+                        selY.appendChild(oyx);
+                    }
+                    if (document.activeElement !== selM) selM.value = j.jm;
+                    if (document.activeElement !== selY) selY.value = j.jy;
+                    var key = j.jy + '-' + j.jm;
+                    if (side.dataset.mtKey !== key) {
+                        side.dataset.mtKey = key;
+                        miniRender(j.jy, j.jm);
+                    }
+                };
+                applyHandlers.push(syncSide);
+                syncSide();
+                /* retire only the stock widgets we replace (English selects +
+                   inline datepicker); other side controls like the iCal
+                   export link stay visible */
+                Array.prototype.forEach.call(sideCell.children, function (el) {
+                    if (el === side || el.contains(btnNew)) return;
+                    /* the datepicker header also contains <a> tags — widgets win */
+                    var isWidget = el.querySelector('select') ||
+                        el.querySelector('.ui-datepicker, .ui-datepicker-inline, .hasDatepicker') ||
+                        /^\\s*Prev\\s*Next/.test(el.textContent || '');
+                    if (isWidget) { el.style.display = 'none'; return; }
+                    if (el.querySelector('a')) { el.classList.add('mt-calside-extra'); return; }
+                    el.style.display = 'none'; /* blank/unknown filler */
+                });
+            }
         };
         setTimeout(jalaliCalendar, 1500);
 
@@ -1103,15 +1223,137 @@
             $(document).ajaxComplete(function () { setTimeout(wire, 400); });
         })();
 
-        /* ---------- email_stats: server-pixel charts get Persian captions
-           (the English title band inside the image is cropped away) ---------- */
+        /* ---------- email_template: rebuild the confusing little form into
+           a clear Persian card, list template variables, de-brand values ----
+        -------- */
+        var persianizeEmailTemplate = function () {
+            if (location.search.indexOf('menu=email_template') === -1) return;
+            var remite = document.getElementById('remite');
+            if (!remite || remite.dataset.mtTpl === '1') return;
+            remite.dataset.mtTpl = '1';
+            var table = remite.closest('table');
+            if (!table) return;
+            /* swap Issabel traces only in byte-known stock defaults; any
+               user-customized value is left exactly as configured (the stock
+               body contains no Issabel string at all) */
+            if (/^issabel@example\.com$/i.test(remite.value || '')) remite.value = 'mytel@example.com';
+            var remName = document.getElementById('remitente');
+            if (remName && /^Fax Issabel$/i.test((remName.value || '').trim())) remName.value = 'Fax MyTel';
+            var wrap = document.createElement('div');
+            wrap.className = 'mt-tpl';
+            wrap.innerHTML =
+                '<div class="mt-tpl-title">قالب ایمیل اطلاع‌رسانی فکس</div>' +
+                '<p class="mt-tpl-sub">این قالب هنگام ارسال فکس دریافتی به‌صورت ایمیل استفاده می‌شود. متن انگلیسی را نگه دارید و فقط بخش‌های ثابت را تغییر دهید؛ متغیرهای داخل آکولاد به‌صورت خودکار با اطلاعات واقعی جایگزین می‌شوند.</p>' +
+                '<div class="mt-tpl-vars"></div>';
+            /* variable chips harvested from the live template text */
+            var vars = [];
+            var content = document.getElementById('content');
+            if (content) {
+                (content.value || '').replace(/\{([A-Z0-9_]+)\}/g, function (_, v) {
+                    if (vars.indexOf(v) === -1) vars.push(v);
+                    return _;
+                });
+            }
+            var varFa = {
+                NAME_PDF: 'نام فایل فکس', COMPANY_NAME: 'نام شرکت',
+                CALLERID: 'شمارهٔ تماس فراخوان', DATE: 'تاریخ', TIME: 'ساعت',
+                SUBJECT: 'موضوع', FROM: 'فرستنده', TO: 'گیرنده'
+            };
+            var chips = vars.map(function (v) {
+                var base = v.replace(/_[A-Z]{2}$/, '');
+                return '<span class="mt-chip" dir="ltr">{' + v + '}</span><small>' + (varFa[base] || '') + '</small>';
+            }).join('');
+            wrap.querySelector('.mt-tpl-vars').innerHTML = chips ? '<div class="mt-tpl-vartitle">متغیرهای قابل استفاده:</div><div class="mt-chips">' + chips + '</div>' : '';
+            /* stacked label + field rows from the original table cells */
+            var rows = [];
+            Array.prototype.forEach.call(table.rows, function (r) {
+                var cells = r.cells;
+                if (cells.length < 2) return;
+                var lab = (cells[0].innerText || '').trim();
+                var field = cells[1].querySelector('input,textarea,select,button');
+                if (!lab || !field) return;
+                rows.push({ lab: lab, field: field });
+            });
+            table.style.display = 'none';
+            table.parentNode.insertBefore(wrap, table);
+            rows.forEach(function (r) {
+                var line = document.createElement('div');
+                line.className = 'mt-tpl-row';
+                var l = document.createElement('label');
+                l.textContent = r.lab;
+                line.appendChild(l);
+                r.field.classList.add('mt-tpl-field');
+                if (r.field.tagName === 'TEXTAREA') r.field.classList.add('mt-tpl-content');
+                line.appendChild(r.field);
+                wrap.appendChild(line);
+            });
+            /* safety net: the textarea can live in a nested table the rows
+               loop misses — force every known field into the card */
+            var fieldFa = {
+                remite: 'نشانی ایمیل فرستنده:',
+                remitente: 'نام نمایشی فرستنده:',
+                subject: 'موضوع ایمیل:',
+                content: 'متن ایمیل:'
+            };
+            Object.keys(fieldFa).forEach(function (id) {
+                var f = document.getElementById(id);
+                if (!f || wrap.contains(f)) return;
+                var line = document.createElement('div');
+                line.className = 'mt-tpl-row';
+                var l2 = document.createElement('label');
+                l2.textContent = fieldFa[id];
+                f.classList.add('mt-tpl-field');
+                if (f.tagName === 'TEXTAREA') f.classList.add('mt-tpl-content');
+                line.appendChild(l2);
+                line.appendChild(f);
+                wrap.appendChild(line);
+            });
+            /* the save button may live outside the table (direct form child) — always keep it */
+            var submitScope = remite.closest('form') || table;
+            var submitBtn = submitScope.querySelector('input[type="submit"], button[type="submit"]');
+            if (submitBtn && !wrap.contains(submitBtn)) {
+                var srow = document.createElement('div');
+                srow.className = 'mt-tpl-row';
+                srow.appendChild(submitBtn);
+                wrap.appendChild(srow);
+            }
+            /* Persian save control: the module keeps rewriting the stock
+               button label, so show our own submit and hide the original */
+            var saveBtn = wrap.querySelector('input[type="submit"], button[type="submit"]');
+            if (saveBtn) {
+                saveBtn.style.display = 'none';
+                var mySave = document.createElement('button');
+                mySave.type = 'submit';
+                mySave.className = 'mt-tpl-save';
+                mySave.textContent = 'ذخیرهٔ تغییرات';
+                /* carry the stock control's name/value so the server accepts it */
+                if (saveBtn.name) mySave.name = saveBtn.name;
+                mySave.value = '1'; /* keep the POST key non-empty */
+                if (saveBtn.value && saveBtn.tagName === 'INPUT') {
+                    var h = document.createElement('input');
+                    h.type = 'hidden';
+                    h.name = saveBtn.name;
+                    h.value = saveBtn.value;
+                    wrap.appendChild(h);
+                }
+                var srow2 = document.createElement('div');
+                srow2.className = 'mt-tpl-row';
+                srow2.appendChild(mySave);
+                wrap.appendChild(srow2);
+            }
+        };
+        setTimeout(persianizeEmailTemplate, 1200);
+        /* ---------- email_stats: the graphs are server-rendered pixels —
+           give them a real MyTel card grid: cropped English title band,
+           Persian captions, responsive frame, loading fade ---------- */
         var persianizeEmailStats = function () {
             if (location.search.indexOf('menu=email_stats') === -1) return;
             var c = document.querySelector('.neo-module-content');
             if (!c) return;
             var titles = ['ایمیل‌های دریافتی بر اساس ساعت', 'ایمیل‌های دریافتی بر اساس روز', 'ایمیل‌های دریافتی بر اساس ماه'];
+            var figs = [];
             c.querySelectorAll('img[src*="email_stats"][src*="rawmode"]').forEach(function (img, idx) {
-                if (img.closest('.mt-chart')) return;
+                if (img.closest('.mt-chart')) { figs.push(img.closest('.mt-chart')); return; }
                 var fig = document.createElement('figure');
                 fig.className = 'mt-chart';
                 var cap = document.createElement('figcaption');
@@ -1122,7 +1364,32 @@
                 fig.appendChild(cap);
                 fig.appendChild(crop);
                 crop.appendChild(img);
+                img.style.opacity = '0';
+                img.style.transition = 'opacity .5s ease';
+                if (img.complete && img.naturalWidth) img.style.opacity = '1';
+                else img.addEventListener('load', function () { img.style.opacity = '1'; });
+                /* scale the title-band crop with the responsive image so the
+                   plot area never gets cut on narrower cards */
+                var NAT_W = 580, BAND = 34;
+                var fit = function () {
+                    var s = Math.min(1, crop.clientWidth / NAT_W);
+                    img.style.marginTop = (-BAND * s) + 'px';
+                };
+                if (img.complete && img.naturalWidth) fit();
+                else img.addEventListener('load', fit);
+                if (window.ResizeObserver) new ResizeObserver(fit).observe(crop);
+                figs.push(fig);
             });
+            if (figs.length && !c.querySelector('.mt-charts-grid')) {
+                var grid = document.createElement('div');
+                grid.className = 'mt-charts-grid';
+                figs[0].parentNode.insertBefore(grid, figs[0]);
+                figs.forEach(function (f) { grid.appendChild(f); });
+                /* the module's own caption-only table is now redundant */
+                c.querySelectorAll('table').forEach(function (t) {
+                    if (!t.querySelector('img') && !t.querySelector('input,select,button')) t.style.display = 'none';
+                });
+            }
         };
         setTimeout(persianizeEmailStats, 1500);
 
