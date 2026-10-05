@@ -540,9 +540,10 @@
             }
         };
         var chartScan = function () {
-            /* drop orphaned hosts whose module re-render removed their canvas */
+            /* drop orphaned hosts whose module re-render removed their canvas
+               — the ECharts canvas lives INSIDE the host, so count it */
             document.querySelectorAll('.mt-echart').forEach(function (el) {
-                var hasCanvas = el.parentElement && el.parentElement.querySelector(':scope > canvas');
+                var hasCanvas = !!el.querySelector('canvas');
                 var inst = window.echarts.getInstanceByDom(el);
                 if (!hasCanvas && (!inst || inst.isDisposed())) el.remove();
             });
@@ -558,6 +559,10 @@
                     d.textContent = 'در بازه انتخاب‌شده تماسی ثبت نشده است.';
                     box.appendChild(d);
                 });
+            }
+            /* re-run dashboard migrations after any module re-render wipe */
+            if (location.search.indexOf('menu=index') !== -1 || location.pathname.endsWith('/index.php')) {
+                migrateDisks(); migrateGauges();
             }
         };
         setTimeout(function () { chartScan(); setTimeout(chartScan, 5000); setTimeout(chartScan, 12000); setTimeout(chartScan, 20000); }, 5000);
