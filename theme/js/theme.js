@@ -379,8 +379,13 @@
                 return hm;
             };
             s0.forEach(function (p) { cats.push(fmt(p[0])); });
+            var perfNames = {
+                'Sim. calls': 'تماس‌های همزمان',
+                'CPU usage (%)': 'مصرف پردازنده (٪)',
+                'Mem. usage (MB)': 'مصرف حافظه (MB)'
+            };
             var series = data.map(function (s) {
-                return { name: s.label, data: (s.data || []).map(function (p) { return p[1]; }) };
+                return { name: perfNames[s.label] || s.label, data: (s.data || []).map(function (p) { return p[1]; }) };
             });
             var chartHost = host.parentElement.querySelector('.mt-echart');
             if (!chartHost) {
@@ -392,7 +397,21 @@
                 chartHost.style.cssText = 'width:100%;height:300px;direction:ltr;';
                 host.parentNode.insertBefore(chartHost, host);
             }
-            mtPerf = MyTelCharts.line(chartHost, null, cats, series, { area: true, unit: '' });
+            mtPerf = MyTelCharts.line(chartHost, null, cats, series, { area: false, unit: '' });
+            /* restyle the Last-login line under the gauges */
+            var gauges = document.querySelector('#Applet_SystemResources .appletwindow_fullcontent');
+            if (gauges && !gauges.dataset.mtLogin) {
+                gauges.dataset.mtLogin = '1';
+                gauges.querySelectorAll('b').forEach(function (b) {
+                    if (/Last login/i.test(b.textContent)) {
+                        b.style.fontWeight = '500';
+                        b.style.color = 'var(--mt-text-muted)';
+                        b.style.direction = 'ltr';
+                        b.style.unicodeBidi = 'isolate';
+                        b.style.display = 'inline-block';
+                    }
+                });
+            }
         };
         $(document).ajaxComplete(function () { setTimeout(migratePerf, 500); });
         setInterval(migratePerf, 60000); /* live applet refresh keeps data fresh */
