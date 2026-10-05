@@ -104,6 +104,27 @@
 .mt-echart { min-height: 120px; direction: ltr; }
 .appletwindow_fullcontent .mt-echart { margin-top: 2px; }
 
+/* system spec rows under the resource gauges */
+.mt-sysinfo { margin-top: 8px; border-top: 1px solid var(--mt-border); padding-top: 2px; }
+.mt-sysrow {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 14px;
+    padding: 7px 2px;
+    border-bottom: 1px dashed var(--mt-border);
+}
+.mt-sysrow:last-child { border-bottom: 0; }
+.mt-syslabel { font-weight: 600; color: var(--mt-text); font-size: var(--mt-fs-sm); white-space: nowrap; }
+.mt-sysval {
+    color: var(--mt-text-muted);
+    font-size: var(--mt-fs-sm);
+    font-variant-numeric: tabular-nums;
+    unicode-bidi: isolate;
+    text-align: left;
+    overflow-wrap: anywhere;
+}
+
 /* KPI cards row */
 .mt-kpi-row { display: flex; flex-wrap: wrap; gap: 12px; margin: 0 0 14px; }
 .mt-kpi {

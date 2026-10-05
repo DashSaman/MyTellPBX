@@ -113,70 +113,107 @@ a:hover { color: var(--mt-primary-soft); }
 .mt-sidebar #main-menu::-webkit-scrollbar { width: 6px; }
 .mt-sidebar #main-menu::-webkit-scrollbar-thumb { background: rgba(255,255,255,.14); border: 0; }
 
+/* ---- menu: root items ------------------------------------------------ */
 .mt-sidebar #main-menu li { list-style: none; margin: 0; padding: 0; }
 .mt-sidebar #main-menu > li > a {
     display: flex;
     align-items: center;
-    gap: 10px;
-    color: var(--mt-side-text-strong, #EDF1FA);
+    gap: 12px;
+    height: 42px;
+    color: #C6D0E4;
     font-size: var(--mt-fs-md);
     font-weight: 600;
-    padding: 9px 12px;
-    margin: 2px 0;
-    border-radius: var(--mt-radius-sm);
+    padding: 0 12px;
+    margin: 3px 0;
+    border-radius: 8px;
     border-right: 3px solid transparent;
-    transition: background var(--mt-speed) var(--mt-ease), color var(--mt-speed) var(--mt-ease), border-color var(--mt-speed) var(--mt-ease);
+    transition: background var(--mt-speed) var(--mt-ease), color var(--mt-speed) var(--mt-ease);
     white-space: nowrap;
     overflow: hidden;
 }
-.mt-sidebar #main-menu a i { width: 18px; text-align: center; font-size: 14px; flex: 0 0 18px; }
-.mt-sidebar #main-menu a span { overflow: hidden; text-overflow: ellipsis; }
-.mt-sidebar #main-menu > li > a:hover { background: rgba(255,255,255,.10); color: var(--mt-side-text-hover); }
+.mt-sidebar #main-menu a i { width: 20px; text-align: center; font-size: 15px; flex: 0 0 20px; opacity: .85; }
+.mt-sidebar #main-menu a span { overflow: hidden; text-overflow: ellipsis; min-width: 0; }
+.mt-sidebar #main-menu > li > a:hover { background: rgba(255,255,255,.07); color: #fff; }
+.mt-sidebar #main-menu > li > a:hover i { color: var(--mt-accent); opacity: 1; }
+
+/* expandable root: CSS-drawn chevron (no icon-font dependency) */
+.mt-sidebar #main-menu > li.has-sub > a::after {
+    content: '';
+    flex: 0 0 auto;
+    width: 7px; height: 7px;
+    margin-inline-start: auto;
+    margin-inline-end: 2px;
+    border-inline-end: 2px solid rgba(255,255,255,.35);
+    border-bottom: 2px solid rgba(255,255,255,.35);
+    transform: rotate(45deg);
+    transition: transform var(--mt-speed) var(--mt-ease), border-color var(--mt-speed) var(--mt-ease);
+}
+.mt-sidebar #main-menu > li.opened > a::after {
+    transform: rotate(-45deg);
+    border-color: var(--mt-accent);
+}
 
 .mt-sidebar #main-menu > li.active > a,
 .mt-sidebar #main-menu > li.opened > a {
-    background: linear-gradient(90deg, rgba(46,49,148,.42), rgba(46,49,148,.14));
+    background: linear-gradient(270deg, rgba(46,49,148,.45), rgba(46,49,148,.10));
     color: #fff;
     border-right-color: var(--mt-accent);
     font-weight: 700;
 }
 
-/* submenu levels */
-.mt-sidebar #main-menu ul {
+/* ---- submenu: inset panel so nested levels read as one group --------- */
+.mt-sidebar #main-menu > li > ul {
     list-style: none;
-    margin: 0;
-    padding: 2px 16px 4px 0;
+    margin: 4px 2px 10px;
+    padding: 6px 8px;
+    background: rgba(7, 13, 28, .45);
+    border: 1px solid rgba(255,255,255,.055);
+    border-radius: 10px;
     display: none;
 }
 .mt-sidebar #main-menu li.opened > ul { display: block; }
-.mt-sidebar #main-menu ul ul { padding-right: 14px; }
-.mt-sidebar #main-menu ul a {
-    font-size: var(--mt-fs-md);
-    font-weight: 500;
-    color: #C3CEE4;
-    padding: 7px 10px;
-    border-right: 0;
-    margin: 1px 0;
-    border-radius: var(--mt-radius-sm);
+/* third level: guide-line indent, hidden until its own li is opened */
+.mt-sidebar #main-menu ul ul {
+    display: none;
+    margin: 2px 4px 4px;
+    padding: 0 10px 2px 0;
+    border-right: 1px solid rgba(255,255,255,.10);
+    background: none;
+    border-radius: 0;
 }
+.mt-sidebar #main-menu ul a {
+    display: flex;
+    align-items: center;
+    gap: 9px;
+    min-height: 32px;
+    padding: 0 10px;
+    margin: 1px 0;
+    font-size: 12.5px;
+    font-weight: 500;
+    color: #A9B4CC;
+    border-radius: 6px;
+    white-space: nowrap;
+    overflow: hidden;
+    transition: background var(--mt-speed) var(--mt-ease), color var(--mt-speed) var(--mt-ease);
+}
+.mt-sidebar #main-menu ul ul a { font-size: 12px; min-height: 30px; }
 .mt-sidebar #main-menu ul a::before {
     content: '';
-    width: 5px; height: 5px;
+    width: 4px; height: 4px;
     border-radius: 50%;
-    background: #93A6C9;
-    flex: 0 0 5px;
-    opacity: .9;
+    background: rgba(169,180,204,.5);
+    flex: 0 0 4px;
     transition: background var(--mt-speed) var(--mt-ease);
 }
-.mt-sidebar #main-menu ul a:hover { background: rgba(255,255,255,.10); color: #fff; }
-.mt-sidebar #main-menu ul a:hover::before { background: var(--mt-accent); opacity: 1; }
+.mt-sidebar #main-menu ul a:hover { background: rgba(255,255,255,.08); color: #fff; }
+.mt-sidebar #main-menu ul a:hover::before { background: var(--mt-accent); }
 .mt-sidebar #main-menu ul li.active > a,
 .mt-sidebar #main-menu ul li.opened > a {
-    color: var(--mt-side-active-text, #FFCB8E);
-    font-weight: 700;
-    background: var(--mt-side-active-bg, rgba(255,138,0,.16));
+    color: #fff;
+    font-weight: 600;
+    background: rgba(46,49,148,.40);
 }
-.mt-sidebar #main-menu ul li.active > a::before { background: var(--mt-accent); opacity: 1; }
+.mt-sidebar #main-menu ul li.active > a::before { background: var(--mt-accent); }
 
 /* menu search */
 .mt-menu-search form { position: relative; display: block; margin: 0 0 10px; }
@@ -184,11 +221,11 @@ a:hover { color: var(--mt-primary-soft); }
     width: 100%;
     background: rgba(255,255,255,.07);
     border: 1px solid rgba(255,255,255,.09);
-    border-radius: var(--mt-radius-sm);
+    border-radius: 8px;
     color: #fff;
     font-family: var(--mt-font);
     font-size: var(--mt-fs-sm);
-    padding: 8px 34px 8px 12px;
+    padding: 9px 34px 9px 12px;
     outline: none;
     transition: border-color var(--mt-speed) var(--mt-ease), background var(--mt-speed) var(--mt-ease);
 }
@@ -210,6 +247,7 @@ a:hover { color: var(--mt-primary-soft); }
 .page-container.sidebar-collapsed .mt-sidebar .mt-menu-search,
 .page-container.sidebar-collapsed .mt-sidebar .sidebar-collapse { display: none; }
 .page-container.sidebar-collapsed .mt-sidebar #main-menu a { justify-content: center; padding: 10px 6px; }
+.page-container.sidebar-collapsed .mt-sidebar #main-menu > li.has-sub > a::after { display: none; }
 .page-container.sidebar-collapsed .mt-sidebar #main-menu ul { display: none !important; }
 .page-container.sidebar-collapsed .mt-logo-env { justify-content: center; padding: 14px 8px 12px; }
 

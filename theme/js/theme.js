@@ -419,8 +419,8 @@
             s0.forEach(function (p) { cats.push(fmt(p[0])); });
             var perfNames = {
                 'Sim. calls': 'تماس‌های همزمان',
-                'CPU usage (%)': 'مصرف پردازنده (٪)',
-                'Mem. usage (MB)': 'مصرف حافظه (MB)'
+                'CPU usage (%)': 'مصرف پردازنده',
+                'Mem. usage (MB)': 'مصرف حافظه'
             };
             var series = data.map(function (s) {
                 return { name: perfNames[s.label] || s.label, data: (s.data || []).map(function (p) { return p[1]; }) };
@@ -460,7 +460,7 @@
         var migrateGauges = function () {
             if (!E()) return;
             var full = document.querySelector('#Applet_SystemResources .appletwindow_fullcontent');
-            if (!full || full.dataset.mtGauges === '1') return;
+            if (!full) return;
             var svgs = full.querySelectorAll('svg');
             if (svgs.length < 3) return;
             var vals = [];
@@ -480,8 +480,33 @@
             /* share parsed values with the KPI strip */
             window.__mtSys = {};
             vals.forEach(function (v) { window.__mtSys[v.name] = v.value; });
-            var names = { CPU: 'پردازنده (CPU)', RAM: 'حافظه (RAM)', SWAP: 'حافظه مبادله‌ای' };
-            var host = document.createElement('div');
+            var host = full.querySelector('.mt-echart');
+            if (full.dataset.mtGauges === '1' && host) {
+                /* JustGage animates 0 -> real after our first read; sync the
+                   radials with later parses instead of rebuilding. Gauge
+                   values live in series[i].data — top-level value is ignored */
+                var inst = window.echarts.getInstanceByDom(host);
+                var names2 = { CPU: 'پردازنده', RAM: 'حافظه', SWAP: 'حافظه مبادله‌ای' };
+                if (inst) {
+                    var dataArr = vals.map(function (v) {
+                        return { value: v.value, name: names2[v.name] || v.name };
+                    });
+                    inst.setOption({ series: dataArr.map(function (d) { return { data: [d] }; }) });
+                    /* keep the font-ready repaint from reverting the readings */
+                    var saved = inst.__mtOption;
+                    if (saved && saved.series) {
+                        dataArr.forEach(function (d, i) {
+                            if (saved.series[i] && saved.series[i].data && saved.series[i].data[0]) {
+                                saved.series[i].data[0] = d;
+                            }
+                        });
+                    }
+                }
+                return;
+            }
+            if (host) return; /* build in progress — wait for a module re-render */
+            var names = { CPU: 'پردازنده', RAM: 'حافظه', SWAP: 'حافظه مبادله‌ای' };
+            host = document.createElement('div');
             host.className = 'mt-echart';
             host.style.cssText = 'width:100%;height:190px;';
             full.insertBefore(host, full.firstChild);
@@ -494,6 +519,74 @@
         };
         setTimeout(function () { migrateGauges(); setTimeout(migrateGauges, 5000); }, 4000);
         $(document).ajaxComplete(function () { setTimeout(migrateGauges, 1200); });
+
+        /* ---- 2b) system spec lines: Persian labels with isolated LTR values.
+           The upstream rows mix Persian and Latin in single runs and the
+           legacy gauge container reserves dead space — rebuild cleanly. ---- */
+        var buildSysInfo = function () {
+            var full = document.querySelector('#Applet_SystemResources .appletwindow_fullcontent');
+            if (!full) return;
+            /* runs on every tick: rows are repainted from the (possibly
+               hidden but still readable) legacy values so uptime stays live */
+            var fa = function (n) { return window.MTJalali ? MTJalali.faNum(String(n)) : String(n); };
+            var cpu = '', up = '', speed = '', mem = '', login = '';
+            full.querySelectorAll('.neo-applet-tline').forEach(function (ln) {
+                var lab = ((ln.querySelector('.neo-applet-titem') || {}).textContent || '');
+                var val = ((ln.querySelector('.neo-applet-tdesc') || {}).textContent || '').trim();
+                if (/پردازنده/i.test(lab) && !/سرعت/i.test(lab) && !cpu) cpu = val;
+                else if (/زمان فعال|Uptime/i.test(lab) && !up) up = val;
+                else if (/Speed/i.test(lab) && !speed) speed = val;
+                else if (/حافظه/i.test(lab) && !mem) mem = val;
+            });
+            var ll = full.querySelector('#lastlogin');
+            if (ll) login = (ll.textContent || '').replace(/\s+/g, ' ').replace(/Last login:\s*/i, '').trim();
+            var m = up.match(/(\d+)\s*روز\(s\)\s*(\d+)\s*hour\(s\)\s*(\d+)\s*minute\(s\)/i)
+                 || up.match(/(\d+)\s*day\(s\)\s*(\d+)\s*hour\(s\)\s*(\d+)\s*minute\(s\)/i);
+            if (m) up = fa(m[1]) + ' روز، ' + fa(m[2]) + ' ساعت و ' + fa(m[3]) + ' دقیقه';
+            if (!cpu && !up && !speed && !mem && !login) return;
+            var row = function (label, value, ltr) {
+                return '<div class="mt-sysrow"><span class="mt-syslabel">' + label + '</span>' +
+                       '<span class="mt-sysval"' + (ltr ? ' dir="ltr"' : '') + '>' + value + '</span></div>';
+            };
+            var html = '';
+            if (cpu) html += row('پردازنده', cpu, true);
+            if (speed) html += row('سرعت پردازنده', speed, true);
+            if (up) html += row('زمان فعال بودن سیستم', up, false);
+            if (mem) html += row('مصرف حافظه', mem, true);
+            if (login) html += row('آخرین ورود', login.replace(/\.$/, ''), true);
+            var box = full.querySelector('.mt-sysinfo');
+            if (!box) {
+                /* retire the legacy block once: mixed runs + 165px dead space */
+                Array.prototype.forEach.call(full.children, function (el) {
+                    if (el.classList.contains('mt-echart') || el.classList.contains('mt-sysinfo')) return;
+                    if (el.tagName !== 'DIV') return; /* stylesheet/script tags stay */
+                    el.style.display = 'none';
+                });
+                box = document.createElement('div');
+                box.className = 'mt-sysinfo';
+                full.appendChild(box);
+            }
+            /* uptime/memory keep counting — repaint the rows on every tick
+               (source rows are display:none but their text stays readable) */
+            box.innerHTML = html;
+            full.dataset.mtInfo = '1';
+        };
+        var sysTick = function () { migrateGauges(); buildSysInfo(); };
+        setTimeout(function () { sysTick(); setTimeout(sysTick, 5000); }, 4000);
+        setInterval(sysTick, 30000); /* JustGage values settle after first paint */
+        $(document).ajaxComplete(function () { setTimeout(sysTick, 1200); });
+
+        /* ---- 2c) menu data ships a same-named first child under every
+           expandable item (parent links to an overview page) — hide the
+           duplicate row for a tighter hierarchy ---- */
+        document.querySelectorAll('.mt-sidebar #main-menu li.has-sub > ul').forEach(function (ul) {
+            var pa = ul.parentNode.querySelector(':scope > a');
+            var la = ul.querySelector(':scope > li > a');
+            if (!pa || !la) return;
+            var pl = (pa.querySelector('span') || pa).textContent.trim();
+            var ll = (la.querySelector('span') || la).textContent.trim();
+            if (pl && pl === ll) la.parentNode.style.display = 'none';
+        });
 
         /* ---- 3) hard drives: table text -> horizontal utilization bars ---- */
         /* when DOM data is stripped by module re-render, fetch fresh values

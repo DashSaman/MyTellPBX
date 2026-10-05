@@ -129,8 +129,20 @@
                 });
                 ro.observe(dom);
             }
+            /* a canvas drawn before the webfont finishes loading keeps the
+               fallback font — repaint once fonts are ready */
+            if (global.document && document.fonts && document.fonts.ready) {
+                document.fonts.ready.then(function () {
+                    if (!inst.isDisposed() && inst.__mtOption) {
+                        try { inst.setOption(inst.__mtOption, true); } catch (e) {}
+                    }
+                });
+            }
         }
         var isEmpty = isEmptySeries(meta && meta.rawSeries);
+        /* remember the option actually applied — the font-ready repaint must
+           not overwrite a displayed empty state with the full chart */
+        inst.__mtOption = isEmpty ? emptyOption(dom) : option;
         if (isEmpty) {
             inst.setOption(emptyOption(dom), true);
         } else {
@@ -292,7 +304,13 @@
                 splitLine: { show: false },
                 axisLabel: { show: false },
                 anchor: { show: false },
-                title: { show: true, offsetCenter: [0, "34%"], color: T.muted, fontSize: 12, fontFamily: "Vazirmatn, Tahoma, sans-serif" },
+                /* gauge titles render the data name only (rich/formatter are
+                   ignored in 5.5) — callers pass pure-Persian names so canvas
+                   bidi never mixes scripts in one run */
+                title: {
+                    show: true, offsetCenter: [0, "34%"],
+                    color: T.muted, fontSize: 12, fontFamily: "Vazirmatn, Tahoma, sans-serif"
+                },
                 detail: {
                     valueAnimation: true, offsetCenter: [0, "2%"],
                     color: T.text, fontSize: 20, fontWeight: 700,
