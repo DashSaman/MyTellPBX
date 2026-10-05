@@ -486,7 +486,7 @@
             canvas.style.display = 'none';
             canvas.parentNode.insertBefore(host, canvas);
             var opts = {};
-            if (/channelusage/i.test(location.search)) { opts.area = true; }
+            if (/channelusage/i.test(location.search)) { opts.area = true; opts.force = true; }
             if (/cdrreport|monitoring/i.test(location.search)) { opts.showValues = false; }
             var cats = labels.map(function (l) {
                 if (isTime) {
@@ -509,6 +509,9 @@
                 }
                 return String(l);
             });
+            /* zero-filled time series (e.g. channelusage while idle) keeps its
+               context — draw it anyway; pure non-time empties get the empty state */
+            if (opts.force) opts.rawSeries = series;
             if (isBars && datasets.length === 1) {
                 MyTelCharts.bar(host, null, cats, series, { showValues: opts.showValues });
             } else {

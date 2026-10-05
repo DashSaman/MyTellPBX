@@ -207,7 +207,9 @@
             option.grid.bottom = 66;
         }
         var full = Object.assign({}, common, option);
-        return render(dom, full, { rawSeries: series });
+        /* time series with real zero values keep context — bypass empty state */
+        var meta = { rawSeries: opts.force ? [{ data: [1] }] : series };
+        return render(dom, full, meta);
     }
 
     function bar(dom, title, categories, series, opts) {
