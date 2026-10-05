@@ -530,6 +530,16 @@
             document.querySelectorAll('canvas').forEach(function (c) {
                 if (c.id === 'myChart' || c.closest('.chart-container, #chart')) migrateChartJs(c);
             });
+            /* Persian empty state for emptied chart containers (zero calls) */
+            if (/cdrreport|monitoring/i.test(location.search)) {
+                document.querySelectorAll('.chart-container').forEach(function (box) {
+                    if (box.querySelector('canvas, .mt-echart, .mt-empty-state')) return;
+                    var d = document.createElement('div');
+                    d.className = 'mt-empty-state';
+                    d.textContent = 'در بازه انتخاب‌شده تماسی ثبت نشده است.';
+                    box.appendChild(d);
+                });
+            }
         };
         setTimeout(function () { chartScan(); setTimeout(chartScan, 5000); setTimeout(chartScan, 12000); setTimeout(chartScan, 20000); }, 5000);
         $(document).ajaxComplete(function () { setTimeout(chartScan, 800); });
