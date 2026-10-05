@@ -7,12 +7,12 @@
     <link rel="shortcut icon" href="{$WEBPATH}themes/{$THEMENAME}/images/favicon.png" />
     <link rel="icon" type="image/svg+xml" href="{$WEBPATH}themes/{$THEMENAME}/images/mytel-emblem.svg" />
 
-    <link rel="stylesheet" href="{$WEBPATH}themes/{$THEMENAME}/css/fonts.css?v=43">
-    <link rel="stylesheet" href="{$WEBPATH}themes/{$THEMENAME}/css/glyphicons.css?v=43">
-    <link rel="stylesheet" href="{$WEBPATH}themes/{$THEMENAME}/css/tokens.css?v=43">
-    <link rel="stylesheet" href="{$WEBPATH}themes/{$THEMENAME}/css/base.css?v=43">
-    <link rel="stylesheet" href="{$WEBPATH}themes/{$THEMENAME}/css/components.css?v=43">
-    <link rel="stylesheet" href="{$WEBPATH}themes/{$THEMENAME}/css/applet.css?v=43">
+    <link rel="stylesheet" href="{$WEBPATH}themes/{$THEMENAME}/css/fonts.css?v=44">
+    <link rel="stylesheet" href="{$WEBPATH}themes/{$THEMENAME}/css/glyphicons.css?v=44">
+    <link rel="stylesheet" href="{$WEBPATH}themes/{$THEMENAME}/css/tokens.css?v=44">
+    <link rel="stylesheet" href="{$WEBPATH}themes/{$THEMENAME}/css/base.css?v=44">
+    <link rel="stylesheet" href="{$WEBPATH}themes/{$THEMENAME}/css/components.css?v=44">
+    <link rel="stylesheet" href="{$WEBPATH}themes/{$THEMENAME}/css/applet.css?v=44">
     <link rel="stylesheet" media="screen" type="text/css" href="{$WEBPATH}libs/js/sticky_note/sticky_note.css" >
 
     {$HEADER_LIBS_JQUERY}
@@ -179,8 +179,8 @@ $(document).ready(function(e) {
         <script src="{$WEBPATH}themes/{$THEMENAME}/js/iframe-show-loader.js"></script>
         <script src="{$WEBPATH}themes/{$THEMENAME}/js/neon-custom.js"></script>
         <script src="{$WEBPATH}themes/{$THEMENAME}/vendor/echarts/echarts.min.js"></script>
-        <script src="{$WEBPATH}themes/{$THEMENAME}/js/mytel-charts.js?v=23"></script>
-        <script src="{$WEBPATH}themes/{$THEMENAME}/js/theme.js?v=43"></script>
+        <script src="{$WEBPATH}themes/{$THEMENAME}/js/mytel-charts.js?v=24"></script>
+        <script src="{$WEBPATH}themes/{$THEMENAME}/js/theme.js?v=44"></script>
     </div>
 </body>
 </html>

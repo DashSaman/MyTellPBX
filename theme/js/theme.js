@@ -453,6 +453,24 @@
         $(document).ajaxComplete(function () { setTimeout(migrateGauges, 1200); });
 
         /* ---- 3) hard drives: table text -> horizontal utilization bars ---- */
+        /* capture disk values from the applet ajax response the moment it
+           arrives — the module strips this data on its own re-render */
+        $(document).on('ajaxComplete', function (ev, xhr, settings) {
+            try {
+                var t = (xhr && xhr.responseText) || '';
+                if (!t || t.indexOf('Hard Disk Capacity') === -1) return;
+                var m = t.match(/Hard Disk Capacity:\s*([\d.]+)\s*GB/i);
+                var used = t.match(/Used[^%]{0,120}?(\d{1,3})\s*%/i);
+                var any = t.match(/(\d{1,3})\s*%/);
+                if (m) {
+                    var up = used ? parseInt(used[1], 10) : (any ? parseInt(any[1], 10) : null);
+                    if (up === null || isNaN(up) || up < 0 || up > 100) up = any ? parseInt(any[1], 10) : null;
+                    if (up !== null && !isNaN(up)) {
+                        window.__mtDisk = { total: parseFloat(m[1]), usedPct: up };
+                    }
+                }
+            } catch (e) {}
+        });
         var migrateDisks = function () {
             if (!E()) return;
             var full = document.querySelector('#Applet_HardDrives .appletwindow_fullcontent');
