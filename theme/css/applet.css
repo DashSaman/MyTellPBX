@@ -134,8 +134,10 @@
 }
 
 /* hard drives applet: hide legacy flot donut + floating legend box;
-   the ECharts horizontal bars above carry the same data */
-#neo-contentbox #Applet_HardDrives .appletwindow_fullcontent > canvas { display: none !important; }
+   the ECharts horizontal bars above carry the same data.
+   (CSS survives flot re-renders; ECharts canvas inside .mt-echart stays.) */
+#neo-contentbox #Applet_HardDrives .appletwindow_fullcontent canvas { display: none !important; }
+#neo-contentbox #Applet_HardDrives .appletwindow_fullcontent .mt-echart canvas { display: block !important; }
 #neo-contentbox #Applet_HardDrives .legend { display: none !important; }
 #neo-contentbox #Applet_HardDrives .ui-widget-content {
     font-family: var(--mt-font);
