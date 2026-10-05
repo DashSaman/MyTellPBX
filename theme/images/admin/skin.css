@@ -1,6 +1,6 @@
 @charset "UTF-8";
 /* ============================================================
-   MyTel skin for the STOCK IssabelPBX console (v18, 2026-10-05)
+   MyTel skin for the STOCK IssabelPBX console (v19, 2026-10-05)
    Policy: stock Issabel words, structure, direction (LTR) and
    behavior are untouched — this file only re-skins the visuals:
    brand navbar, card surfaces, controls, typography, tooltips.
@@ -9,6 +9,9 @@
    v18: tiny Persian subtitles under every dropdown item (pure CSS
    ::after on the mapped stock hrefs — DOM text stays stock) and a
    visible active/current item replacing stock's dark purple.
+   v19: every remaining stock purple (#4b0884) is replaced by the
+   MyTel navy/blue; subtitle styles for the additive sub.js layer
+   (form labels, record nav, page title, "?" bubbles).
    ============================================================ */
 
 :root {
@@ -119,10 +122,105 @@ a { color: var(--mt-primary); }
     opacity: .92;
 }
 /* hover must beat stock's dark-purple !important (higher specificity) */
-.navbar.is-dark .navbar-dropdown a.navbar-item:hover {
+.navbar.is-dark .navbar-dropdown a.navbar-item:hover,
+.navbar.is-dark .navbar-dropdown a.navbar-item:active,
+.navbar.is-dark .navbar-dropdown a.navbar-item:focus {
     background: #EEF1FA !important;
     color: var(--mt-primary) !important;
 }
+/* ---------- de-purple: stock paints #4b0884 (!important) on the
+   remaining navbar states — MyTel navy replaces every one ---------- */
+.navbar.is-dark .navbar-link:focus,
+.navbar.is-dark .navbar-link:active,
+.navbar.is-dark .navbar-link:hover,
+.navbar.is-dark .navbar-item.has-dropdown:hover .navbar-link,
+.navbar.is-dark .navbar-item.is-active {
+    background: rgba(255,255,255,.10) !important;
+    color: #FFB84D !important;
+}
+.navbar.is-dark .navbar-item:focus,
+.navbar.is-dark .navbar-item:active,
+.navbar.is-dark .navbar-item:hover {
+    background: rgba(255,255,255,.10) !important;
+    color: #FFB84D !important;
+}
+/* lavender striped rows, purple tabs/pagination/chosen highlights and
+   jQuery-UI purple widgets → MyTel tints (background AND gradients) */
+.table.is-striped tbody tr:not(.is-selected):nth-child(2n),
+.table.is-striped tbody tr:not(.is-selected):nth-child(2n) td {
+    background: #F5F7FC !important;
+    background-image: none !important;
+}
+.tabs li.is-active a, .tabs a:hover,
+.fpbx-tabs li.ui-tabs-selected a, .fpbx-tabs li.ui-tabs-active a,
+ul.tabs li.ui-tabs-selected a, ul.tabs li.ui-tabs-active a {
+    color: var(--mt-primary) !important;
+    border-color: var(--mt-primary) !important;
+    background-image: none !important;
+}
+.pagination-link.is-current {
+    background: var(--mt-primary) !important;
+    border-color: var(--mt-primary) !important;
+    color: #fff !important;
+}
+.chosen-container .chosen-results li.highlighted,
+.chosen-container .chosen-results li.result-selected {
+    background: rgba(46,49,148,.10) !important;
+    background-image: none !important;
+    color: var(--mt-primary) !important;
+}
+.ui-state-highlight, .ui-state-hover, .ui-state-active, .ui-state-focus,
+.ui-widget-content .ui-state-hover, .ui-widget-header .ui-state-hover,
+tr.ui-state-highlight td {
+    background: rgba(46,49,148,.10) !important;
+    background-image: none !important;
+    border-color: #D9DEF0 !important;
+    color: var(--mt-primary) !important;
+}
+/* ---------- additive sub.js layer: Persian subtitles ---------- */
+/* small Persian line appended by sub.js under stock English text */
+.mt-sub {
+    font-family: 'VazirmatnSub', 'Vazirmatn', Tahoma, sans-serif;
+    font-weight: 500;
+    color: var(--mt-muted);
+    direction: rtl;
+    max-width: 100%;
+}
+form td .mt-sub {
+    display: block;
+    font-size: 11px;
+    line-height: 13px;
+    margin-top: 1px;
+    text-align: left;             /* sit under the English label's edge */
+    white-space: normal;
+}
+/* page title band: stack the Persian under the English */
+h2#title { flex-wrap: wrap; }
+h2#title .mt-sub {
+    flex-basis: 100%;
+    margin: 0 0 -3px 14px;
+    font-size: 11px;
+    line-height: 15px;
+    text-align: right;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+/* record-nav rows become two-line when they carry a subtitle */
+nav.rnav a:not(.button) .mt-sub {
+    display: block;
+    font-size: 10px;
+    line-height: 13px;
+    color: #8A94AC;
+    margin-top: 0;
+    text-align: left;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    max-width: 100%;
+}
+/* Persian "?" bubble text reads right-aligned */
+.infohelp > span[dir="rtl"] { text-align: right !important; }
 /* current page item: stock paints it rgb(75,8,132) !important (nearly
    invisible) — replace with a MyTel tint + accent bar; background
    shorthand so stock's purple/image cannot leak through */
@@ -416,8 +514,10 @@ nav.rnav #rnavsearch {
 }
 nav.rnav a:not(.button) {
     display: flex;
-    align-items: center;
-    min-height: 34px;
+    flex-direction: column;      /* stock label + Persian subtitle */
+    align-items: flex-start;
+    justify-content: center;
+    min-height: 38px;
     padding: 4px 10px !important;
     border-radius: 8px;
     color: #455167 !important;
@@ -432,7 +532,7 @@ nav.rnav a.is-active, nav.rnav a[aria-current="page"], nav.rnav li.current > a {
     background: rgba(46,49,148,.08) !important;
     color: var(--mt-primary) !important;
     font-weight: 700;
-    border-inline-start: 3px solid var(--mt-accent);
+    border-inline-start: 3px solid var(--mt-accent) !important;
 }
 nav.rnav ul, nav.rnav li { list-style: none; margin: 0; padding: 0; }
 @media (max-width: 900px) {
