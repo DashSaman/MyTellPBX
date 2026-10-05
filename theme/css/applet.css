@@ -138,10 +138,11 @@
    (CSS survives flot re-renders; ECharts canvas inside .mt-echart stays.) */
 #neo-contentbox #Applet_HardDrives .appletwindow_fullcontent canvas { display: none !important; }
 #neo-contentbox #Applet_HardDrives .appletwindow_fullcontent .mt-echart canvas { display: block !important; }
+/* the legacy donut is a Raphael SVG inside a plain div — hide the whole block
+   (it also carries the floating used/available legend box) */
+#neo-contentbox #Applet_HardDrives .appletwindow_fullcontent > div:has(> svg),
+#neo-contentbox #Applet_HardDrives .appletwindow_fullcontent > div:has(> svg) ~ .ui-widget-content { display: none !important; }
 #neo-contentbox #Applet_HardDrives .legend { display: none !important; }
-#neo-contentbox #Applet_HardDrives .ui-widget-content {
-    font-family: var(--mt-font);
-}
 
 /* ---------- processes status: clean list rows ---------- */
 #neo-contentbox #Applet_ProcessesStatus .appletwindow_fullcontent { padding: 4px 0 0; }
