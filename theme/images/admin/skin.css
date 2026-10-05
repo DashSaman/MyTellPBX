@@ -221,6 +221,31 @@ nav.rnav a:not(.button) .mt-sub {
 }
 /* Persian "?" bubble text reads right-aligned */
 .infohelp > span[dir="rtl"] { text-align: right !important; }
+/* synthesized "?" bubbles (sub.js addTip) reuse the stock infohelp
+   shape, so only the margin-to-label needs a nudge */
+form td > span.infohelp { margin-inline-start: 6px; }
+/* dynamic option tables (IVR DTMF): digit box stays tiny and centered */
+input[placeholder="کلید"], input[placeholder="digits pressed"] {
+    width: 84px !important;
+    max-width: 100%;
+    text-align: center;
+    direction: ltr;
+}
+/* one-line Persian usage hint above such tables */
+.mt-note {
+    font-family: 'VazirmatnSub', 'Vazirmatn', Tahoma, sans-serif;
+    font-size: 11px;
+    line-height: 18px;
+    color: var(--mt-muted);
+    background: #F7F8FC;
+    border: 1px dashed var(--mt-border);
+    border-radius: 8px;
+    padding: 5px 10px;
+    margin: 2px 0 8px;
+    direction: rtl;
+    text-align: right;
+    max-width: 620px;
+}
 /* current page item: stock paints it rgb(75,8,132) !important (nearly
    invisible) — replace with a MyTel tint + accent bar; background
    shorthand so stock's purple/image cannot leak through */
