@@ -471,11 +471,11 @@
             if (!inst || !inst.data) return;
             /* legacy channelusage passes epoch-ms labels — must be recognized as time */
             var isTime = inst.data.labels.length && typeof inst.data.labels[0] === 'number' && inst.data.labels[0] > 1e12;
-            var cfg = inst.config;
-            var labels = (cfg.data && cfg.data.labels) || [];
-            var datasets = (cfg.data && cfg.data.datasets) || [];
+            /* Chart.js 2 exposes .data directly; .config may be undefined */
+            var labels = (inst.data && inst.data.labels) || [];
+            var datasets = (inst.data && inst.data.datasets) || [];
             if (!labels.length || !datasets.length) return;
-            var isBars = datasets.every(function (d) { return (d.type || cfg.type) === 'bar'; });
+            var isBars = datasets.every(function (d) { return (d.type || 'bar') === 'bar' && datasets.every(function (x) { return (x.type || 'bar') === 'bar'; }); });
             var series = datasets.map(function (d) {
                 return { name: d.label, data: (d.data || []).slice() };
             });
