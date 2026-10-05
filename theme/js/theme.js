@@ -355,6 +355,44 @@
 
         var E = function () { return window.MyTelCharts && window.echarts; };
 
+        /* ---- 0) headline KPI strip: values already parsed from applets ---- */
+        var renderKpis = function () {
+            if (!window.MyTelCharts) return;
+            var grid = document.querySelector('#neo-contentbox #applet_grid');
+            if (!grid) return;
+            var fa = function (n) { return window.MTJalali ? MTJalali.faNum(String(n)) : String(n); };
+            var Tk = window.MyTelCharts.T;
+            var cards = [];
+            var sys = window.__mtSys || {};
+            var pct = function (v) { return (typeof v === 'number' && v >= 0) ? fa(Math.round(v)) + '٪' : null; };
+            if (window.__mtPerfNow !== undefined && window.__mtPerfNow !== null)
+                cards.push({ title: 'تماس‌های همزمان', value: fa(window.__mtPerfNow), tone: Tk.primary, bar: null });
+            if (window.__mtReg !== undefined && window.__mtReg !== null)
+                cards.push({ title: 'داخلی‌های ثبت‌شده', value: fa(window.__mtReg), tone: Tk.blue, bar: null });
+            var cpu = pct(sys.CPU), ram = pct(sys.RAM);
+            var disk = (window.__mtDisk && typeof window.__mtDisk.usedPct === 'number') ? pct(window.__mtDisk.usedPct) : null;
+            if (cpu) cards.push({ title: 'مصرف پردازنده', value: cpu, tone: Tk.primary, bar: sys.CPU });
+            if (ram) cards.push({ title: 'مصرف حافظه', value: ram, tone: Tk.blue, bar: sys.RAM });
+            if (disk) cards.push({ title: 'فضای دیسک', value: disk, tone: Tk.accent, bar: window.__mtDisk.usedPct });
+            if (!cards.length) return;
+            var row = document.getElementById('mt-kpi-row');
+            if (!row || row.parentNode !== grid.parentNode) {
+                if (row && row.parentNode) row.parentNode.removeChild(row);
+                row = document.createElement('div');
+                row.id = 'mt-kpi-row';
+                row.className = 'mt-kpi-row';
+                grid.parentNode.insertBefore(row, grid);
+            }
+            row.innerHTML = cards.map(function (c) {
+                var bar = (typeof c.bar === 'number')
+                    ? '<span class="mt-kpi-bar"><span style="width:' + Math.min(100, Math.max(0, c.bar)) + '%;background:' + (c.bar >= 85 ? Tk.danger : c.tone) + '"></span></span>'
+                    : '';
+                return '<div class="mt-kpi"><span class="mt-kpi-value" style="color:' + c.tone + '">' + c.value + '</span>' + bar + '<span class="mt-kpi-title">' + c.title + '</span></div>';
+            }).join('');
+        };
+        setTimeout(renderKpis, 2500);
+        setInterval(renderKpis, 4000);
+
         /* ---- 1) dashboard performance chart: flot data -> ECharts line ---- */
         var mtPerf = null;
         var migratePerf = function () {
@@ -387,6 +425,8 @@
             var series = data.map(function (s) {
                 return { name: perfNames[s.label] || s.label, data: (s.data || []).map(function (p) { return p[1]; }) };
             });
+            /* last concurrent-calls point feeds the KPI strip */
+            if (s0.length && s0[s0.length - 1]) window.__mtPerfNow = s0[s0.length - 1][1];
             var chartHost = host.parentElement.querySelector('.mt-echart');
             if (!chartHost) {
                 host.style.display = 'none';
@@ -437,6 +477,9 @@
                 if (label !== null && value !== null && bestSize > 0) vals.push({ name: label, value: value });
             });
             if (vals.length < 3) return;
+            /* share parsed values with the KPI strip */
+            window.__mtSys = {};
+            vals.forEach(function (v) { window.__mtSys[v.name] = v.value; });
             var names = { CPU: 'پردازنده (CPU)', RAM: 'حافظه (RAM)', SWAP: 'حافظه مبادله‌ای' };
             var host = document.createElement('div');
             host.className = 'mt-echart';
@@ -515,6 +558,23 @@
             full.querySelectorAll('.ui-widget-content, .legend, [style*="float"]').forEach(function (el) {
                 if (el.closest('.mt-echart')) return;
                 el.style.display = 'none';
+            });
+            /* the fetch-report hint ships untranslated — swap the English
+               sentence wherever it sits and flow the block right-to-left */
+            Array.prototype.forEach.call(full.children, function (d) {
+                if (d.tagName !== 'DIV' || !/Click below to fetch/i.test(d.textContent)) return;
+                if (d.dataset.mtHint) return;
+                d.dataset.mtHint = '1';
+                d.style.direction = 'rtl';
+                (function walk(node) {
+                    Array.prototype.forEach.call(node.childNodes, function (n) {
+                        if (n.nodeType === 3) {
+                            if (/Click below/i.test(n.textContent)) {
+                                n.textContent = 'برای تهیهٔ گزارش پوشه‌ها روی دکمهٔ زیر بزنید. هشدار: این عملیات زمان‌بر است و بر کارایی سامانه اثر می‌گذارد.';
+                            }
+                        } else if (n.nodeType === 1) walk(n);
+                    });
+                })(d);
             });
             full.dataset.mtDisks = '1';
         };
@@ -800,6 +860,14 @@
                 var u = after.match(/\((\d+)\s*ثبت نشده\)|\((\d+)\s*ثبت نشده\)/);
                 return (r ? (r[1] || r[2]) : '?') + ' / ' + (u ? (u[1] || u[2]) : '?');
             };
+            /* total registered SIP/PJSIP/IAX extensions feed the KPI strip;
+               a parsed zero is real data and must still reach the strip */
+            var regKnown = false, regSum = 0;
+            ['SIP داخلي', 'PJSIP داخلي', 'IAX داخلي'].forEach(function (base) {
+                var first = reg(base).split(' / ')[0];
+                if (first !== '?') { regKnown = true; regSum += (parseInt(first, 10) || 0); }
+            });
+            if (regKnown) window.__mtReg = regSum;
             if (sip !== null) rows.push(['داخلی‌های SIP', sip + ' (ثبت‌شده ' + reg('SIP داخلي').split(' / ')[0] + ' | ثبت‌نشده ' + reg('SIP داخلي').split(' / ')[1] + ')']);
             if (pjsip !== null) rows.push(['داخلی‌های PJSIP', pjsip + ' (ثبت‌شده ' + reg('PJSIP داخلي').split(' / ')[0] + ' | ثبت‌نشده ' + reg('PJSIP داخلي').split(' / ')[1] + ')']);
             if (iax !== null) rows.push(['داخلی‌های IAX', iax + ' (ثبت‌شده ' + reg('IAX داخلي').split(' / ')[0] + ' | ثبت‌نشده ' + reg('IAX داخلي').split(' / ')[1] + ')']);

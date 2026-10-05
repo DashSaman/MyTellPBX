@@ -118,8 +118,17 @@
     align-items: center;
     gap: 2px;
 }
-.mt-kpi-value { font-size: 24px; font-weight: 700; font-variant-numeric: tabular-nums; }
+.mt-kpi-value { font-size: 24px; font-weight: 700; font-variant-numeric: tabular-nums; line-height: 1.2; }
 .mt-kpi-title { font-size: var(--mt-fs-sm); color: var(--mt-text-muted); }
+.mt-kpi-bar {
+    width: 76px;
+    height: 4px;
+    border-radius: 2px;
+    background: var(--mt-border);
+    overflow: hidden;
+    margin-top: 4px;
+}
+.mt-kpi-bar > span { display: block; height: 100%; border-radius: 2px; transition: width .5s ease; }
 
 .mt-empty-state {
     min-height: 150px;
