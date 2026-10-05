@@ -465,68 +465,60 @@
            read the existing Chart instance data and re-render with ECharts ---- */
         var migrateChartJs = function (canvas) {
             if (!E() || canvas.dataset.mtDone === '1') return;
-            if (!canvas.offsetParent) return; /* hidden — will retry when visible */
-            var inst = canvas.__mtChart
-                || (window.Chart && window.Chart.getChart ? window.Chart.getChart(canvas) : null);
-            if (!inst && window.Chart && window.Chart.instances) {
-                /* Chart.js 2 registry: find the instance bound to this canvas */
-                Object.keys(window.Chart.instances).some(function (k) {
-                    var c = window.Chart.instances[k];
-                    if (c && c.canvas === canvas) { inst = c; return true; }
-                    return false;
-                });
-            }
-            if (!inst && canvas.id && window[canvas.id] && window[canvas.id].data) inst = window[canvas.id];
-            if (!inst || !inst.data) return;
-            /* legacy channelusage passes epoch-ms labels — must be recognized as time */
-            var isTime = inst.data.labels.length && typeof inst.data.labels[0] === 'number' && inst.data.labels[0] > 1e12;
-            /* Chart.js 2 exposes .data directly; .config may be undefined */
-            var labels = (inst.data && inst.data.labels) || [];
-            var datasets = (inst.data && inst.data.datasets) || [];
-            if (!labels.length || !datasets.length) return;
-            var isBars = datasets.every(function (d) { return (d.type || 'bar') === 'bar' && datasets.every(function (x) { return (x.type || 'bar') === 'bar'; }); });
-            var series = datasets.map(function (d) {
-                return { name: d.label, data: (d.data || []).slice() };
-            });
-            /* channelusage: protocol series — semantic colors from MyTelCharts */
-            var host = document.createElement('div');
-            host.className = 'mt-echart';
-            host.style.cssText = 'width:100%;height:' + Math.max(260, canvas.offsetHeight) + 'px;direction:ltr;';
-            canvas.style.display = 'none';
-            canvas.parentNode.insertBefore(host, canvas);
-            var opts = {};
-            if (/channelusage/i.test(location.search)) { opts.area = true; opts.force = true; }
-            if (/cdrreport|monitoring/i.test(location.search)) { opts.showValues = false; }
-            var cats = labels.map(function (l) {
-                if (isTime) {
-                    var jfmt = function (t) {
-                        var d = new Date(t);
+            if (!canvas.offsetParent) return; /* hidden — retry when visible */
+            var host = null;
+            try {
+                var inst0 = canvas.__mtChart
+                    || (window.Chart && window.Chart.getChart ? window.Chart.getChart(canvas) : null);
+                if (!inst0 && window.Chart && window.Chart.instances) {
+                    Object.keys(window.Chart.instances).some(function (k) {
+                        var c = window.Chart.instances[k];
+                        if (c && c.canvas === canvas) { inst0 = c; return true; }
+                        return false;
+                    });
+                }
+                if (!inst0 && canvas.id && window[canvas.id] && window[canvas.id].data) inst0 = window[canvas.id];
+                if (!inst0 || !inst0.data) return;
+                var labels = (inst0.data && inst0.data.labels) || [];
+                var datasets = (inst0.data && inst0.data.datasets) || [];
+                if (!labels.length || !datasets.length) return;
+                var isTime = labels.length && typeof labels[0] === 'number' && labels[0] > 1e12;
+                var isBars = datasets.every(function (d) { return (d.type || 'line') !== 'line'; });
+                var series = datasets.map(function (d) { return { name: d.label, data: (d.data || []).slice() }; });
+                host = document.createElement('div');
+                host.className = 'mt-echart';
+                host.style.cssText = 'width:100%;height:' + Math.max(260, canvas.offsetHeight) + 'px;direction:ltr;';
+                canvas.style.display = 'none';
+                canvas.parentNode.insertBefore(host, canvas);
+                var opts = {};
+                if (/channelusage/i.test(location.search)) { opts.area = true; opts.force = true; }
+                var cats = labels.map(function (l) {
+                    if (isTime) {
+                        var d = new Date(l);
                         var hm = ('0' + d.getHours()).slice(-2) + ':' + ('0' + d.getMinutes()).slice(-2);
                         if (window.MTJalali) {
                             var j = window.MTJalali.toJalali(d);
                             return window.MTJalali.JDAYS[d.getDay()] + ' ' + hm;
                         }
                         return hm;
-                    };
-                    return jfmt(l);
+                    }
+                    var m = String(l).match(/(\d{1,2}):(\d{2})\s*(am|pm)?/i);
+                    if (m) {
+                        var h = parseInt(m[1], 10) % 12;
+                        if (/pm/i.test(m[3] || '')) h += 12;
+                        return ('0' + h).slice(-2) + ':' + m[2];
+                    }
+                    return String(l);
+                });
+                if (isBars && datasets.length === 1) {
+                    MyTelCharts.bar(host, null, cats, series, {});
+                } else {
+                    MyTelCharts.line(host, null, cats, series, opts);
                 }
-                var m = String(l).match(/(\d{1,2}):(\d{2})\s*(am|pm)?/i);
-                if (m) {
-                    var h = parseInt(m[1], 10) % 12;
-                    if (/pm/i.test(m[3] || '')) h += 12;
-                    return ('0' + h).slice(-2) + ':' + m[2];
-                }
-                return String(l);
-            });
-            /* zero-filled time series (e.g. channelusage while idle) keeps its
-               context — draw it anyway; pure non-time empties get the empty state */
-            if (opts.force) opts.rawSeries = series;
-            if (isBars && datasets.length === 1) {
-                MyTelCharts.bar(host, null, cats, series, { showValues: opts.showValues });
-            } else {
-                MyTelCharts.line(host, null, cats, series, opts);
+                canvas.dataset.mtDone = '1';
+            } catch (e) {
+                if (host && host.parentNode) host.parentNode.removeChild(host);
             }
-            canvas.dataset.mtDone = '1';
         };
         var chartScan = function () {
             /* drop orphaned hosts whose module re-render removed their canvas */
