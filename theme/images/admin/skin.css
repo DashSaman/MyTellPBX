@@ -737,3 +737,267 @@ html[dir=rtl] .fpbx-view, html[dir=rtl] main, html[dir=rtl] #page_body {
     background: #F3F5F9;
 }
 html[dir=rtl] main .container { padding-bottom: 24px; }
+
+/* ================= v13 — card system for legacy module pages ================= */
+
+/* ---- 1) the form itself becomes the card ---- */
+html[dir=rtl] form.popover-form,
+html[dir=rtl] .content > form {
+    display: block;
+    background: #fff !important;
+    border: 1px solid #E8ECF3 !important;
+    border-radius: 16px !important;
+    box-shadow: 0 6px 24px rgba(21,27,61,.05) !important;
+    padding: 0 !important;
+    /* visible: chosen dropdowns and "?" bubbles must escape the card */
+    overflow: visible !important;
+}
+html[dir=rtl] form.popover-form > table,
+html[dir=rtl] .content > form > table { width: 100%; }
+/* page title = card header band */
+html[dir=rtl] form.popover-form td[colspan] h2#title,
+html[dir=rtl] .content > form h2#title {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-size: 15px !important;
+    font-weight: 800 !important;
+    color: #232A35 !important;
+    background: #F7F8FC;
+    border-bottom: 1px solid #E8ECF3;
+    border-radius: 15px 15px 0 0 !important;
+    margin: 0 !important;
+    padding: 14px 18px !important;
+}
+html[dir=rtl] form.popover-form td[colspan] h2#title::before,
+html[dir=rtl] .content > form h2#title::before {
+    content: '';
+    width: 4px; height: 17px;
+    border-radius: 2px;
+    background: var(--mt-accent);
+}
+html[dir=rtl] form.popover-form #instructions {
+    display: block;
+    padding: 12px 18px 2px !important;
+    color: #64708A;
+    font-size: 12.5px;
+    line-height: 1.9;
+}
+html[dir=rtl] form.popover-form table { border-spacing: 0; }
+/* inner rows get horizontal breathing room */
+html[dir=rtl] form.popover-form tr:not(.guielToggle) td { padding-inline: 18px; }
+html[dir=rtl] form.popover-form tr.guielToggle td { margin-inline: 12px; }
+
+/* ---- 2) action footer band (last row holding submit/delete) ---- */
+html[dir=rtl] form.popover-form tr:last-child:has([type="submit"]) td,
+html[dir=rtl] .content > form tr:last-of-type:has([type="submit"]) td {
+    background: #F7F8FC;
+    border-top: 1px solid #E8ECF3;
+    border-radius: 0 0 15px 15px;
+    padding: 14px 18px !important;
+    text-align: left;
+}
+html[dir=rtl] form.popover-form tr:last-child:has([type="submit"]) td:first-child { text-align: right; }
+html[dir=rtl] form.popover-form [type="submit"] {
+    background: var(--mt-primary) !important;
+    color: #fff !important;
+    border: 0 !important;
+    padding-inline: 22px !important;
+}
+html[dir=rtl] form.popover-form .is-danger,
+html[dir=rtl] form.popover-form [name="delete"],
+html[dir=rtl] form.popover-form #delete {
+    background: #FFF1F2 !important;
+    color: #B42338 !important;
+    border: 1px solid #FFD9DF !important;
+    margin-inline-start: 20px;
+}
+
+/* ---- 3) fixed side record-menu becomes a real card ---- */
+html[dir=rtl] nav.rnav {
+    position: fixed !important;
+    right: 16px !important;
+    top: 76px !important;
+    width: 240px !important;
+    box-sizing: border-box;
+    padding: 14px !important;
+    background: #fff !important;
+    border: 1px solid #E8ECF3 !important;
+    border-radius: 16px !important;
+    box-shadow: 0 6px 24px rgba(21,27,61,.06) !important;
+    max-height: calc(100vh - 100px);
+    overflow: auto;
+}
+/* make room for it only on pages that have it */
+html[dir=rtl] body:has(nav.rnav) .content { margin-inline-start: 268px; }
+html[dir=rtl] nav.rnav > .button,
+html[dir=rtl] nav.rnav .button.is-small.is-link,
+html[dir=rtl] nav.rnav #rnavadd {
+    display: flex !important;
+    align-items: center;
+    justify-content: center;
+    width: 100% !important;
+    height: 36px !important;
+    margin: 2px 0 10px !important;
+    background: var(--mt-primary) !important;
+    color: #fff !important;
+    border: 0 !important;
+    border-radius: 9px !important;
+    font-size: 13px !important;
+    font-weight: 700 !important;
+}
+html[dir=rtl] nav.rnav #rnavsearch {
+    height: 32px !important;
+    font-size: 12.5px !important;
+    border-radius: 9px !important;
+    border-color: #E8ECF3 !important;
+    box-shadow: none !important;
+}
+html[dir=rtl] nav.rnav .panel-heading,
+html[dir=rtl] nav.rnav > div:not(.field):first-child {
+    font-size: 13px;
+    font-weight: 700;
+    color: var(--mt-primary);
+    padding: 2px 2px 8px;
+    border-bottom: 1px solid #E8ECF3;
+    margin-bottom: 6px;
+}
+html[dir=rtl] nav.rnav a:not(.button) {
+    display: flex;
+    align-items: center;
+    min-height: 34px;
+    padding: 4px 10px !important;
+    border-radius: 8px;
+    color: #455167 !important;
+    font-size: 12.5px;
+    border: 0 !important;
+    background: none !important;
+    box-shadow: none !important;
+    transition: background .14s ease, color .14s ease;
+}
+html[dir=rtl] nav.rnav a:not(.button):hover { background: #F3F5F9 !important; color: var(--mt-primary) !important; }
+html[dir=rtl] nav.rnav a.is-active,
+html[dir=rtl] nav.rnav a[aria-current="page"],
+html[dir=rtl] nav.rnav li.current > a {
+    background: rgba(46,49,148,.08) !important;
+    color: var(--mt-primary) !important;
+    font-weight: 700;
+    border-inline-start: 3px solid var(--mt-accent);
+}
+html[dir=rtl] nav.rnav ul, html[dir=rtl] nav.rnav li { list-style: none; margin: 0; padding: 0; }
+@media (max-width: 900px) {
+    html[dir=rtl] nav.rnav { position: static !important; width: 100% !important; margin-bottom: 14px; }
+    html[dir=rtl] body:has(nav.rnav) .content { margin-inline-start: 0; }
+}
+
+/* ---- 4) footer: one calm Persian line (underlying text stays) ---- */
+html[dir=rtl] div.footer, html[dir=rtl] .footer, html[dir=rtl] footer {
+    background: transparent !important;
+    border: 0 !important;
+    padding: 18px 12px !important;
+    text-align: center;
+    color: #929BAD;
+    font-size: 0 !important;
+}
+html[dir=rtl] div.footer::after, html[dir=rtl] .footer::after {
+    content: 'مای‌تل پی‌بی‌ایکس — نسخه ۲٫۱۲ — دارای مجوز GPL';
+    font-family: 'Vazirmatn', Tahoma, sans-serif;
+    font-size: 12px;
+}
+
+/* ---- 5) list pages: records table in a card ---- */
+html[dir=rtl] .content .table-container,
+html[dir=rtl] .content > table.table,
+html[dir=rtl] .content > div > table.table {
+    background: #fff;
+    border: 1px solid #E8ECF3;
+    border-radius: 16px;
+    overflow-x: auto; /* wide record tables keep horizontal scrolling */
+    overflow-y: visible;
+    box-shadow: 0 6px 24px rgba(21,27,61,.05);
+}
+html[dir=rtl] .content table.table th { background: #F7F8FC; color: var(--mt-primary); text-align: start; }
+html[dir=rtl] .content table.table th,
+html[dir=rtl] .content table.table td { padding: 10px 14px; border-bottom: 1px solid #EEF1F6; }
+html[dir=rtl] .content table.table tbody tr:hover td { background: #FAFBFE; }
+
+/* ---- 6) kill the duplicated page title above the card ---- */
+html[dir=rtl] .content > h1:has(~ form h2#title),
+html[dir=rtl] .content > h2:has(~ form h2#title),
+html[dir=rtl] .content > .page-title:has(~ form h2#title) { display: none !important; }
+
+/* page background stays calm */
+html[dir=rtl] #page, html[dir=rtl] #page_body { background: #F3F5F9; }
+html[dir=rtl] .content { padding: 20px 22px 28px; }
+
+/* ---- 7) bare link-stack pages (trunks and friends) become card lists ---- */
+html[dir=rtl] .content.mt-linkstack {
+    background: #fff;
+    border: 1px solid #E8ECF3;
+    border-radius: 16px;
+    box-shadow: 0 6px 24px rgba(21,27,61,.05);
+    padding: 0;
+    overflow: hidden;
+}
+html[dir=rtl] .content.mt-linkstack > h2 {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-size: 15px !important;
+    font-weight: 800 !important;
+    color: #232A35 !important;
+    background: #F7F8FC;
+    border-bottom: 1px solid #E8ECF3;
+    margin: 0 !important;
+    padding: 14px 18px !important;
+}
+html[dir=rtl] .content.mt-linkstack > h2::before {
+    content: '';
+    width: 4px; height: 17px;
+    border-radius: 2px;
+    background: var(--mt-accent);
+}
+html[dir=rtl] .content.mt-linkstack > a {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    min-height: 40px;
+    padding: 6px 18px;
+    border-bottom: 1px solid #EEF1F6;
+    color: #455167;
+    font-size: 13px;
+    font-weight: 500;
+    text-decoration: none;
+    transition: background .14s ease, color .14s ease, padding .14s ease;
+}
+html[dir=rtl] .content.mt-linkstack > a::before {
+    content: '';
+    width: 6px; height: 6px;
+    border-radius: 50%;
+    background: #C6CEDF;
+    flex: 0 0 6px;
+    transition: background .14s ease;
+}
+html[dir=rtl] .content.mt-linkstack > a:last-child { border-bottom: 0; }
+html[dir=rtl] .content.mt-linkstack > a:hover {
+    background: #F3F5F9;
+    color: var(--mt-primary);
+    padding-inline-start: 22px;
+}
+html[dir=rtl] .content.mt-linkstack > a:hover::before { background: var(--mt-accent); }
+/* the "add" entry on top reads as the primary action */
+html[dir=rtl] .content.mt-linkstack > a.mt-linkstack-add {
+    background: rgba(46,49,148,.05);
+    color: var(--mt-primary);
+    font-weight: 700;
+    border-bottom: 1px solid #E8ECF3;
+}
+html[dir=rtl] .content.mt-linkstack > a.mt-linkstack-add::before {
+    content: '+';
+    width: auto; height: auto;
+    background: none;
+    color: var(--mt-primary);
+    font-size: 16px;
+    font-weight: 800;
+    flex: 0 0 auto;
+}

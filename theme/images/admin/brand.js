@@ -21,15 +21,29 @@
        Sentences the word-swapper would otherwise shred ("Add an Extension") */
     var SENTENCES = {
         "add an extension": "افزودن داخلی",
+        "add a extension": "افزودن داخلی",
+        "add new extension": "افزودن داخلی",
         "add sip extension": "افزودن داخلی SIP",
         "add pjsip extension": "افزودن داخلی PJSIP",
         "add iax2 extension": "افزودن داخلی IAX2",
         "add custom extension": "افزودن داخلی سفارشی",
         "add trunk": "افزودن ترانک",
+        "add a trunk": "افزودن ترانک",
+        "add new trunk": "افزودن ترانک",
         "add sip trunk": "افزودن ترانک SIP",
         "add pjsip trunk": "افزودن ترانک PJSIP",
+        "add custom trunk": "افزودن ترانک سفارشی",
+        "add dav trunk": "افزودن ترانک DAV",
+        "add dundi trunk": "افزودن ترانک DUNDi",
         "add inbound route": "افزودن مسیر ورودی",
         "add outbound route": "افزودن مسیر خروجی",
+        "add a route": "افزودن مسیر",
+        "add queue": "افزودن صف تماس",
+        "add ring group": "افزودن گروه زنگ",
+        "add announcement": "افزودن اطلاعیهٔ صوتی",
+        "add conference": "افزودن کنفرانس",
+        "add time condition": "افزودن شرط زمانی",
+        "add user": "افزودن کاربر",
         "please select your device below then click submit": "دستگاه موردنظر را انتخاب کنید و سپس دکمهٔ ذخیره را بزنید.",
         "please select your device below then click": "دستگاه موردنظر را انتخاب کنید و سپس دکمهٔ ذخیره را بزنید.",
         "delete this extension": "حذف این داخلی",
@@ -253,7 +267,94 @@
         "Download all": "دریافت همه",
         "Install all": "نصب همه",
         "Process": "پردازش",
-        "Confirm": "تأیید"
+        "Confirm": "تأیید",
+        /* ---- parameter labels seen across module forms (round-14 walk) ---- */
+        "Administration": "مدیریت",
+        "User": "کاربر",
+        "General Options": "تنظیمات عمومی",
+        "Dial patterns wizards": "جادوگر الگوهای شماره‌گیری",
+        "Dial Patterns Wizards": "جادوگر الگوهای شماره‌گیری",
+        "Intra-Company": "درون‌شرکتی",
+        "Emergency": "اضطراری",
+        "Permanent Route": "مسیر همیشگی",
+        "Wait Time Prefix": "پیشوند زمان انتظار",
+        "Skip Busy Agents": "پرش از عوامل مشغول",
+        "When No Free Agents": "وقتی عامل آزاد نیست",
+        "When No Ready Agents": "وقتی عامل آماده نیست",
+        "Select an option": "یک گزینه انتخاب کنید",
+        "Incoming Route": "مسیر ورودی",
+        "CID Priority Route": "مسیر اولویت CID",
+        "Pause Before Answer": "مکث پیش از پاسخ",
+        "Remove a number from the blacklist": "حذف شماره از لیست سیاه",
+        "Add a number to the blacklist": "افزودن شماره به لیست سیاه",
+        "Off": "خاموش",
+        "On": "روشن",
+        "Restrict Dynamic Agents": "محدودکردن عوامل پویا",
+        "Agent Restrictions": "محدودیت عامل",
+        "Ring-Group Number": "شمارهٔ گروه زنگ",
+        "Ring Group Number": "شمارهٔ گروه زنگ",
+        "Play Music On Hold": "پخش موسیقی انتظار",
+        "Play music on hold": "پخش موسیقی انتظار",
+        "Too-Late Announce": "اطلاعیهٔ دیرهنگام",
+        "IVR General Options": "تنظیمات عمومی منوی صوتی",
+        "IVR Options (DTMF)": "گزینه‌های منوی صوتی (DTMF)",
+        "Invalid Retry Recording": "فایل صوتی تلاش مجدد برای ورودی نامعتبر",
+        "Talker Optimization": "بهینه‌سازی گوینده",
+        "Talker Detection": "تشخیص گوینده",
+        "Maximum Participants": "حداکثر شرکت‌کنندگان",
+        "Dialplan Behavior": "رفتار دیال‌پلن",
+        "Timezone Definitions": "تعاریف منطقهٔ زمانی",
+        "Number of Accounts": "تعداد حساب‌ها",
+        "Starting Position": "موقعیت شروع",
+        "Parking Timeout (seconds)": "مهلت پارک تماس (ثانیه)",
+        "Parked Music Class": "کلاس موسیقی تماس‌های پارک‌شده",
+        "Parking Lot Extension": "داخلی پارک تماس",
+        "Streaming Category": "دستهٔ پخش جریانی",
+        "Time Condition name": "نام شرط زمانی",
+        "Time Condition Name": "نام شرط زمانی",
+        "Select a Group": "یک گروه را انتخاب کنید",
+        "Asterisk Dial Options": "گزینه‌های شماره‌گیری آستریس",
+        "Internal Auto Answer": "پاسخ خودکار داخلی",
+        "Assigned DID/CID": "DID/CID اختصاص‌یافته",
+        "Announcement": "اطلاعیهٔ صوتی",
+        "Announcements": "اطلاعیه‌های صوتی",
+        "Feature Codes": "کدهای ویژه",
+        "Feature Code": "کد ویژه",
+        "code": "کد",
+        "Description...": "شرح...",
+        /* ---- module names from the console navigation map ---- */
+        "Boss Secretary": "مدیر و منشی (Boss Secretary)",
+        "Callback": "تماس بازگشتی",
+        "Call Flow Control": "کنترل جریان تماس",
+        "Dialplan Injection": "تزریق دیال‌پلن",
+        "Dynamic Features": "امکانات پویا",
+        "Dynamic Routes": "مسیرهای پویا",
+        "Languages": "زبان‌ها",
+        "Misc Applications": "برنامه‌های متفرقه",
+        "Misc Destinations": "مقاصد متفرقه",
+        "PIN Sets": "مجموعه‌های PIN",
+        "Set CallerID": "تنظیم Caller ID",
+        "Text To Speech": "تبدیل متن به گفتار",
+        "Text To Speech Engine": "موتور تبدیل متن به گفتار",
+        "Print Extensions": "چاپ داخلی‌ها",
+        "Weak Password Detection": "تشخیص گذرواژهٔ ضعیف",
+        "Route Congestion Messages": "پیام‌های شلوغی مسیر",
+        "Voicemail Blasting": "ارسال گروهی صندوق صوتی",
+        "Queue Priorities": "اولویت صف تماس",
+        "Extension Settings": "تنظیمات داخلی",
+        "Trunk Balance": "توازن ترانک‌ها",
+        "Write In Queue Log": "ثبت در لاگ صف",
+        "Custom Destinations": "مقاصد سفارشی",
+        "Custom Extensions": "داخلی‌های سفارشی",
+        "CallerID Lookup Sources": "منابع جستجوی Caller ID",
+        "DAHDI Channel DIDs": "DIDهای کانال DAHDI",
+        "Class Of Service": "کلاس خدمات (COS)",
+        "Paging And Intercom": "پیجینگ و آی‌کام",
+        "Asterisk IAX Settings": "تنظیمات IAX آستریس",
+        "Asterisk Manager Settings": "تنظیمات مدیر آستریس",
+        "Asterisk Logfiles": "فایل‌های لاگ آستریس",
+        "Asterisk PJSIP Settings": "تنظیمات PJSIP آستریس",
+        "Inbound Routes": "مسیرهای ورودی"
     };
 
     /* dynamic sentence patterns */
@@ -443,7 +544,22 @@
         });
     }
 
-    function run() { swap(document.body); }
+    function run() { swap(document.body); linkStack(); }
+
+    /* pages whose whole body is a bare stack of <a><br><a> (trunks, some
+       route/queue lists) become MyTel card lists */
+    function linkStack() {
+        var c = document.querySelector('.content');
+        if (!c || c.dataset.mtStack === '1') return;
+        if (c.querySelector('form, table')) return;
+        var links = c.querySelectorAll(':scope > a');
+        if (links.length < 3) return;
+        c.dataset.mtStack = '1';
+        c.querySelectorAll('br').forEach(function (b) { b.remove(); });
+        c.classList.add('mt-linkstack');
+        var first = c.querySelector(':scope > a');
+        if (first && /^(add|new)/i.test(first.textContent || '')) first.classList.add('mt-linkstack-add');
+    }
 
     document.addEventListener("DOMContentLoaded", run);
     window.addEventListener("load", function () { run(); setTimeout(run, 800); });
