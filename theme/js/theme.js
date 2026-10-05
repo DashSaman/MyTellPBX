@@ -469,6 +469,8 @@
                 || (window.Chart && window.Chart.getChart ? window.Chart.getChart(canvas) : null)
                 || (canvas.id && window[canvas.id] && window[canvas.id].data ? window[canvas.id] : null);
             if (!inst || !inst.data) return;
+            /* legacy channelusage passes epoch-ms labels — must be recognized as time */
+            var isTime = inst.data.labels.length && typeof inst.data.labels[0] === 'number' && inst.data.labels[0] > 1e12;
             var cfg = inst.config;
             var labels = (cfg.data && cfg.data.labels) || [];
             var datasets = (cfg.data && cfg.data.datasets) || [];
@@ -487,7 +489,18 @@
             if (/channelusage/i.test(location.search)) { opts.area = true; }
             if (/cdrreport|monitoring/i.test(location.search)) { opts.showValues = false; }
             var cats = labels.map(function (l) {
-                /* normalize legacy am/pm ticks to 24h when parseable */
+                if (isTime) {
+                    var jfmt = function (t) {
+                        var d = new Date(t);
+                        var hm = ('0' + d.getHours()).slice(-2) + ':' + ('0' + d.getMinutes()).slice(-2);
+                        if (window.MTJalali) {
+                            var j = window.MTJalali.toJalali(d);
+                            return window.MTJalali.JDAYS[d.getDay()] + ' ' + hm;
+                        }
+                        return hm;
+                    };
+                    return jfmt(l);
+                }
                 var m = String(l).match(/(\d{1,2}):(\d{2})\s*(am|pm)?/i);
                 if (m) {
                     var h = parseInt(m[1], 10) % 12;
