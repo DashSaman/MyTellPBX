@@ -178,7 +178,9 @@ tr.ui-state-highlight td {
     color: var(--mt-primary) !important;
 }
 /* ---------- additive sub.js layer: Persian subtitles ---------- */
-/* small Persian line appended by sub.js under stock English text */
+/* Persian line under stock English text: the Persian word plus its own
+   mini "?" pill (hover = simple Persian explanation). Stock English
+   bubbles on the English line stay exactly as shipped. */
 .mt-sub {
     font-family: 'VazirmatnSub', 'Vazirmatn', Tahoma, sans-serif;
     font-weight: 500;
@@ -187,12 +189,29 @@ tr.ui-state-highlight td {
     max-width: 100%;
 }
 form td .mt-sub {
-    display: block;
+    display: flex;
+    align-items: center;
+    gap: 5px;
     font-size: 11px;
     line-height: 13px;
     margin-top: 1px;
-    text-align: left;             /* sit under the English label's edge */
+    text-align: right;
     white-space: normal;
+}
+.mt-sub .mt-sub-t { min-width: 0; }
+.mt-sub .infohelp {
+    flex: 0 0 14px;
+    width: 14px;
+    height: 14px;
+    margin: 0;
+    font-size: 9px;
+}
+.mt-sub .infohelp > span {
+    width: 300px !important;
+    font-size: 11.5px !important;
+    line-height: 1.8 !important;
+    font-weight: 400 !important;
+    white-space: normal !important;
 }
 /* page title band: stack the Persian under the English */
 h2#title { flex-wrap: wrap; }
@@ -205,15 +224,19 @@ h2#title .mt-sub {
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
+    display: flex;
+    gap: 5px;
 }
 /* record-nav rows become two-line when they carry a subtitle */
 nav.rnav a:not(.button) .mt-sub {
-    display: block;
+    display: flex;
+    align-items: center;
+    gap: 4px;
     font-size: 10px;
     line-height: 13px;
     color: #8A94AC;
     margin-top: 0;
-    text-align: left;
+    text-align: right;
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
@@ -221,9 +244,6 @@ nav.rnav a:not(.button) .mt-sub {
 }
 /* Persian "?" bubble text reads right-aligned */
 .infohelp > span[dir="rtl"] { text-align: right !important; }
-/* synthesized "?" bubbles (sub.js addTip) reuse the stock infohelp
-   shape, so only the margin-to-label needs a nudge */
-form td > span.infohelp { margin-inline-start: 6px; }
 /* dynamic option tables (IVR DTMF): digit box stays tiny and centered */
 input[placeholder="کلید"], input[placeholder="digits pressed"] {
     width: 84px !important;
