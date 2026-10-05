@@ -20,7 +20,8 @@ body { font-family: 'Vazirmatn', Tahoma, Arial, sans-serif; color: var(--mt-text
 
 /* navbar */
 .navbar.is-dark {
-    background: linear-gradient(90deg, var(--mt-navy) 0%, #142441 100%);
+    background: linear-gradient(90deg, var(--mt-navy) 0%, #142441 60%, #1B2550 100%);
+    box-shadow: 0 2px 14px rgba(11, 21, 38, .35);
 }
 .navbar.is-dark .navbar-item, .navbar.is-dark .navbar-link {
     color: #AAB6CE;
@@ -332,3 +333,114 @@ input[type="submit"], button[type="submit"].button { border-radius: 6px; }
 /* sweetalert + grid accents */
 .swal2-confirm { background: var(--mt-primary) !important; }
 .pagination-link.is-current { background: var(--mt-primary); border-color: var(--mt-primary); }
+
+/* ================= v9 — admin landing cleanup + brand deep pass ================= */
+
+/* live stats live on the MyTel portal dashboard now — remove the narrow
+   stats column (renders on the LEFT in RTL) and the IssabelPBX statistics
+   panel; welcome + notices keep the full width */
+#sysinfo-right { display: none !important; }
+#sysinfo-left #aststats,
+#dashboard #aststats { display: none !important; }
+#dashboard { display: block !important; }
+#sysinfo-left { width: 100% !important; max-width: none !important; float: none !important; }
+
+/* navbar dropdown menus: white cards, brand hover/active */
+.navbar-dropdown {
+    background: #fff !important;
+    border: 1px solid #E3E7EE !important;
+    border-radius: 12px !important;
+    box-shadow: 0 12px 32px rgba(21,27,61,.14) !important;
+    padding: 8px !important;
+    min-width: 230px;
+}
+.navbar-dropdown .navbar-item {
+    color: #232A35 !important;
+    border-radius: 8px !important;
+    padding: 9px 12px !important;
+    line-height: 1.4;
+}
+.navbar-dropdown .navbar-item:hover {
+    background: #F3F5F9 !important;
+    color: var(--mt-primary) !important;
+}
+.navbar-dropdown .navbar-item.is-active,
+.navbar-dropdown .navbar-item[data-active="true"] {
+    background: rgba(46,49,148,.08) !important;
+    color: var(--mt-primary) !important;
+    font-weight: 700;
+}
+.navbar-item.has-dropdown:hover .navbar-link,
+.navbar-link.is-active {
+    color: #FFB84D !important;
+}
+
+/* left rnav (module submenus): card surface, brand states */
+.rnav, .left-nav, #menu {
+    background: #fff;
+    border: 1px solid #E3E7EE;
+    border-radius: 14px;
+    padding: 10px;
+    box-shadow: 0 4px 16px rgba(21,27,61,.05);
+}
+.rnav a, .left-nav a, #menu a {
+    display: flex;
+    align-items: center;
+    min-height: 40px;
+    padding: 8px 12px;
+    border-radius: 9px;
+    color: #42506B;
+    font-weight: 500;
+    border-left: 3px solid transparent;
+    transition: background .16s ease, color .16s ease;
+}
+.rnav a:hover, .left-nav a:hover, #menu a:hover {
+    background: #F3F5F9;
+    color: var(--mt-primary);
+}
+.rnav a.active, .rnav a.current, .left-nav a.active, #menu a.active,
+.rnav a[aria-current="page"] {
+    background: rgba(46,49,148,.09);
+    color: var(--mt-primary);
+    font-weight: 700;
+    border-left-color: var(--mt-accent);
+}
+
+/* jQuery-UI panels: card look, gradients removed */
+.ui-widget.ui-widget-content,
+.infobox {
+    background: #fff !important;
+    border: 1px solid #E3E7EE !important;
+    border-radius: 16px !important;
+    box-shadow: 0 6px 24px rgba(21,27,61,.05) !important;
+    background-image: none !important;
+}
+.ui-widget-header {
+    background: #F7F8FC !important;
+    color: #232A35 !important;
+    border: 0 !important;
+    border-bottom: 1px solid #E3E7EE !important;
+    border-radius: 16px 16px 0 0 !important;
+    background-image: none !important;
+    font-weight: 700 !important;
+}
+
+/* tables: calm rows, horizontal rules only */
+.ui-widget table, .infobox table { border-collapse: collapse; }
+.ui-widget table th {
+    background: #F7F8FC !important;
+    color: #42506B !important;
+    font-weight: 700;
+    border: 0 !important;
+    border-bottom: 1px solid #E3E7EE !important;
+}
+.ui-widget table td { border: 0 !important; border-bottom: 1px solid #EEF1F6 !important; }
+
+/* primary buttons */
+.button.is-primary, input[type="submit"].button, button.button.is-link {
+    background: var(--mt-primary) !important;
+    border-color: var(--mt-primary) !important;
+    color: #fff !important;
+    border-radius: 8px !important;
+}
+.button.is-primary:hover { background: var(--mt-primary-strong) !important; }

@@ -109,7 +109,15 @@
             j.gwd = date.getDay();
             return j;
         }
-        return { toJalali: toJalali, d2j: d2j, g2d: g2d, JMONTHS: JMONTHS, JDAYS: JDAYS, GDAYS_SHORT: GDAYS_SHORT, holidayName: holidayName, faNum: function (n) { return String(n).replace(/\d/g, function (d) { return '۰۱۲۳۴۵۶۷۸۹'[d]; }); } };
+        function j2d(jy, jm, jd) {
+            var r = jalCal(jy);
+            return g2d(r.gy, 3, r.march) + (jm - 1) * 31 - div(jm, 7) * (jm - 7) + jd - 1;
+        }
+        function toGregorian(jy, jm, jd) {
+            var g = d2g(j2d(jy, jm, jd));
+            return new Date(g.gy, g.gm - 1, g.gd);
+        }
+        return { toJalali: toJalali, toGregorian: toGregorian, d2j: d2j, g2d: g2d, j2d: j2d, JMONTHS: JMONTHS, JDAYS: JDAYS, GDAYS_SHORT: GDAYS_SHORT, holidayName: holidayName, faNum: function (n) { return String(n).replace(/\d/g, function (d) { return '۰۱۲۳۴۵۶۷۸۹'[d]; }); } };
     })();
 
     $(document).ready(function () {
@@ -854,10 +862,10 @@
             cal.classList.add('mt-jalali');
 
             var apply = function () {
-                /* month title (old FullCalendar: .fc-header-title h2) */
+                /* month title: big Persian line + tiny Gregorian line below */
                 var title = cal.querySelector('.fc-header-title h2, .fc-center h2, .fc-toolbar .fc-title');
                 var m = title ? title.textContent.match(/([A-Za-z]+)\s+(\d{4})/) : null;
-                if (m && title) {
+                if (m && title && !title.dataset.mtT) {
                     var monthsEn = { January:1, February:2, March:3, April:4, May:5, June:6, July:7, August:8, September:9, October:10, November:11, December:12 };
                     var gm = monthsEn[m[1]], gy = +m[2];
                     if (gm) {
@@ -865,15 +873,20 @@
                         var jf = MT.toJalali(first);
                         var mid = MT.toJalali(new Date(gy, gm - 1, 15));
                         var jy = jf.jm === 12 && mid.jm === 1 ? mid.jy - 1 : mid.jy;
-                        title.innerHTML = MT.JMONTHS[jf.jm - 1] + ' ' + MT.faNum(jy) +
-                            ' <small dir="ltr" class="mt-greg">' + m[1] + ' ' + m[2] + '</small>';
+                        title.dataset.mtT = jf.jm + '-' + jy;
+                        title.innerHTML = '<span>' + MT.JMONTHS[jf.jm - 1] + ' ' + MT.faNum(jy) + '</span>' +
+                            '<span class="mt-greg-range">' + m[1] + ' ' + m[2] + '</span>';
                     }
+                } else if (title && title.dataset.mtT) {
+                    /* FullCalendar rewrote the h2 on month change — re-tag once */
+                    if (title.textContent && !/mt-greg-range/.test(title.innerHTML)) title.dataset.mtT = '';
                 }
-                /* weekday headers */
-                cal.querySelectorAll('.fc-day-header').forEach(function (th) {
+                /* weekday headers (Persian short) + Friday column in red */
+                cal.querySelectorAll('.fc-day-header').forEach(function (th, idx) {
                     var en = (th.textContent || '').trim();
                     var short = en.slice(0, 3);
                     if (MT.GDAYS_SHORT[short] !== undefined) th.textContent = MT.GDAYS_SHORT[short];
+                    th.classList.toggle('fc-fri', idx === 5);
                 });
                 /* day numbers + holiday highlight */
                 cal.querySelectorAll('td[data-date]').forEach(function (cell) {
@@ -890,6 +903,7 @@
                     var jd = MT.toJalali(dt);
                     var hol = MT.holidayName(jd.jy, jd.jm, jd.jd);
                     cell.classList.toggle('mt-holiday', !!hol || dt.getDay() === 5);
+                    cell.classList.toggle('fc-fri', dt.getDay() === 5);
                     if (hol) { cell.setAttribute('title', hol); cell.classList.add('mt-has-name'); }
                 });
             };
@@ -897,6 +911,167 @@
             setInterval(apply, 1500);
         };
         setTimeout(jalaliCalendar, 1500);
+
+        /* ---------- MyTel Jalali date picker (report date filters) ----------
+           jQuery-UI datepicker ships Gregorian-only; the real input keeps the
+           server format (dd M yyyy) but is hidden — the user sees a Persian
+           mirror input and a native MyTel Jalali month grid. ---- */
+        (function mtDatePicker() {
+            var EN_M = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+            var parseServer = function (v) {
+                var m = String(v || '').match(/(\d{1,2})\s+([A-Za-z]{3})\w*\s+(\d{4})/);
+                if (!m) return new Date();
+                var mi = EN_M.indexOf(m[2].charAt(0).toUpperCase() + m[2].slice(1,3));
+                var d = new Date(+m[3], mi, +m[1]);
+                return isNaN(d) ? new Date() : d;
+            };
+            var toServer = function (d) {
+                return ('0' + d.getDate()).slice(-2) + ' ' + EN_M[d.getMonth()] + ' ' + d.getFullYear();
+            };
+            var faD = function (j) { return MT.faNum(j.jd) + ' ' + MT.JMONTHS[j.jm - 1] + ' ' + MT.faNum(j.jy); };
+            var open = null; /* current popup element */
+            var lastMirror = null; /* focus returns here on close */
+            var skipReopen = false; /* close → refocus must not reopen */
+            var closePop = function () {
+                if (!open) return;
+                open.remove();
+                open = null;
+                if (lastMirror && lastMirror.isConnected) {
+                    skipReopen = true;
+                    try { lastMirror.focus({ preventScroll: true }); } catch (e) {}
+                    setTimeout(function () { skipReopen = false; }, 120);
+                }
+            };
+            document.addEventListener('keydown', function (ev) {
+                if (ev.key === 'Escape' && open) closePop();
+            });
+            document.addEventListener('click', function (ev) {
+                if (open && !open.contains(ev.target) && ev.target.className !== 'mt-date-mirror') closePop();
+            }, true);
+
+            var buildGrid = function (pop, jy, jm, selG) {
+                var week = ['ش','ی','د','س','چ','پ','ج'];
+                var html = '<div class="mt-dp-head">' +
+                    '<button type="button" class="mt-dp-nav" data-nav="-1">›</button>' +
+                    '<span class="mt-dp-title">' + MT.JMONTHS[jm - 1] + ' ' + MT.faNum(jy) + '</span>' +
+                    '<button type="button" class="mt-dp-nav" data-nav="1">‹</button></div>' +
+                    '<div class="mt-dp-week">' + week.map(function (w) { return '<span>' + w + '</span>'; }).join('') + '</div><div class="mt-dp-days">';
+                var first = MT.toGregorian(jy, jm, 1);
+                var lead = (first.getDay() + 1) % 7; /* Saturday-first */
+                /* true month length via conversion round-trip (leap-safe) */
+                var len = 29;
+                while (len < 31 && MT.toJalali(MT.toGregorian(jy, jm, len + 1)).jm === jm) len++;
+                var todayJ = MT.toJalali(new Date());
+                for (var i = 0; i < lead; i++) html += '<span class="mt-dp-day out"></span>';
+                for (var d = 1; d <= len; d++) {
+                    var g = MT.toGregorian(jy, jm, d);
+                    var cls = 'mt-dp-day';
+                    if (g.getDay() === 5) cls += ' fri';
+                    if (todayJ.jy === jy && todayJ.jm === jm && todayJ.jd === d) cls += ' today';
+                    if (selG && g.toDateString() === selG.toDateString()) cls += ' sel';
+                    html += '<button type="button" class="' + cls + '" data-jd="' + d + '">' + MT.faNum(d) + '</button>';
+                }
+                html += '</div><div class="mt-dp-foot">' +
+                    '<button type="button" class="mt-dp-today-btn">امروز</button>' +
+                    '<button type="button" class="mt-dp-clear-btn">پاک‌کردن</button>' +
+                    '<span class="mt-dp-greg"></span></div>';
+                pop.innerHTML = html;
+                pop.dataset.jy = jy; pop.dataset.jm = jm;
+                var gFirst = MT.toGregorian(jy, jm, 1);
+                var gLast = MT.toGregorian(jy, jm, len);
+                pop.querySelector('.mt-dp-greg').textContent = toServer(gFirst).slice(3) + ' – ' + toServer(gLast).slice(3);
+            };
+
+            var showPop = function (real, mirror) {
+                closePop();
+                var cur = parseServer(real.value);
+                var j = MT.toJalali(cur);
+                var pop = document.createElement('div');
+                pop.className = 'mt-dp';
+                document.body.appendChild(pop);
+                var r = mirror.getBoundingClientRect();
+                pop.style.top = (r.bottom + window.scrollY + 6) + 'px';
+                var left = r.left + window.scrollX;
+                left = Math.max(8, Math.min(left, window.scrollX + document.documentElement.clientWidth - 288));
+                pop.style.left = left + 'px';
+                open = pop;
+                lastMirror = mirror;
+                buildGrid(pop, j.jy, j.jm, real.value ? cur : null);
+                /* keyboard path: focus lands inside the popup, Escape leaves */
+                var focusTarget = pop.querySelector('.mt-dp-day.sel') || pop.querySelector('.mt-dp-day.today') || pop.querySelector('.mt-dp-nav');
+                if (focusTarget) try { focusTarget.focus({ preventScroll: true }); } catch (e) {}
+                pop.addEventListener('click', function (ev) {
+                    var t = ev.target;
+                    if (t.classList.contains('mt-dp-nav')) {
+                        var njm = +pop.dataset.jm + (+t.dataset.nav), njy = +pop.dataset.jy;
+                        if (njm < 1) { njm = 12; njy--; } if (njm > 12) { njm = 1; njy++; }
+                        buildGrid(pop, njy, njm, real.value ? parseServer(real.value) : null);
+                        /* innerHTML rebuild dropped the focused nav button —
+                           put focus back so Enter keeps navigating */
+                        var again = pop.querySelector('.mt-dp-nav[data-nav="' + t.dataset.nav + '"]');
+                        if (again) try { again.focus({ preventScroll: true }); } catch (e) {}
+                    } else if (t.classList.contains('mt-dp-today-btn')) {
+                        var now = new Date();
+                        real.value = toServer(now);
+                        mirror.value = faD(MT.toJalali(now));
+                        $(real).trigger('change');
+                        closePop();
+                    } else if (t.classList.contains('mt-dp-clear-btn')) {
+                        real.value = '';
+                        mirror.value = '';
+                        $(real).trigger('change');
+                        closePop();
+                    } else if (t.classList.contains('mt-dp-day') && t.dataset.jd) {
+                        var g = MT.toGregorian(+pop.dataset.jy, +pop.dataset.jm, +t.dataset.jd);
+                        real.value = toServer(g);
+                        mirror.value = faD(MT.toJalali(g));
+                        $(real).trigger('change');
+                        closePop();
+                    }
+                });
+            };
+
+            var wire = function () {
+                document.querySelectorAll('input.hasDatepicker').forEach(function (real) {
+                    if (real.dataset.mtPick === '1' || real.classList.contains('mt-date-mirror')) return;
+                    real.dataset.mtPick = '1';
+                    real.classList.add('mt-date-real');
+                    var mirror = document.createElement('input');
+                    mirror.type = 'text';
+                    mirror.readOnly = true;
+                    mirror.className = 'mt-date-mirror';
+                    mirror.setAttribute('autocomplete', 'off');
+                    mirror.placeholder = 'انتخاب تاریخ';
+                    /* an empty real input must show as empty, not as today */
+                    mirror.value = real.value ? faD(MT.toJalali(parseServer(real.value))) : '';
+                    real.insertAdjacentElement('afterend', mirror);
+                    /* keep the mirror honest when the module rewrites the real value */
+                    new MutationObserver(function () {
+                        mirror.value = real.value ? faD(MT.toJalali(parseServer(real.value))) : '';
+                    }).observe(real, { attributes: true, attributeFilter: ['value'] });
+                    var syncVal = function () { mirror.value = real.value ? faD(MT.toJalali(parseServer(real.value))) : ''; };
+                    real.addEventListener('change', syncVal);
+                    mirror.addEventListener('click', function (ev) {
+                        ev.preventDefault();
+                        showPop(real, mirror);
+                    });
+                    mirror.addEventListener('focus', function (ev) {
+                        ev.preventDefault();
+                        if (skipReopen) return;
+                        this.blur();
+                        showPop(real, mirror);
+                    });
+                });
+                /* hide trigger buttons the stock picker appended next to hidden inputs */
+                document.querySelectorAll('button.ui-datepicker-trigger').forEach(function (b) {
+                    var prev = b.previousElementSibling;
+                    if (prev && prev.classList && prev.classList.contains('mt-date-real')) b.style.display = 'none';
+                });
+            };
+            wire();
+            setInterval(wire, 2000);
+            $(document).ajaxComplete(function () { setTimeout(wire, 400); });
+        })();
 
         /* ---------- email_stats: server-pixel charts get Persian captions
            (the English title band inside the image is cropped away) ---------- */

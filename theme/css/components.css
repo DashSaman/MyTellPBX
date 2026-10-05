@@ -615,18 +615,263 @@ table.tabForm > tbody > tr > td .slider, table.tabForm input[type=range] { accen
 }
 .chart-container h3, .chart-container .title { text-align: center; }
 
-/* Jalali calendar (FullCalendar overlay) */
-.mt-jalali { direction: rtl; }
-.mt-jalali .fc-toolbar { direction: rtl; }
-.mt-jalali .fc-day-header { font-family: var(--mt-font); font-weight: 700; color: var(--mt-text-muted); }
-.mt-jalali .fc-day-number { text-align: left; padding: 4px 8px; }
-.mt-jalali .fc-day-number .mt-jday { font-family: var(--mt-font); font-size: 14px; color: var(--mt-text); }
-.mt-jalali .fc-day-number .mt-gday { display: block; font-size: 10px; color: var(--mt-text-faint); direction: ltr; }
-.mt-jalali .mt-greg { color: var(--mt-text-faint); font-size: 12px; font-weight: 400; margin-inline-start: 6px; }
-.mt-jalali .fc-day-grid .mt-holiday { background: var(--mt-danger-tint) !important; }
-.mt-jalali .fc-day-grid .mt-holiday.mt-has-name .mt-jday::after { content: ' ★'; color: var(--mt-danger); font-size: 11px; }
-.mt-jalali .fc-today { background: var(--mt-accent-tint) !important; }
-.mt-jalali .fc-today .mt-jday { color: var(--mt-accent-strong); font-weight: 700; }
+/* ---------- Jalali calendar (FullCalendar, premium RTL skin) ---------- */
+.mt-jalali {
+    direction: rtl;
+    background: var(--mt-surface);
+    border: 1px solid #E8ECF3;
+    border-radius: 20px;
+    box-shadow: 0 6px 24px rgba(21,27,61,.05);
+    padding: 22px 24px 24px;
+}
+/* header: big Persian title block, pill buttons, today chip */
+.mt-jalali .fc-header,
+.mt-jalali .fc-toolbar { direction: rtl; padding: 0 0 18px; }
+.mt-jalali .fc-header-title h2,
+.mt-jalali .fc-center h2 {
+    font-family: var(--mt-font);
+    font-size: 24px;
+    font-weight: 800;
+    color: var(--mt-primary);
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 3px;
+    line-height: 1.25;
+}
+.mt-jalali .mt-greg,
+.mt-jalali .mt-greg-range {
+    display: block;
+    font-size: 12px;
+    font-weight: 400;
+    color: var(--mt-text-faint);
+    direction: ltr;
+    align-self: flex-end;
+}
+.mt-jalali .fc-header .fc-button,
+.mt-jalali .fc-toolbar .fc-button {
+    background: var(--mt-surface);
+    border: 1px solid var(--mt-border);
+    color: var(--mt-text);
+    font-family: var(--mt-font);
+    font-size: 13px;
+    font-weight: 600;
+    border-radius: 10px;
+    box-shadow: none;
+    text-shadow: none;
+    padding: 7px 14px;
+    margin-inline-start: 6px;
+    transition: background var(--mt-speed) var(--mt-ease), border-color var(--mt-speed) var(--mt-ease), color var(--mt-speed) var(--mt-ease);
+}
+.mt-jalali .fc-header .fc-button:hover,
+.mt-jalali .fc-toolbar .fc-button:hover {
+    background: var(--mt-primary-tint, rgba(46,49,148,.07));
+    border-color: var(--mt-primary);
+    color: var(--mt-primary);
+}
+.mt-jalali .fc-header .fc-button.fc-state-active,
+.mt-jalali .fc-toolbar .fc-button.fc-state-active {
+    background: var(--mt-primary);
+    border-color: var(--mt-primary);
+    color: #fff;
+}
+.mt-jalali .fc-header .fc-today-button,
+.mt-jalali .fc-today-button {
+    background: var(--mt-accent-tint, rgba(255,138,0,.12));
+    border-color: rgba(255,138,0,.4);
+    color: var(--mt-accent-strong);
+}
+
+/* weekday header row */
+.mt-jalali table.fc-border-separate { border-collapse: separate; border-spacing: 0; }
+.mt-jalali .fc-day-header {
+    font-family: var(--mt-font);
+    font-size: 13px;
+    font-weight: 700;
+    color: var(--mt-text-muted);
+    background: #F7F8FC;
+    border: 0 !important;
+    border-bottom: 1px solid #E8EBF2 !important;
+    padding: 11px 8px;
+}
+.mt-jalali .fc-day-header.fc-fri,
+.mt-jalali th[data-date-fri] { color: #D64B55; }
+
+/* day cells */
+.mt-jalali .fc-day-grid .fc-day {
+    border-color: #E8EBF2 !important;
+    transition: background var(--mt-speed) var(--mt-ease);
+}
+.mt-jalali .fc-day-grid .fc-day:hover { background: #F7F8FC; }
+.mt-jalali td.fc-day-number { padding: 6px 8px; }
+/* Persian number big top-right, Gregorian tiny top-left — never inline */
+.mt-jalali .fc-day-top .fc-day-number,
+.mt-jalali .fc-day-number {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: 6px;
+    direction: rtl;
+}
+.mt-jalali .fc-day-number .mt-jday {
+    font-family: var(--mt-font);
+    font-size: 18px;
+    font-weight: 600;
+    color: var(--mt-text);
+    line-height: 1.2;
+    min-width: 30px;
+    text-align: center;
+}
+.mt-jalali .fc-day-number .mt-gday {
+    font-size: 10px;
+    font-weight: 400;
+    color: var(--mt-text-faint);
+    direction: ltr;
+    line-height: 1.7;
+}
+/* adjacent-month cells fade */
+.mt-jalali .fc-day-grid td.fc-other-month { opacity: .38; }
+
+/* today: indigo ring + pale fill */
+.mt-jalali .fc-today {
+    background: rgba(46,49,148,.05) !important;
+    box-shadow: inset 0 0 0 2px var(--mt-primary);
+}
+.mt-jalali .fc-today .fc-day-number .mt-jday {
+    color: var(--mt-primary);
+    font-weight: 800;
+}
+/* Friday + holidays: red numbers; holidays keep today's ring */
+.mt-jalali .fc-fri .fc-day-number .mt-jday,
+.mt-jalali .mt-holiday .fc-day-number .mt-jday { color: #D64B55; }
+.mt-jalali .fc-day-grid .mt-holiday { background: rgba(214,75,85,.06) !important; }
+.mt-jalali .fc-day-grid .mt-holiday.mt-has-name .fc-day-number .mt-jday::after {
+    content: ' •';
+    color: #D64B55;
+}
+.mt-jalali .fc-today.mt-holiday { box-shadow: inset 0 0 0 2px var(--mt-primary); }
+
+/* event chips: pale indigo, right accent bar, one-line */
+.mt-jalali .fc-event {
+    font-family: var(--mt-font);
+    font-size: 12px;
+    font-weight: 500;
+    border: 0 !important;
+    border-right: 3px solid var(--mt-primary) !important;
+    border-radius: 6px;
+    background: rgba(46,49,148,.08) !important;
+    color: var(--mt-primary-strong) !important;
+    padding: 2px 8px !important;
+    margin-bottom: 4px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+.mt-jalali .fc-event:hover { background: rgba(46,49,148,.14) !important; }
+
+/* skeleton/skeleton rows inside the grid stay quiet */
+.mt-jalali .fc-widget-content { border-color: #E8EBF2 !important; }
+
+/* ---------- MyTel Jalali date picker (report filters) ---------- */
+input.mt-date-real { display: none !important; }
+button.ui-datepicker-trigger { display: none !important; }
+input.mt-date-mirror {
+    width: 150px;
+    height: 34px;
+    background: var(--mt-surface);
+    border: 1px solid var(--mt-border-strong);
+    border-radius: 10px;
+    color: var(--mt-text);
+    font-family: var(--mt-font);
+    font-size: 13px;
+    padding: 0 32px 0 10px;
+    cursor: pointer;
+    outline: none;
+    background-image: none;
+    box-shadow: none;
+    transition: border-color var(--mt-speed) var(--mt-ease), box-shadow var(--mt-speed) var(--mt-ease);
+}
+input.mt-date-mirror:focus {
+    border-color: var(--mt-primary);
+    box-shadow: 0 0 0 3px rgba(46,49,148,.12);
+}
+.mt-dp {
+    position: absolute;
+    z-index: 30050;
+    width: 272px;
+    background: var(--mt-surface);
+    border: 1px solid var(--mt-border);
+    border-radius: 16px;
+    box-shadow: 0 12px 40px rgba(21,27,61,.16);
+    padding: 14px;
+    direction: rtl;
+    font-family: var(--mt-font);
+}
+.mt-dp-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 10px; }
+.mt-dp-title { font-size: 14px; font-weight: 700; color: var(--mt-primary); }
+.mt-dp-nav {
+    width: 30px; height: 30px;
+    display: inline-flex; align-items: center; justify-content: center;
+    border: 1px solid var(--mt-border);
+    border-radius: 9px;
+    background: var(--mt-surface);
+    color: var(--mt-text);
+    font-size: 15px;
+    cursor: pointer;
+    line-height: 1;
+}
+.mt-dp-nav:hover { background: var(--mt-primary-tint, rgba(46,49,148,.07)); color: var(--mt-primary); }
+.mt-dp-week, .mt-dp-days {
+    display: grid;
+    grid-template-columns: repeat(7, 1fr);
+    gap: 2px;
+}
+.mt-dp-week span {
+    text-align: center;
+    font-size: 11px;
+    font-weight: 700;
+    color: var(--mt-text-muted);
+    padding: 6px 0;
+}
+.mt-dp-week span:first-child { color: #D64B55; }
+.mt-dp-day {
+    height: 34px;
+    display: inline-flex; align-items: center; justify-content: center;
+    border: 0;
+    background: none;
+    border-radius: 9px;
+    font-family: var(--mt-font);
+    font-size: 13px;
+    color: var(--mt-text);
+    cursor: pointer;
+}
+.mt-dp-day:hover { background: var(--mt-primary-tint, rgba(46,49,148,.08)); }
+.mt-dp-day.out { color: var(--mt-text-faint); opacity: .45; }
+.mt-dp-day.fri { color: #D64B55; }
+.mt-dp-day.today { box-shadow: inset 0 0 0 2px var(--mt-primary); font-weight: 700; }
+.mt-dp-day.sel { background: var(--mt-primary); color: #fff; font-weight: 700; }
+.mt-dp-foot {
+    display: flex; align-items: center; justify-content: space-between;
+    margin-top: 10px; padding-top: 10px;
+    border-top: 1px dashed var(--mt-border);
+}
+.mt-dp-today-btn {
+    border: 0; background: none;
+    font-family: var(--mt-font); font-size: 12px; font-weight: 700;
+    color: var(--mt-accent-strong); cursor: pointer; padding: 4px 8px; border-radius: 8px;
+}
+.mt-dp-today-btn:hover { background: var(--mt-accent-tint, rgba(255,138,0,.12)); }
+.mt-dp-clear-btn {
+    border: 0; background: none;
+    font-family: var(--mt-font); font-size: 12px; font-weight: 600;
+    color: var(--mt-text-muted); cursor: pointer; padding: 4px 8px; border-radius: 8px;
+}
+.mt-dp-clear-btn:hover { background: #F3F5F9; color: var(--mt-danger); }
+.mt-dp-day:focus-visible, .mt-dp-nav:focus-visible, .mt-dp-today-btn:focus-visible, .mt-dp-clear-btn:focus-visible {
+    outline: 2px solid var(--mt-primary);
+    outline-offset: 1px;
+}
+.mt-dp-greg { font-size: 11px; color: var(--mt-text-faint); direction: ltr; }
 
 /* email_stats server-pixel charts: Persian caption + cropped title band */
 figure.mt-chart {
