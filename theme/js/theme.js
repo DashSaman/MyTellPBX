@@ -457,18 +457,24 @@
             if (!E()) return;
             var full = document.querySelector('#Applet_HardDrives .appletwindow_fullcontent');
             if (!full || full.dataset.mtDisks === '1') return;
+            if (full.querySelector('.mt-echart')) { full.dataset.mtDisks = '1'; return; }
             var txt = (full.innerText || '');
             var m = txt.match(/([\d.]+)\s*GB/i);
             var pct = txt.match(/(\d+)\s*٪|(\d+)\s*%/);
-            if (!m || !pct) return;
-            var total = parseFloat(m[1]);
-            var usedPct = parseInt(pct[1] || pct[2], 10);
-            var used = Math.round(total * usedPct / 100 * 10) / 10;
+            if (m && pct) {
+                window.__mtDisk = {
+                    total: parseFloat(m[1]),
+                    usedPct: parseInt(pct[1] || pct[2], 10)
+                };
+            }
+            var disk = window.__mtDisk;
+            if (!disk) return;
+            var used = Math.round(disk.total * disk.usedPct / 100 * 10) / 10;
             var host = document.createElement('div');
             host.className = 'mt-echart';
             host.style.cssText = 'width:100%;height:90px;';
             full.insertBefore(host, full.firstChild);
-            MyTelCharts.bars(host, null, [{ name: '/', used: used, total: total, unit: 'GB' }]);
+            MyTelCharts.bars(host, null, [{ name: '/', used: used, total: disk.total, unit: 'GB' }]);
             /* retire the legacy flot donut + floating legend */
             full.querySelectorAll('canvas').forEach(function (cv) { cv.style.display = 'none'; });
             full.querySelectorAll('.ui-widget-content, .legend, [style*="float"]').forEach(function (el) {
