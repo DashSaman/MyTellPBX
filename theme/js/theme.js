@@ -1241,6 +1241,20 @@
             wire();
             setInterval(wire, 2000);
             $(document).ajaxComplete(function () { setTimeout(wire, 400); });
+            /* race guard: a freshly created stock datepicker must never take
+               the first click — transform instantly on focus and hand the
+               click to the Jalali mirror */
+            document.addEventListener('focusin', function (ev) {
+                var t = ev.target;
+                if (!t || !t.classList || !t.classList.contains('hasDatepicker')) return;
+                if (t.dataset.mtPick === '1') return;
+                wire();
+                var m = t.nextElementSibling;
+                if (m && m.classList.contains('mt-date-mirror')) {
+                    try { t.blur(); } catch (e) {}
+                    m.dispatchEvent(new MouseEvent('click', { bubbles: true }));
+                }
+            }, true);
         })();
 
         /* ---------- email_template: rebuild the confusing little form into

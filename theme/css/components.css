@@ -1208,3 +1208,9 @@ body.mt-popup-body {
 /* LTR fallbacks */
 [dir="ltr"] .table > thead > tr > th, [dir="ltr"] .issabel-standard-table > thead > tr > th { text-align: left; }
 [dir="ltr"] .close { float: right; }
+
+/* The stock jQuery-UI datepicker popup must never be user-visible in the
+   portal: every .hasDatepicker is transformed into a MyTel Jalali mirror
+   (mtDatePicker). This kills the first-2-seconds race where the stock
+   English picker (sometimes with week numbers) flashes open. */
+#ui-datepicker-div { display: none !important; }
