@@ -1824,6 +1824,9 @@
         var tds = document.querySelectorAll("form td:first-child, .content form td:first-child");
         for (var i = 0; i < tds.length; i++) {
             var td = tds[i];
+            /* the title band td is handled by the h2#title branch below —
+               handling both duplicated the subtitle */
+            if (td.querySelector("h2#title")) continue;
             if (td.querySelector(":scope > .mt-sub")) continue;
             var clone = td.cloneNode(true);
             var ih = clone.querySelectorAll(".infohelp, input, select, button");
@@ -1847,11 +1850,11 @@
             var fa2 = LABELS[t2];
             if (fa2) addSub(col, fa2, TIPS[t2]);
         }
-        /* page title band */
+        /* page title band: the h2 carries its own subtitle + pill */
         var h2 = document.querySelector("h2#title");
         if (h2) {
             var t3 = clean(h2.textContent);
-            if (LABELS[t3]) addSub(h2, LABELS[t3]);
+            if (LABELS[t3]) addSub(h2, LABELS[t3], TIPS[t3]);
         }
     }
 

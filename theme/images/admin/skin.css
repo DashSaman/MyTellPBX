@@ -224,20 +224,25 @@ form td .mt-sub, div.column.tdsearch .mt-sub {
     font-weight: 400 !important;
     white-space: normal !important;
 }
-/* page title band: stack the Persian under the English title */
+/* page title band: the Persian sits under the English title as the same
+   white chip so both title and section headers share one language */
 h2#title { flex-wrap: wrap; }
 h2#title .mt-sub {
-    flex-basis: 100%;
-    margin: 0 0 -3px 14px;
-    font-size: 11px;
+    flex-basis: auto;
+    width: fit-content;
+    margin: 5px 0 -1px 14px;
+    padding: 3px 9px;
+    background: #fff;
+    border: 1px solid var(--mt-border);
+    border-radius: 7px;
+    font-size: 11.5px;
     line-height: 15px;
+    color: #5A6580;
     direction: ltr;
     justify-content: flex-start;
     white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    display: flex;
-    gap: 5px;
+    display: inline-flex;
+    gap: 6px;
 }
 /* record-nav rows become two-line when they carry a subtitle */
 nav.rnav a:not(.button) .mt-sub {
@@ -506,7 +511,7 @@ form table tr > td:last-child { padding: 7px 8px 7px 14px; vertical-align: middl
 /* section headers */
 tr.guielToggle td {
     background: #F3F5F9 !important;
-    padding: 11px 14px 9px !important;
+    padding: 10px 14px 12px !important;
 }
 tr.guielToggle h5 {
     display: flex;
@@ -519,6 +524,26 @@ tr.guielToggle h5 {
     cursor: pointer;
 }
 tr.guielToggle h5 .guielToggleBut { order: 2; margin-inline-start: auto; color: var(--mt-muted); }
+/* the Persian subtitle of a collapsible section header renders as a
+   white chip on its own line inside the band — clearly separated from
+   the English title and readable against the tinted band */
+tr.guielToggle td .mt-sub {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    width: -moz-fit-content;
+    width: fit-content;
+    margin-top: 6px;
+    padding: 3px 9px;
+    background: #fff;
+    border: 1px solid var(--mt-border);
+    border-radius: 7px;
+    font-size: 11.5px;
+    line-height: 15px;
+    color: #5A6580;
+    direction: ltr;
+    text-align: left;
+}
 /* action footer band */
 form.popover-form tr:last-child:has([type="submit"]) td,
 .content > form tr:last-of-type:has([type="submit"]) td {
