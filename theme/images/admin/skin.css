@@ -188,15 +188,26 @@ tr.ui-state-highlight td {
     direction: rtl;
     max-width: 100%;
 }
-form td .mt-sub {
+form td .mt-sub, div.column.tdsearch .mt-sub {
     display: flex;
     align-items: center;
+    justify-content: flex-start;   /* LTR flex: starts at the label edge */
     gap: 5px;
     font-size: 11px;
     line-height: 13px;
     margin-top: 1px;
-    text-align: right;
+    direction: ltr;                /* line hugs the LEFT edge under English */
+    text-align: left;
     white-space: normal;
+}
+/* the Persian words keep RTL order inside their own isolate */
+.mt-sub .mt-sub-t { direction: rtl; unicode-bidi: isolate; }
+/* the mini-pill's bubble opens to the RIGHT of the ? (into the form) */
+.mt-sub .infohelp { position: relative; }
+.mt-sub .infohelp > span {
+    right: auto !important;
+    left: 20px !important;
+    top: -8px !important;
 }
 .mt-sub .mt-sub-t { min-width: 0; }
 .mt-sub .infohelp {
@@ -213,14 +224,15 @@ form td .mt-sub {
     font-weight: 400 !important;
     white-space: normal !important;
 }
-/* page title band: stack the Persian under the English */
+/* page title band: stack the Persian under the English title */
 h2#title { flex-wrap: wrap; }
 h2#title .mt-sub {
     flex-basis: 100%;
     margin: 0 0 -3px 14px;
     font-size: 11px;
     line-height: 15px;
-    text-align: right;
+    direction: ltr;
+    justify-content: flex-start;
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
