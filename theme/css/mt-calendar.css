@@ -1,0 +1,478 @@
+/*
+ * Only the custom month view forces RTL.
+ * Keep these rules after the existing calendar skin.
+ */
+
+/* Hide stock month content without destroying its event-loading instance. */
+#calendar_main.mt-jmonth-active > .fc-view-container,
+#calendar_main.mt-jmonth-active > .fc-content,
+#calendar_main.mt-jmonth-active > .fc-view-month,
+#calendar_main.mt-jmonth-active > .fc-month-view {
+    display: none !important;
+}
+
+/*
+ * Hide stock date title/navigation in month mode.
+ * Preserve the stock ماه / هفته / روز view-switch buttons.
+ */
+#calendar_main.mt-jmonth-active .fc-toolbar .fc-center h2,
+#calendar_main.mt-jmonth-active .fc-header-title,
+#calendar_main.mt-jmonth-active .fc-prev-button,
+#calendar_main.mt-jmonth-active .fc-next-button,
+#calendar_main.mt-jmonth-active .fc-prevYear-button,
+#calendar_main.mt-jmonth-active .fc-nextYear-button,
+#calendar_main.mt-jmonth-active .fc-today-button,
+#calendar_main.mt-jmonth-active .fc-button-prev,
+#calendar_main.mt-jmonth-active .fc-button-next,
+#calendar_main.mt-jmonth-active .fc-button-prevYear,
+#calendar_main.mt-jmonth-active .fc-button-nextYear,
+#calendar_main.mt-jmonth-active .fc-button-today {
+    display: none !important;
+}
+
+#calendar_main .mt-jmonth[hidden] {
+    display: none !important;
+}
+
+#calendar_main .mt-jmonth {
+    --mt-calendar-surface: #fff;
+    --mt-calendar-text: #232A35;
+    --mt-calendar-muted: #64708A;
+    --mt-calendar-danger: #c83c4c;
+
+    direction: rtl;
+    text-align: right;
+    isolation: isolate;
+    width: 100%;
+    margin-top: 12px;
+    color: var(--mt-calendar-text);
+    background: var(--mt-calendar-surface);
+    border: 1px solid var(--mt-border, #E8ECF3);
+    border-radius: 16px;
+    overflow: hidden;
+    font-family: Vazirmatn, sans-serif;
+    font-size: 14px;
+    line-height: 1.6;
+}
+
+#calendar_main .mt-jmonth,
+#calendar_main .mt-jmonth * {
+    box-sizing: border-box;
+}
+
+#calendar_main .mt-jmonth button {
+    font-family: inherit;
+    cursor: pointer;
+    -webkit-tap-highlight-color: transparent;
+}
+
+#calendar_main .mt-jmonth-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 16px;
+    padding: 20px 24px;
+    border-bottom: 1px solid var(--mt-border, #E8ECF3);
+}
+
+#calendar_main .mt-jmonth-heading {
+    min-width: 0;
+}
+
+#calendar_main .mt-jmonth-title {
+    margin: 0;
+    color: var(--mt-primary, #2E3194);
+    font-size: clamp(24px, 3vw, 32px);
+    font-weight: 800;
+    line-height: 1.45;
+}
+
+#calendar_main .mt-jmonth-range {
+    margin: 4px 0 0;
+    color: var(--mt-calendar-muted);
+    font-size: 11px;
+    line-height: 1.8;
+}
+
+#calendar_main .mt-jmonth-nav {
+    display: flex;
+    direction: rtl;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 8px;
+}
+
+/* In RTL order: امروز on the right, previous, then next. */
+#calendar_main .mt-jnav {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    min-height: 40px;
+    padding: 7px 13px;
+    border: 1px solid var(--mt-border, #E8ECF3);
+    border-radius: 10px;
+    background: var(--mt-calendar-surface);
+    color: var(--mt-primary, #2E3194);
+    font-size: 12px;
+    font-weight: 700;
+    line-height: 1.5;
+    transition:
+        background-color 150ms ease,
+        border-color 150ms ease,
+        box-shadow 150ms ease;
+}
+
+#calendar_main .mt-jnav:hover {
+    border-color: var(--mt-primary, #2E3194);
+    background: #f0f1fa;
+}
+
+#calendar_main .mt-jnav-today {
+    border-color: var(--mt-primary, #2E3194);
+    background: var(--mt-primary, #2E3194);
+    color: #fff;
+}
+
+#calendar_main .mt-jnav-today:hover {
+    background: #24277b;
+}
+
+#calendar_main .mt-jarrow {
+    direction: ltr;
+    font-family: Arial, sans-serif;
+    font-size: 24px;
+    font-weight: 400;
+    line-height: 1;
+}
+
+#calendar_main .mt-jmonth-status {
+    margin: 0;
+    padding: 8px 24px;
+    background: var(--mt-bg, #F3F5F9);
+    color: var(--mt-calendar-muted);
+    font-size: 12px;
+}
+
+#calendar_main .mt-jmonth-status:empty {
+    display: none;
+}
+
+#calendar_main .mt-jmonth-scroll {
+    overflow-x: auto;
+    overscroll-behavior-x: contain;
+    scrollbar-gutter: stable;
+}
+
+#calendar_main .mt-jmonth-table {
+    direction: rtl;
+    width: 100%;
+    min-width: 700px;
+    margin: 0;
+    table-layout: fixed;
+    border-collapse: collapse;
+    border-spacing: 0;
+    background: var(--mt-calendar-surface);
+}
+
+#calendar_main .mt-jmonth-table th,
+#calendar_main .mt-jmonth-table td {
+    width: calc(100% / 7);
+    padding: 0;
+    border: 0;
+    border-inline-end: 1px solid var(--mt-border, #E8ECF3);
+}
+
+#calendar_main .mt-jmonth-table th:last-child,
+#calendar_main .mt-jmonth-table td:last-child {
+    border-inline-end: 0;
+}
+
+#calendar_main .mt-jmonth-table .mt-jweekday {
+    height: 44px;
+    padding: 8px;
+    border-bottom: 1px solid var(--mt-border, #E8ECF3);
+    background: var(--mt-bg, #F3F5F9);
+    color: var(--mt-calendar-muted);
+    text-align: center;
+    font-size: 15px;
+    font-weight: 800;
+}
+
+#calendar_main .mt-jmonth-table .mt-jweekday.mt-jfriday {
+    background: #fff3f4;
+    color: var(--mt-calendar-danger);
+}
+
+#calendar_main .mt-jmonth-table .mt-jcell {
+    position: relative;
+    vertical-align: top;
+    border-bottom: 1px solid var(--mt-border, #E8ECF3);
+    background: var(--mt-calendar-surface);
+    cursor: pointer;
+    transition: background-color 150ms ease;
+}
+
+#calendar_main .mt-jmonth-table tbody tr:last-child .mt-jcell {
+    border-bottom: 0;
+}
+
+#calendar_main .mt-jcell-body {
+    min-height: 136px;
+    padding: 9px 8px 12px;
+}
+
+#calendar_main .mt-jmonth-table .mt-jcell:hover {
+    background: #f7f8fd;
+}
+
+#calendar_main .mt-jmonth-table .mt-jcell.mt-jfriday,
+#calendar_main .mt-jmonth-table .mt-jcell.mt-jholiday {
+    background: #fff8f8;
+}
+
+#calendar_main .mt-jmonth-table .mt-jcell.mt-jfriday:hover,
+#calendar_main .mt-jmonth-table .mt-jcell.mt-jholiday:hover {
+    background: #ffeff1;
+}
+
+#calendar_main .mt-jmonth-table .mt-jcell.mt-joutside {
+    background: #f7f8fa;
+}
+
+#calendar_main .mt-jdates {
+    display: flex;
+    direction: rtl;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 5px;
+    min-height: 38px;
+}
+
+#calendar_main .mt-jday-open {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    min-width: 36px;
+    min-height: 36px;
+    margin: 0;
+    padding: 2px 5px;
+    border: 0;
+    border-radius: 10px;
+    background: transparent;
+    color: var(--mt-calendar-text);
+    line-height: 1.3;
+}
+
+#calendar_main .mt-jday-number {
+    font-size: 23px;
+    font-weight: 800;
+    font-variant-numeric: tabular-nums;
+}
+
+#calendar_main .mt-jday-open:hover {
+    background: rgba(46, 49, 148, 0.07);
+}
+
+#calendar_main .mt-jfriday .mt-jday-open,
+#calendar_main .mt-jholiday .mt-jday-open {
+    color: var(--mt-calendar-danger);
+}
+
+#calendar_main .mt-jgregorian {
+    display: block;
+    padding: 5px 2px 0;
+    color: var(--mt-calendar-muted);
+    font-size: 11px;
+    line-height: 1.5;
+    font-variant-numeric: tabular-nums;
+    unicode-bidi: isolate;
+}
+
+#calendar_main .mt-joutside .mt-jday-open,
+#calendar_main .mt-joutside .mt-jgregorian,
+#calendar_main .mt-joutside .mt-jholiday-label {
+    opacity: 0.48;
+}
+
+#calendar_main .mt-joutside .mt-jevents {
+    opacity: 0.65;
+}
+
+#calendar_main .mt-jtoday .mt-jday-open {
+    background: #fff4e5;
+    color: var(--mt-calendar-text);
+    box-shadow: inset 0 0 0 2px var(--mt-accent, #FF8A00);
+}
+
+#calendar_main .mt-jtoday-label {
+    color: #a45400;
+    font-size: 9px;
+    font-weight: 800;
+    white-space: nowrap;
+}
+
+#calendar_main .mt-jholiday-label {
+    display: block;
+    min-height: 20px;
+    margin: 1px 3px 6px;
+    overflow: hidden;
+    color: var(--mt-calendar-danger);
+    font-size: 10px;
+    font-weight: 600;
+    line-height: 20px;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+#calendar_main .mt-jevents {
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+}
+
+#calendar_main .mt-jevent {
+    --mt-event-color: var(--mt-primary, #2E3194);
+    --mt-event-bg: #eef0fc;
+
+    display: flex;
+    direction: rtl;
+    align-items: center;
+    gap: 5px;
+    width: 100%;
+    min-width: 0;
+    min-height: 29px;
+    margin: 0;
+    padding: 4px 6px;
+    border: 1px solid transparent;
+    border-radius: 7px;
+    background: var(--mt-event-bg);
+    color: var(--mt-calendar-text);
+    text-align: right;
+    font-size: 10px;
+    line-height: 1.7;
+    transition:
+        border-color 150ms ease,
+        box-shadow 150ms ease;
+}
+
+#calendar_main .mt-jevent-v1 {
+    --mt-event-color: #c46900;
+    --mt-event-bg: #fff1de;
+}
+
+#calendar_main .mt-jevent-v2 {
+    --mt-event-color: #16806b;
+    --mt-event-bg: #e8f6f1;
+}
+
+#calendar_main .mt-jevent:hover {
+    border-color: var(--mt-event-color);
+    box-shadow: 0 2px 6px rgba(35, 42, 53, 0.08);
+}
+
+#calendar_main .mt-jevent-dot {
+    flex: 0 0 6px;
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: var(--mt-event-color);
+}
+
+#calendar_main .mt-jevent-continuation .mt-jevent-dot {
+    background: transparent;
+    box-shadow: inset 0 0 0 1.5px var(--mt-event-color);
+}
+
+#calendar_main .mt-jevent-time {
+    flex: 0 0 auto;
+    color: var(--mt-event-color);
+    font-size: 9px;
+    font-weight: 700;
+    font-variant-numeric: tabular-nums;
+    white-space: nowrap;
+}
+
+#calendar_main .mt-jevent-title {
+    flex: 1 1 auto;
+    min-width: 0;
+    overflow: hidden;
+    text-align: start;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+#calendar_main .mt-jnav:focus-visible,
+#calendar_main .mt-jday-open:focus-visible,
+#calendar_main .mt-jevent:focus-visible {
+    outline: 2px solid var(--mt-primary, #2E3194);
+    outline-offset: 2px;
+}
+
+#calendar_main .mt-jsr-only {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    margin: -1px;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    white-space: nowrap;
+    border: 0;
+}
+
+@media (max-width: 900px) {
+    #calendar_main .mt-jmonth-header {
+        gap: 12px;
+        padding: 16px;
+    }
+
+    #calendar_main .mt-jmonth-nav {
+        gap: 6px;
+    }
+
+    #calendar_main .mt-jnav {
+        padding-inline: 10px;
+    }
+
+    #calendar_main .mt-jcell-body {
+        min-height: 124px;
+        padding-inline: 6px;
+    }
+}
+
+@media (max-width: 600px) {
+    #calendar_main .mt-jmonth-header {
+        align-items: flex-start;
+        flex-direction: column;
+    }
+
+    #calendar_main .mt-jmonth-nav {
+        width: 100%;
+    }
+
+    #calendar_main .mt-jmonth-range {
+        font-size: 10px;
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    #calendar_main .mt-jmonth * {
+        transition: none !important;
+    }
+}
+
+/* the stock English month title duplicates our Persian header — hide it
+   while the Jalali grid is active (buttons stay for view switching) */
+#calendar_main.mt-jmonth-active .fc-header-title,
+#calendar_main.mt-jmonth-active .fc-toolbar .fc-title {
+    visibility: hidden;
+}
+
+/* stock iCal widget header: stop the stretched-letter look */
+#calendar_ical_links .title_size {
+    letter-spacing: normal !important;
+    text-align: right;
+    font-family: 'Vazirmatn', Tahoma, sans-serif !important;
+}
