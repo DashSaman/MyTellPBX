@@ -797,6 +797,69 @@ div.footer::after, .footer::after {
     font-size: 12px;
 }
 
+/* ---------- per-page collapsible help panel (sub.js DESC) ---------- */
+.mt-pagedesc {
+    direction: rtl;
+    text-align: left;              /* chip hugs the English title's edge */
+    margin: 7px 14px 2px 0;
+}
+.mt-pagedesc-toggle {
+    display: inline-flex;
+    align-items: center;
+    gap: 7px;
+    font-family: 'VazirmatnSub', 'Vazirmatn', Tahoma, sans-serif;
+    font-size: 11.5px;
+    font-weight: 600;
+    color: var(--mt-primary) !important;
+    background: #fff;
+    border: 1px solid #CBD2DD;
+    border-radius: 8px;
+    padding: 4px 11px;
+    cursor: pointer;
+    transition: background .14s ease, border-color .14s ease;
+}
+.mt-pagedesc-toggle:hover { background: #EEF1FA; border-color: var(--mt-primary); }
+.mt-pd-chev {
+    width: 7px; height: 7px;
+    border-inline-end: 2px solid var(--mt-primary);
+    border-bottom: 2px solid var(--mt-primary);
+    transform: rotate(45deg);
+    transition: transform .18s ease;
+}
+.mt-pagedesc.open .mt-pd-chev { transform: rotate(-135deg); }
+.mt-pagedesc-panel {
+    display: none;
+    margin-top: 7px;
+    text-align: right;
+    background: #fff;
+    border: 1px solid var(--mt-border);
+    border-radius: 10px;
+    box-shadow: 0 4px 16px rgba(21,27,61,.06);
+    padding: 12px 16px;
+    font-family: 'VazirmatnSub', 'Vazirmatn', Tahoma, sans-serif;
+    font-size: 12.5px;
+    line-height: 2;
+    color: var(--mt-text);
+    max-width: 760px;
+}
+.mt-pagedesc.open .mt-pagedesc-panel { display: block; }
+.mt-pd-what { margin: 0 0 8px; }
+.mt-pd-h {
+    font-weight: 700;
+    color: var(--mt-primary);
+    font-size: 12px;
+    margin: 6px 0 2px;
+}
+.mt-pd-notes { margin: 0 0 8px; padding-inline-start: 18px; }
+.mt-pd-notes li { margin-bottom: 2px; }
+.mt-pd-example {
+    background: #F7F8FC;
+    border: 1px dashed var(--mt-border);
+    border-radius: 8px;
+    padding: 6px 12px;
+    color: #455167;
+}
+
 /* ---------- misc ---------- */
 .navbar-burger { color: #fff; }
 .fpbx-tabs li a, ul.tabs li a { border-radius: 9px 9px 0 0; }
