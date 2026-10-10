@@ -12,8 +12,8 @@
   <meta http-equiv="Content-Type" content="text/html; charset=UTF8" />
   <title>مای‌تل</title>
   <link rel="shortcut icon" href="{$WEBPATH}themes/{$THEMENAME}/images/favicon.png" />
-  <link rel="stylesheet" href="{$WEBPATH}themes/{$THEMENAME}/styles.css?v=107">
-  <link rel="stylesheet" href="{$WEBPATH}themes/{$THEMENAME}/help.css?v=107">
+  <link rel="stylesheet" href="{$WEBPATH}themes/{$THEMENAME}/styles.css?v=110">
+  <link rel="stylesheet" href="{$WEBPATH}themes/{$THEMENAME}/help.css?v=110">
   <script src="{$WEBCOMMON}js/base.js"></script>
   <script src="{$WEBCOMMON}js/iframe.js"></script>
 </head>
