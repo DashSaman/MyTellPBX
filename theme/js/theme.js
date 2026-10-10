@@ -1116,7 +1116,19 @@
                 if (ev.key === 'Escape' && open) closePop();
             });
             document.addEventListener('click', function (ev) {
-                if (open && !open.contains(ev.target) && ev.target.className !== 'mt-date-mirror') closePop();
+                var target = ev.target instanceof Element
+                    ? ev.target
+                    : ev.target.parentElement;
+
+                if (!open || !target || open.contains(target)) return;
+
+                /*
+                 * Exempt both the mirror and its icon, including the SVG's
+                 * children. Their own click handlers perform popup switching.
+                 */
+                if (target.closest('.mt-date-mirror, .mt-date-icon')) return;
+
+                closePop();
             }, true);
 
             var buildGrid = function (pop, jy, jm, selG) {
@@ -1232,15 +1244,36 @@
                         showPop(real, mirror);
                     });
                 });
-                /* hide trigger buttons the stock picker appended next to hidden inputs */
-                document.querySelectorAll('button.ui-datepicker-trigger').forEach(function (b) {
-                    var prev = b.previousElementSibling;
-                    if (prev && prev.classList && prev.classList.contains('mt-date-real')) b.style.display = 'none';
-                });
+                /* mt-date-icons.js loads AFTER theme.js — guard the call so
+                   the first synchronous wire() can never throw before the
+                   interval/observers below are registered; the icon layer
+                   also self-wires on load and re-wiring is idempotent */
+                if (window.MTDateIcons) window.MTDateIcons.wire();
             };
             wire();
             setInterval(wire, 2000);
             $(document).ajaxComplete(function () { setTimeout(wire, 400); });
+            /* report filter toggles are stock <a href="#filters"> links — a
+               native anchor activates on Enter but NOT on Space; add Space
+               activation STRICTLY for those toggles so keyboard users can
+               open/close the filter panel without hijacking other links */
+            document.addEventListener('keydown', function (ev) {
+                if (ev.key !== ' ' && ev.code !== 'Space') return;
+                if (ev.repeat || ev.defaultPrevented) return;
+                if (ev.ctrlKey || ev.metaKey || ev.altKey || ev.shiftKey) return;
+                var t = ev.target;
+                if (!t || t.tagName !== 'A' || !t.getAttribute) return;
+                var href = t.getAttribute('href');
+                /* same-page anchors only (#…); real URLs keep native behavior */
+                if (!href || href.charAt(0) !== '#') return;
+                /* only the collapse filter toggles, not every link mentioning the words */
+                var isFilterToggle = href === '#filters' ||
+                    t.getAttribute('data-toggle') === 'collapse';
+                var label = t.textContent || '';
+                if (!isFilterToggle || label.indexOf('فیلتر') === -1) return;
+                ev.preventDefault();
+                t.click();
+            });
             /* race guard: a freshly created stock datepicker must never take
                the first click — transform instantly on focus and hand the
                click to the Jalali mirror */
