@@ -276,6 +276,7 @@ $arrLang=array(
 "Asterisk Logs" => "گزارشات استریسک",
 "Graphic Report" => "گزارش گرافیکی",
 "Summary by Extension" => "گزارش خلاصه بر اساس داخلی",
+"Asternic CDR Reports" => "گزارش آسترنیک",
 "Calling Cards" => "کارت های تلفن",
 "Downloads" => "دانلودها",
 

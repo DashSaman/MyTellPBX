@@ -470,3 +470,119 @@ a:hover { color: var(--mt-primary-soft); }
 [dir="ltr"] .mt-sidebar #main-menu > li.active > a { border-left-color: var(--mt-accent); }
 [dir="ltr"] .mt-sidebar #main-menu ul { padding: 2px 0 4px 16px; }
 [dir="ltr"] .mt-sidebar #main-menu ul ul { padding-left: 14px; padding-right: 0; }
+
+/* ------------------------------------------------------------
+   Menu disclosure buttons (MyTel navigation controller) —
+   sibling chevrons so destination anchors can navigate while
+   submenu disclosure stays a separate, accessible control.
+   ------------------------------------------------------------ */
+.mt-sidebar #main-menu li { position: relative; }
+.mt-nav-disclosure {
+    position: absolute;
+    /* anchored to the LABEL ROW (the li's first child region), not centered
+       in the whole <li> which grows with the expanded submenu */
+    inset-inline-end: 8px;
+    top: 10px;
+    width: 26px;
+    height: 26px;
+    padding: 0;
+    border: 0;
+    border-radius: 8px;
+    background: rgba(255, 255, 255, .06);
+    color: rgba(255, 255, 255, .65);
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 2;
+}
+.mt-nav-disclosure span {
+    width: 7px;
+    height: 7px;
+    margin-inline-end: 2px;
+    border-inline-end: 2px solid rgba(255, 255, 255, .55);
+    border-bottom: 2px solid rgba(255, 255, 255, .55);
+    transform: rotate(45deg);
+    transition: transform var(--mt-speed) var(--mt-ease);
+}
+.mt-nav-disclosure:hover { background: rgba(255, 138, 0, .18); color: #FFB84D; }
+.mt-nav-disclosure[aria-expanded="true"] span { transform: rotate(-135deg); margin-top: -3px; }
+.mt-nav-disclosure:focus-visible {
+    outline: 2px solid var(--mt-accent);
+    outline-offset: 1px;
+}
+.page-container.sidebar-collapsed .mt-nav-disclosure { display: none; }
+@media (max-width: 991px) {
+    .mt-nav-disclosure { inset-inline-end: 6px; }
+}
+
+/* third-level items keep the guide indent; disclosure floats inside */
+.mt-sidebar #main-menu ul ul .mt-nav-disclosure { inset-inline-end: 4px; }
+
+/* ------------------------------------------------------------
+   MyTel module-page loader — palette ring + Vazirmatn labels
+   (see theme/js/mytel-loader.js; covers only the module region)
+   ------------------------------------------------------------ */
+.mt-page-loader {
+    position: absolute;
+    inset: 0;
+    z-index: 60;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 14px;
+    background: rgba(247, 248, 252, .94);
+}
+#neo-contentbox { position: relative; }
+.mt-page-loader-ring {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    border: 3px solid rgba(46, 49, 148, .16);
+    border-top-color: #2E3194;
+    border-inline-end-color: #FF8A00;
+    animation: mt-loader-spin .9s linear infinite;
+}
+@keyframes mt-loader-spin { to { transform: rotate(360deg); } }
+.mt-page-loader-label {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 3px;
+    font-family: Vazirmatn, Tahoma, sans-serif;
+    direction: rtl;
+}
+.mt-page-loader-label b { font-size: 14px; font-weight: 600; color: #2E3194; }
+.mt-page-loader-label span { font-size: 12px; color: #64708A; }
+.mt-load-stuck {
+    position: absolute;
+    inset-inline: 16px;
+    bottom: 14px;
+    z-index: 61;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 10px 14px;
+    border: 1px solid #F3D9A4;
+    border-inline-start: 4px solid #FF8A00;
+    border-radius: 10px;
+    background: #FFF8EC;
+    color: #6A4B12;
+    font-family: Vazirmatn, Tahoma, sans-serif;
+    font-size: 13px;
+    direction: rtl;
+}
+.mt-load-stuck-close {
+    margin-inline-start: auto;
+    border: 0;
+    background: none;
+    color: #6A4B12;
+    font-size: 18px;
+    line-height: 1;
+    cursor: pointer;
+    padding: 2px 6px;
+}
+@media (prefers-reduced-motion: reduce) {
+    .mt-page-loader-ring { animation: none; border-top-color: #FF8A00; }
+}

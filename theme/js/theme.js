@@ -659,6 +659,163 @@
             });
         })();
 
+        /* ---- 2d) menu navigation/disclosure controller --------------------
+           The inherited Neon sidebar script attaches preventDefault() to the
+           anchor of EVERY li that owns a submenu (21 mid-tier destinations
+           like داشبورد سیستم، صورت حساب، داخلی من، تنظیمات) — their label
+           clicks navigate nowhere. Contract (brain-approved):
+           - a destination anchor at any depth navigates (capture-phase,
+             stopPropagation, NO preventDefault; modifiers preserved);
+           - disclosure is a separate sibling chevron button that expands or
+             collapses the direct submenu only;
+           - a branch anchor whose children are all hidden (e.g. sysdash's
+             dashboard/applet_admin) renders NO disclosure button;
+           - collapsed desktop mode: disclosure first expands the sidebar
+             through the existing neon helper, then opens the branch;
+           - mobile drawer: destination navigation closes the drawer,
+             disclosure leaves it open;
+           - active state follows destinations only; current link gets
+             aria-current="page" and its ancestors are opened. */
+        (function mtMenuController() {
+            var menu = document.querySelector('.mt-sidebar #main-menu');
+            if (!menu || menu.dataset.mtNavCtl === '1') return;
+            menu.dataset.mtNavCtl = '1';
+
+            var isMobileDrawer = function () {
+                return window.matchMedia('(max-width: 991px)').matches;
+            };
+            var desktopCollapsed = function () {
+                var c = document.querySelector('.page-container');
+                return !!(c && c.classList.contains('sidebar-collapsed'));
+            };
+            var expandSidebar = function () {
+                /* existing helpers, best-effort */
+                try {
+                    if (typeof toggle_sidebar_menu === 'function') toggle_sidebar_menu(false);
+                    var c = document.querySelector('.page-container');
+                    if (c && c.classList.contains('sidebar-collapsed')) {
+                        c.classList.remove('sidebar-collapsed');
+                    }
+                } catch (e) {}
+            };
+            var closeMobileDrawer = function () {
+                var c = document.querySelector('.page-container');
+                if (c) c.classList.remove('mt-mobile-open');
+            };
+            var setExpanded = function (li, on) {
+                li.classList.toggle('opened', !!on);
+                var btn = li.querySelector(':scope > .mt-nav-disclosure');
+                if (btn) btn.setAttribute('aria-expanded', on ? 'true' : 'false');
+                var a = li.querySelector(':scope > a');
+                if (a) a.setAttribute('aria-expanded', on ? 'true' : 'false');
+            };
+            var visibleChildren = function (li) {
+                var ul = li.querySelector(':scope > ul');
+                if (!ul) return [];
+                return Array.prototype.filter.call(ul.children, function (c) {
+                    return c.tagName === 'LI' && c.style.display !== 'none' &&
+                        !c.classList.contains('mt-menu-label');
+                });
+            };
+            var submenuHasVisibleChildren = function (li) {
+                return visibleChildren(li).length > 0;
+            };
+
+            /* disclosure chevron: sibling button before the anchor */
+            document.querySelectorAll('.mt-sidebar #main-menu li').forEach(function (li) {
+                var a = li.querySelector(':scope > a');
+                if (!a) return;
+                var ul = li.querySelector(':scope > ul');
+                if (!ul) return;
+                if (!submenuHasVisibleChildren(li)) return; /* P2: hidden-only children -> no button */
+                if (li.querySelector(':scope > .mt-nav-disclosure')) return;
+                var btn = document.createElement('button');
+                btn.type = 'button';
+                btn.className = 'mt-nav-disclosure';
+                btn.setAttribute('aria-label', 'باز و بسته کردن این بخش');
+                var targetId = ul.id || ('mt-sub-' + Math.random().toString(36).slice(2, 8));
+                ul.id = targetId;
+                btn.setAttribute('aria-controls', targetId);
+                btn.setAttribute('aria-expanded', li.classList.contains('opened') ? 'true' : 'false');
+                btn.innerHTML = '<span aria-hidden="true"></span>';
+                li.insertBefore(btn, a);
+                a.setAttribute('aria-expanded', btn.getAttribute('aria-expanded'));
+                a.setAttribute('aria-controls', targetId);
+                btn.addEventListener('click', function (ev) {
+                    ev.preventDefault();
+                    ev.stopPropagation();
+                    if (desktopCollapsed()) expandSidebar();
+                    var on = !li.classList.contains('opened');
+                    setExpanded(li, on);
+                    if (!on && !isMobileDrawer()) {
+                        /* neon collapse animation is skipped; keep the panel
+                           display in sync through the .opened class only */
+                    }
+                });
+            });
+
+            /* capture-phase destination routing: run before neon's direct
+               handlers; stop propagation so neon never sees the click */
+            menu.addEventListener('click', function (ev) {
+                var a = ev.target instanceof Element
+                    ? ev.target.closest('#main-menu a') : null;
+                if (!a || !menu.contains(a)) return;
+                if (ev.button !== 0 || ev.altKey) return; /* popup/modified: native */
+                if (a.dataset.mtDisclosureOnly === '1') {
+                    /* group placeholder: toggle its submenu instead */
+                    ev.preventDefault();
+                    ev.stopPropagation();
+                    var li0 = a.closest('li');
+                    if (li0) {
+                        if (desktopCollapsed()) expandSidebar();
+                        setExpanded(li0, !li0.classList.contains('opened'));
+                    }
+                    return;
+                }
+                /* genuine destination: navigate natively, stop neon */
+                ev.stopPropagation();
+                var li = a.closest('li');
+                var href = a.getAttribute('href') || '';
+                var isHash = href.charAt(0) === '#';
+                var isBlank = (a.getAttribute('target') || '') !== '';
+                if (!isHash && !isBlank && !ev.ctrlKey && !ev.metaKey && !ev.shiftKey) {
+                    ev.preventDefault();
+                    if (isMobileDrawer()) closeMobileDrawer();
+                    if (desktopCollapsed()) expandSidebar();
+                    window.location.href = a.getAttribute('href');
+                    return;
+                }
+                if (isMobileDrawer()) closeMobileDrawer();
+            }, true);
+
+            /* current-page marking: exact href match wins over the server's
+               parent-group active classes */
+            var here = location.search;
+            var current = null;
+            menu.querySelectorAll('a[href]').forEach(function (a) {
+                var h = a.getAttribute('href') || '';
+                var isCurrent = h.indexOf('menu=') !== -1 &&
+                    here.indexOf(h.replace(/^index\.php/, '').replace('?menu=', 'menu=')) !== -1 &&
+                    here.indexOf('=' + h.split('menu=')[1].split('&')[0]) !== -1;
+                if (h === 'index.php' + (here || '') ) isCurrent = true;
+                if (isCurrent && !current) {
+                    current = a;
+                }
+                a.removeAttribute('aria-current');
+            });
+            if (current) {
+                current.setAttribute('aria-current', 'page');
+                var p = current.closest('li');
+                while (p && p !== menu) {
+                    if (p.tagName === 'LI' && p.querySelector(':scope > ul')) setExpanded(p, true);
+                    p = p.parentElement ? p.parentElement.closest('li') : null;
+                }
+            }
+
+            /* mobile: leaf-adjacent disclosure keeps drawer open (already the
+               behavior — only destination navigation closes it). */
+        })();
+
         /* ---- 3) hard drives: table text -> horizontal utilization bars ---- */
         /* when DOM data is stripped by module re-render, fetch fresh values
            from the applet's own getContent endpoint (presentation-only GET) */
