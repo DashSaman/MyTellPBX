@@ -1032,7 +1032,7 @@
 
         /* ---------- MyTel WebPhone launch card on the portal dashboard ---------- */
         var addWebphoneCard = function () {
-            if (location.search.indexOf('menu=index') === -1) return;
+            if (new URLSearchParams(location.search).get('menu') !== 'index') return;
             var c = document.querySelector('.neo-module-content');
             if (!c || document.getElementById('mt-webphone-card')) return;
             var card = document.createElement('a');
