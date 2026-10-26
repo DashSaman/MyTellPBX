@@ -2513,45 +2513,75 @@ var HELP_KEYS = Object.keys(HELP);
         boot();
     }
 
-    /* ============ Apply-Config overlay (presentation-only, GPT-reviewed) ============
-       Shows a dismissible feedback panel while retrieve_conf runs.
-       role=status, prefers-reduced-motion, "waiting" phrasing, no silent removal. */
+    /* ============ Apply-Config overlay v2 (glass card, auto-dismiss) ============
+       Elegant MyTel glass card while retrieve_conf runs.
+       - XHR/fetch interception removes overlay when the reload request ends
+       - jQuery ajaxComplete fallback: first completed ajax ≥3s removes it
+       - swal/notification observer: overlay never covers error dialogs
+       - hard auto-dismiss at 3 minutes (user saw it stuck for hours)
+       - role=status, prefers-reduced-motion respected */
     (function applyOverlay() {
-        var ov = null, t30 = null, t120 = null;
+        var ov = null, t30 = null, t90 = null, t180 = null, bornAt = 0;
+        var EMBLEM = "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCA2NCA2NCI+PGNpcmNsZSBjeD0iMzIiIGN5PSIzMiIgcj0iMjYuNSIgZmlsbD0ibm9uZSIgc3Ryb2tlPSIjMkUzMTk0IiBzdHJva2Utd2lkdGg9IjYuNSIvPjxjaXJjbGUgY3g9IjMyIiBjeT0iMzIiIHI9IjEyIiBmaWxsPSIjRkY4QTAwIi8+PC9zdmc+";
 
         function remove() {
             if (t30) clearTimeout(t30);
-            if (t120) clearTimeout(t120);
-            t30 = t120 = null;
-            if (ov && ov.parentNode) ov.remove();
+            if (t90) clearTimeout(t90);
+            if (t180) clearTimeout(t180);
+            t30 = t90 = t180 = null;
+            if (ov) {
+                ov.style.transition = "opacity .3s ease";
+                ov.style.opacity = "0";
+                var dead = ov;
+                setTimeout(function () { if (dead.parentNode) dead.remove(); }, 320);
+            }
             ov = null;
         }
 
         function show() {
             if (document.getElementById("mt-apply-ov")) return;
+            bornAt = Date.now();
+            var reduce = window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
             ov = document.createElement("div");
             ov.id = "mt-apply-ov";
             ov.setAttribute("role", "status");
             ov.setAttribute("aria-live", "polite");
             ov.style.cssText =
-                "position:fixed;inset:0;z-index:9990;" +
-                "background:rgba(8,15,28,.80);" +
-                "display:flex;flex-direction:column;align-items:center;justify-content:center;gap:12px;" +
+                "position:fixed;inset:0;z-index:9000;" +
+                "background:rgba(8,15,28,.72);-webkit-backdrop-filter:blur(5px);backdrop-filter:blur(5px);" +
+                "display:flex;align-items:center;justify-content:center;" +
                 "font-family:Vazirmatn,Tahoma,sans-serif;";
-            var reduce = window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
 
             ov.innerHTML =
-                '<style>@keyframes mtspin{to{transform:rotate(360deg)}}</style>' +
-                '<div style="' + (reduce ? "" : "animation:mtspin 1s linear infinite;") +
-                'width:44px;height:44px;border:4px solid rgba(255,138,0,.25);' +
-                'border-top-color:#FF8A00;border-radius:50%"></div>' +
-                '<div id="mt-ov-msg" style="color:#fff;font-size:18px;font-weight:700;' +
-                'text-shadow:0 1px 3px rgba(0,0,0,.3)">در حال اعمال تغییرات مرکز تلفن…</div>' +
-                '<div id="mt-ov-sub" style="color:#AAB6CE;font-size:13px">این عملیات ممکن است تا یک دقیقه طول بکشد</div>' +
-                '<button type="button" id="mt-ov-dismiss" style="' +
-                'background:none;border:1px solid rgba(255,255,255,.3);color:#AAB6CE;' +
-                'border-radius:6px;padding:5px 16px;font-size:12px;cursor:pointer;' +
-                'font-family:inherit;margin-top:8px">بستن پیام</button>';
+                '<style>' +
+                '@keyframes mtovspin{to{transform:rotate(360deg)}}' +
+                '@keyframes mtovpulse{0%,100%{transform:scale(1)}50%{transform:scale(1.05)}}' +
+                '#mt-ov-card{background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.14);' +
+                'border-radius:18px;padding:36px 48px;display:flex;flex-direction:column;' +
+                'align-items:center;gap:10px;box-shadow:0 24px 64px rgba(0,0,0,.45);}' +
+                '</style>' +
+                '<div id="mt-ov-card">' +
+                  '<div style="position:relative;width:76px;height:76px;margin-bottom:6px">' +
+                    '<div style="' + (reduce ? "" : "animation:mtovspin 1.4s linear infinite;") +
+                      'position:absolute;inset:0;border-radius:50%;' +
+                      'background:conic-gradient(from 0deg,#FF8A00,#2E3194,#1E88E5,#FF8A00);' +
+                      '-webkit-mask:radial-gradient(farthest-side,transparent calc(100% - 4px),#000 calc(100% - 3px));' +
+                      'mask:radial-gradient(farthest-side,transparent calc(100% - 4px),#000 calc(100% - 3px));"></div>' +
+                    '<img src="' + EMBLEM + '" alt="" style="' +
+                      (reduce ? "" : "animation:mtovpulse 2s ease-in-out infinite;") +
+                      'position:absolute;inset:12px;width:52px;height:52px;filter:drop-shadow(0 4px 12px rgba(255,138,0,.4))">' +
+                  '</div>' +
+                  '<div id="mt-ov-msg" style="color:#fff;font-size:19px;font-weight:700;' +
+                    'text-shadow:0 1px 4px rgba(0,0,0,.4)">در حال اعمال تغییرات مرکز تلفن…</div>' +
+                  '<div id="mt-ov-sub" style="color:#AAB6CE;font-size:13px">این عملیات ممکن است تا یک دقیقه طول بکشد</div>' +
+                  '<button type="button" id="mt-ov-dismiss" style="' +
+                    'margin-top:14px;background:rgba(255,138,0,.12);border:1px solid rgba(255,138,0,.45);' +
+                    'color:#FFCB8E;border-radius:9px;padding:8px 22px;font-size:13px;font-weight:600;' +
+                    'cursor:pointer;font-family:inherit;transition:background .18s,color .18s"' +
+                    ' onmouseover="this.style.background=\'rgba(255,138,0,.25)\';this.style.color=\'#fff\'"' +
+                    ' onmouseout="this.style.background=\'rgba(255,138,0,.12)\';this.style.color=\'#FFCB8E\'"' +
+                    '>بستن پیام</button>' +
+                '</div>';
 
             document.body.appendChild(ov);
             ov.querySelector("#mt-ov-dismiss").addEventListener("click", remove);
@@ -2561,22 +2591,68 @@ var HELP_KEYS = Object.keys(HELP);
                 if (m) m.textContent = "در انتظار پاسخ از سرور…";
             }, 30000);
 
-            t120 = setTimeout(function () {
+            t90 = setTimeout(function () {
                 var m = document.getElementById("mt-ov-msg");
                 if (m) { m.textContent = "بیش از حد انتظار طول کشید"; m.style.color = "#FFB25C"; }
                 var s = document.getElementById("mt-ov-sub");
-                if (s) s.textContent = "پردازش ممکن است همچنان در جریان باشد — می‌توانید پیام را ببندید";
-            }, 120000);
+                if (s) s.textContent = "پردازش ممکن است همچنان در جریان باشد؛ پیام خودکار بسته می‌شود";
+            }, 90000);
 
-            var w = window;
-            if (w.jQuery) {
-                w.jQuery(document).one("ajaxComplete.mtOv", function (ev, xhr, opt) {
-                    if (opt && /retrieve_conf|reload|apply/i.test(opt.url || "")) {
-                        setTimeout(remove, 800);
-                    }
-                });
-            }
+            t180 = setTimeout(remove, 180000);
         }
+
+        /* --- XHR interception: reload-type request ended → remove --- */
+        if (!XMLHttpRequest.prototype.__mtPatched) {
+            var oxOpen = XMLHttpRequest.prototype.open;
+            XMLHttpRequest.prototype.open = function (m, u) {
+                this.__mtUrl = String(u || "");
+                return oxOpen.apply(this, arguments);
+            };
+            XMLHttpRequest.prototype.__mtPatched = true;
+        }
+        if (!XMLHttpRequest.prototype.__mtSendPatched) {
+            var oxSend = XMLHttpRequest.prototype.send;
+            XMLHttpRequest.prototype.send = function () {
+                var xhr = this;
+                if (xhr.__mtUrl && /reload|retrieve_conf|needreload|apply/i.test(xhr.__mtUrl)) {
+                    xhr.addEventListener("loadend", function () {
+                        if (ov) setTimeout(remove, 700);
+                    });
+                }
+                return oxSend.apply(this, arguments);
+            };
+            XMLHttpRequest.prototype.__mtSendPatched = true;
+        }
+
+        /* --- fetch interception --- */
+        if (!window.fetch.__mtPatched) {
+            var ofFetch = window.fetch;
+            window.fetch = function (input, init) {
+                var p = ofFetch.apply(this, arguments);
+                var url = typeof input === "string" ? input : (input && input.url) || "";
+                if (ov && /reload|retrieve_conf|needreload|apply/i.test(url)) {
+                    p.then(function () { setTimeout(remove, 700); }).catch(function () {});
+                }
+                return p;
+            };
+            window.fetch.__mtPatched = true;
+        }
+
+        /* --- jQuery fallback: first ajax ≥3s after the overlay appeared --- */
+        var w = window;
+        if (w.jQuery) {
+            w.jQuery(document).on("ajaxComplete.mtOv2", function () {
+                if (ov && Date.now() - bornAt > 3000) setTimeout(remove, 800);
+            });
+        }
+
+        /* --- never cover swal/error dialogs --- */
+        var obs = new MutationObserver(function () {
+            if (ov && document.querySelector(".swal2-container, .swal-modal, #mb-message, .bootbox")) {
+                remove();
+            }
+        });
+        if (document.body) obs.observe(document.body, { childList: true, subtree: true });
 
         document.addEventListener("click", function (ev) {
             var el = ev.target;
