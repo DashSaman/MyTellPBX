@@ -647,17 +647,17 @@
             var menu = document.querySelector('.mt-sidebar #main-menu');
             if (!menu || menu.dataset.mtUnusedHidden === '1') return;
             menu.dataset.mtUnusedHidden = '1';
-            var kill = ['tools', 'extras', 'addons'];
+            var kill = ['tools', 'extras', 'addons', 'my_extension'];
             document.querySelectorAll('.mt-sidebar #main-menu > li').forEach(function (li) {
                 var a = li.querySelector(':scope > a');
                 if (!a) return;
                 var href = a.getAttribute('href') || '';
                 var text = (a.querySelector('span') || a).textContent.trim();
-                /* match by href menu= param or by Persian label */
                 if (kill.some(function (k) { return href.indexOf('menu=' + k) !== -1; }) ||
                     text === 'ابزارها' || text === 'Tools' ||
                     text === 'برنامه های جانبی' || text === 'Extras' ||
-                    text === 'افزونه ها' || text === 'Addons') {
+                    text === 'افزونه ها' || text === 'Addons' ||
+                    text === 'داخلی من' || text === 'My Extension') {
                     li.remove();
                 }
             });
