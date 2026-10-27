@@ -2513,27 +2513,20 @@ var HELP_KEYS = Object.keys(HELP);
         boot();
     }
 
-    /* ============ Apply-Config overlay v2 (glass card, auto-dismiss) ============
-       Elegant MyTel glass card while retrieve_conf runs.
-       - XHR/fetch interception removes overlay when the reload request ends
-       - jQuery ajaxComplete fallback: first completed ajax ≥3s removes it
-       - swal/notification observer: overlay never covers error dialogs
-       - hard auto-dismiss at 3 minutes (user saw it stuck for hours)
-       - role=status, prefers-reduced-motion respected */
+    /* ============ Apply-Config overlay v3 (bulletproof dismissal) ============ */
     (function applyOverlay() {
-        var ov = null, t30 = null, t90 = null, t180 = null, bornAt = 0;
+        var ov = null, t15 = null, t45 = null, bornAt = 0;
         var EMBLEM = "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCA2NCA2NCI+PGNpcmNsZSBjeD0iMzIiIGN5PSIzMiIgcj0iMjYuNSIgZmlsbD0ibm9uZSIgc3Ryb2tlPSIjMkUzMTk0IiBzdHJva2Utd2lkdGg9IjYuNSIvPjxjaXJjbGUgY3g9IjMyIiBjeT0iMzIiIHI9IjEyIiBmaWxsPSIjRkY4QTAwIi8+PC9zdmc+";
 
         function remove() {
-            if (t30) clearTimeout(t30);
-            if (t90) clearTimeout(t90);
-            if (t180) clearTimeout(t180);
-            t30 = t90 = t180 = null;
+            if (t15) clearTimeout(t15);
+            if (t45) clearTimeout(t45);
+            t15 = t45 = null;
             if (ov) {
-                ov.style.transition = "opacity .3s ease";
+                ov.style.transition = "opacity .25s ease";
                 ov.style.opacity = "0";
                 var dead = ov;
-                setTimeout(function () { if (dead.parentNode) dead.remove(); }, 320);
+                setTimeout(function () { if (dead.parentNode) dead.remove(); }, 280);
             }
             ov = null;
         }
@@ -2553,106 +2546,85 @@ var HELP_KEYS = Object.keys(HELP);
                 "font-family:Vazirmatn,Tahoma,sans-serif;";
 
             ov.innerHTML =
-                '<style>' +
-                '@keyframes mtovspin{to{transform:rotate(360deg)}}' +
-                '@keyframes mtovpulse{0%,100%{transform:scale(1)}50%{transform:scale(1.05)}}' +
-                '#mt-ov-card{background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.14);' +
+                '<style>@keyframes mtovspin{to{transform:rotate(360deg)}}</style>' +
+                '<div style="background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.14);' +
                 'border-radius:18px;padding:36px 48px;display:flex;flex-direction:column;' +
-                'align-items:center;gap:10px;box-shadow:0 24px 64px rgba(0,0,0,.45);}' +
-                '</style>' +
-                '<div id="mt-ov-card">' +
+                'align-items:center;gap:10px;box-shadow:0 24px 64px rgba(0,0,0,.45);">' +
                   '<div style="position:relative;width:76px;height:76px;margin-bottom:6px">' +
                     '<div style="' + (reduce ? "" : "animation:mtovspin 1.4s linear infinite;") +
                       'position:absolute;inset:0;border-radius:50%;' +
                       'background:conic-gradient(from 0deg,#FF8A00,#2E3194,#1E88E5,#FF8A00);' +
-                      '-webkit-mask:radial-gradient(farthest-side,transparent calc(100% - 4px),#000 calc(100% - 3px));' +
-                      'mask:radial-gradient(farthest-side,transparent calc(100% - 4px),#000 calc(100% - 3px));"></div>' +
-                    '<img src="' + EMBLEM + '" alt="" style="' +
-                      (reduce ? "" : "animation:mtovpulse 2s ease-in-out infinite;") +
-                      'position:absolute;inset:12px;width:52px;height:52px;filter:drop-shadow(0 4px 12px rgba(255,138,0,.4))">' +
+                      '-webkit-mask:radial-gradient(farthest-side,transparent calc(100% - 4px),#000 calc(100% - 3px));"></div>' +
+                    '<img src="' + EMBLEM + '" alt="" style="position:absolute;inset:12px;width:52px;height:52px;">' +
                   '</div>' +
-                  '<div id="mt-ov-msg" style="color:#fff;font-size:19px;font-weight:700;' +
-                    'text-shadow:0 1px 4px rgba(0,0,0,.4)">در حال اعمال تغییرات مرکز تلفن…</div>' +
+                  '<div id="mt-ov-msg" style="color:#fff;font-size:19px;font-weight:700;">در حال اعمال تغییرات مرکز تلفن…</div>' +
                   '<div id="mt-ov-sub" style="color:#AAB6CE;font-size:13px">این عملیات ممکن است تا یک دقیقه طول بکشد</div>' +
                   '<button type="button" id="mt-ov-dismiss" style="' +
                     'margin-top:14px;background:rgba(255,138,0,.12);border:1px solid rgba(255,138,0,.45);' +
                     'color:#FFCB8E;border-radius:9px;padding:8px 22px;font-size:13px;font-weight:600;' +
-                    'cursor:pointer;font-family:inherit;transition:background .18s,color .18s"' +
-                    ' onmouseover="this.style.background=\'rgba(255,138,0,.25)\';this.style.color=\'#fff\'"' +
-                    ' onmouseout="this.style.background=\'rgba(255,138,0,.12)\';this.style.color=\'#FFCB8E\'"' +
-                    '>بستن پیام</button>' +
+                    'cursor:pointer;font-family:inherit;">بستن پیام</button>' +
                 '</div>';
 
             document.body.appendChild(ov);
             ov.querySelector("#mt-ov-dismiss").addEventListener("click", remove);
 
-            t30 = setTimeout(function () {
+            t15 = setTimeout(function () {
                 var m = document.getElementById("mt-ov-msg");
                 if (m) m.textContent = "در انتظار پاسخ از سرور…";
-            }, 30000);
+            }, 15000);
 
-            t90 = setTimeout(function () {
-                var m = document.getElementById("mt-ov-msg");
-                if (m) { m.textContent = "بیش از حد انتظار طول کشید"; m.style.color = "#FFB25C"; }
-                var s = document.getElementById("mt-ov-sub");
-                if (s) s.textContent = "پردازش ممکن است همچنان در جریان باشد؛ پیام خودکار بسته می‌شود";
-            }, 90000);
-
-            t180 = setTimeout(remove, 180000);
+            /* hard auto-dismiss at 45 seconds — never stuck again */
+            t45 = setTimeout(remove, 45000);
         }
 
-        /* --- XHR interception: reload-type request ended → remove --- */
-        if (!XMLHttpRequest.prototype.__mtPatched) {
-            var oxOpen = XMLHttpRequest.prototype.open;
-            XMLHttpRequest.prototype.open = function (m, u) {
-                this.__mtUrl = String(u || "");
-                return oxOpen.apply(this, arguments);
-            };
-            XMLHttpRequest.prototype.__mtPatched = true;
+        /* ---- dismissal: catch ANY XHR that finishes while overlay is up ---- */
+        var w = window;
+        if (w.jQuery) {
+            w.jQuery(document).on("ajaxComplete.mtOv3", function () {
+                if (ov && Date.now() - bornAt > 2000) setTimeout(remove, 600);
+            });
         }
-        if (!XMLHttpRequest.prototype.__mtSendPatched) {
+        /* XHR: ANY request, not just matching URLs — the reload might use
+           a URL we don't expect, so we catch ALL activity */
+        if (!XMLHttpRequest.prototype.__mtOvHook) {
             var oxSend = XMLHttpRequest.prototype.send;
             XMLHttpRequest.prototype.send = function () {
                 var xhr = this;
-                if (xhr.__mtUrl && /reload|retrieve_conf|needreload|apply/i.test(xhr.__mtUrl)) {
-                    xhr.addEventListener("loadend", function () {
-                        if (ov) setTimeout(remove, 700);
-                    });
-                }
+                xhr.addEventListener("loadend", function () {
+                    if (ov && Date.now() - bornAt > 1000) setTimeout(remove, 500);
+                });
                 return oxSend.apply(this, arguments);
             };
-            XMLHttpRequest.prototype.__mtSendPatched = true;
+            XMLHttpRequest.prototype.__mtOvHook = true;
         }
-
-        /* --- fetch interception --- */
-        if (!window.fetch.__mtPatched) {
+        /* fetch: same catch-all */
+        if (window.fetch && !window.fetch.__mtOvHook) {
             var ofFetch = window.fetch;
-            window.fetch = function (input, init) {
+            window.fetch = function () {
                 var p = ofFetch.apply(this, arguments);
-                var url = typeof input === "string" ? input : (input && input.url) || "";
-                if (ov && /reload|retrieve_conf|needreload|apply/i.test(url)) {
-                    p.then(function () { setTimeout(remove, 700); }).catch(function () {});
+                if (ov && Date.now() - bornAt > 1000) {
+                    p.then(function () { setTimeout(remove, 500); }).catch(function () {});
                 }
                 return p;
             };
-            window.fetch.__mtPatched = true;
+            window.fetch.__mtOvHook = true;
         }
 
-        /* --- jQuery fallback: first ajax ≥3s after the overlay appeared --- */
-        var w = window;
-        if (w.jQuery) {
-            w.jQuery(document).on("ajaxComplete.mtOv2", function () {
-                if (ov && Date.now() - bornAt > 3000) setTimeout(remove, 800);
-            });
-        }
-
-        /* --- never cover swal/error dialogs --- */
+        /* MutationObserver: if ANY dialog/notification appears or the button
+           disappears, the reload finished → remove overlay */
         var obs = new MutationObserver(function () {
-            if (ov && document.querySelector(".swal2-container, .swal-modal, #mb-message, .bootbox")) {
-                remove();
+            if (!ov) return;
+            /* dialog appeared → remove overlay so it doesn't cover it */
+            if (document.querySelector(".swal2-container, .swal-modal, #mb-message, .bootbox, .fpmox-notif")) {
+                remove(); return;
+            }
+            /* the reload button got hidden/removed → reload finished */
+            var btn = document.getElementById("button_reload");
+            if (btn && (btn.offsetParent === null || btn.style.display === "none" || btn.hidden)) {
+                setTimeout(remove, 500);
             }
         });
-        if (document.body) obs.observe(document.body, { childList: true, subtree: true });
+        if (document.body) obs.observe(document.body, { childList: true, subtree: true, attributes: true, attributeFilter: ["style", "class", "hidden"] });
 
         document.addEventListener("click", function (ev) {
             var el = ev.target;
@@ -2667,6 +2639,8 @@ var HELP_KEYS = Object.keys(HELP);
         window.addEventListener("pageshow", function (ev) {
             if (ev.persisted) remove();
         });
+        /* remove on beforeunload — if the page navigates, don't linger */
+        window.addEventListener("beforeunload", remove);
     })();
 
     /* ============ admin console footer: append mytel.one link ============ */
