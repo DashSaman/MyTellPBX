@@ -134,6 +134,17 @@
             }
         });
 
+        /* parent items expand on text click (same as the arrow):
+           only <a> whose <li> has a non-empty child <ul> — preventDefault
+           and toggle 'opened'. Leaf items navigate normally. */
+        $('#main-menu').on('click', '> li > a', function (e) {
+            var $li = $(this).closest('li');
+            var $ul = $li.children('ul');
+            if (!$ul.length || !$ul.children('li').length) return; /* leaf → navigate */
+            e.preventDefault();
+            $li.toggleClass('opened');
+        });
+
         /* click outside closes the mobile drawer */
         $(document).on('click', function (e) {
             if ($container.hasClass('mt-mobile-open') &&
@@ -631,6 +642,34 @@
                 (!/menu=/.test(location.search) && /index\.php$/.test(location.pathname.replace(/\/$/, '')));
             if (onLanding) li.classList.add('active');
         })();
+        /* ---- remove unused menu groups (owner order 2026-10-27) ---- */
+        (function hideUnusedGroups() {
+            var menu = document.querySelector('.mt-sidebar #main-menu');
+            if (!menu || menu.dataset.mtUnusedHidden === '1') return;
+            menu.dataset.mtUnusedHidden = '1';
+            var kill = ['tools', 'extras', 'addons'];
+            document.querySelectorAll('.mt-sidebar #main-menu > li').forEach(function (li) {
+                var a = li.querySelector(':scope > a');
+                if (!a) return;
+                var href = a.getAttribute('href') || '';
+                var text = (a.querySelector('span') || a).textContent.trim();
+                /* match by href menu= param or by Persian label */
+                if (kill.some(function (k) { return href.indexOf('menu=' + k) !== -1; }) ||
+                    text === 'ابزارها' || text === 'Tools' ||
+                    text === 'برنامه های جانبی' || text === 'Extras' ||
+                    text === 'افزونه ها' || text === 'Addons') {
+                    li.remove();
+                }
+            });
+            /* also remove any group labels that became orphaned */
+            setTimeout(function () {
+                document.querySelectorAll('.mt-sidebar #main-menu .mt-menu-label').forEach(function (lab) {
+                    var next = lab.nextElementSibling;
+                    if (!next || next.classList.contains('mt-menu-label')) lab.remove();
+                });
+            }, 200);
+        })();
+
         document.querySelectorAll('.mt-sidebar #main-menu li.has-sub > ul').forEach(function (ul) {
             var pa = ul.parentNode.querySelector(':scope > a');
             var la = ul.querySelector(':scope > li > a');
@@ -770,6 +809,18 @@
                         if (desktopCollapsed()) expandSidebar();
                         setExpanded(li0, !li0.classList.contains('opened'));
                     }
+                    return;
+                }
+                /* parent with a real submenu: text click = expand (user rule
+                   2026-10-25) — same behavior as the chevron; never navigate */
+                var liParent = a.closest('li');
+                if (liParent && liParent.querySelector(':scope > ul') &&
+                    submenuHasVisibleChildren(liParent) &&
+                    a.querySelector(':scope > span') /* label anchor, not bare icon rows */) {
+                    ev.preventDefault();
+                    ev.stopPropagation();
+                    if (desktopCollapsed()) expandSidebar();
+                    setExpanded(liParent, !liParent.classList.contains('opened'));
                     return;
                 }
                 /* genuine destination: navigate natively, stop neon */
