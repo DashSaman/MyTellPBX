@@ -164,13 +164,18 @@
         "Conference": "کنفرانس",
         /* more nav dropdown items */
         "CDR Reports": "گزارش CDR",
+        "Asterisk CDR Reports": "گزارش CDR آستریس",
+        "CDR": "CDR",
+        "Call Detail Records": "جزئیات تماس‌ها (CDR)",
+        "Call Records": "رکوردهای تماس",
         "CSV Reports": "گزارش‌های CSV",
         "Asterisk Log Files": "فایل‌های لاگ آستریس",
         "Call Event Logging": "ثبت رخدادهای تماس",
         "Asterisk Info": "اطلاعات آستریس",
+        "Asterisk CLI": "خط فرمان آستریس",
         "File Backup": "پشتیبان فایل‌ها",
         "User Management": "مدیریت کاربران",
-        "Voicemail Admin": "مدیریت صندوق صوتی",
+        "Voicemail Admin": "مدیریت صندوق صونی",
         "Speed Dial": "شماره‌گیری سریع",
         "Paging and Intercom": "پیجینگ و آی‌کام",
         "Print Call Logs": "چاپ گزارش تماس‌ها",
@@ -518,11 +523,30 @@
     }
 
     function swap(root) {
+        /* title: nuclear replacement — no Issabel/Elastix/FreePBX ever survives */
         if (document.title) {
             var t = document.title;
             var bk = sortedKeys(BRAND);
             for (var i = 0; i < bk.length; i++) t = t.split(bk[i]).join(BRAND[bk[i]]);
+            /* catch-all sweep: any remaining Issabel/Elastix/FreePBX in title */
+            t = t.replace(/Issabel\s*PBX/gi, "MyTel PBX")
+                 .replace(/Issabel/g, "MyTel")
+                 .replace(/Elastix/gi, "MyTel")
+                 .replace(/FreePBX/g, "MyTel PBX");
             if (t !== document.title) document.title = t;
+        }
+        /* enforce title every second — page navigation resets it */
+        if (!window.__mtTitleGuard) {
+            window.__mtTitleGuard = setInterval(function () {
+                if (document.title && /issabel|elastix|freepbx/i.test(document.title)) {
+                    var t = document.title
+                        .replace(/Issabel\s*PBX/gi, "MyTel PBX")
+                        .replace(/Issabel/gi, "MyTel")
+                        .replace(/Elastix/gi, "MyTel")
+                        .replace(/FreePBX/g, "MyTel PBX");
+                    document.title = t;
+                }
+            }, 1000);
         }
         translateHelps(root);
         var walker = document.createTreeWalker(root, NodeFilter.SHOW_TEXT, {
@@ -536,6 +560,20 @@
         }, false);
         var node;
         while ((node = walker.nextNode())) swapNode(node);
+        /* nuclear body sweep: any remaining Issabel/Elastix/FreePBX text */
+        root.querySelectorAll("*").forEach(function (el) {
+            if (el.children.length === 0 && el.textContent) {
+                var t = el.textContent;
+                if (/issabel|elastix|freepbx/i.test(t)) {
+                    el.textContent = t
+                        .replace(/Issabel\s*PBX/gi, "MyTel PBX")
+                        .replace(/Issabel\s*Foundation/gi, "MyTel")
+                        .replace(/Issabel/gi, "MyTel")
+                        .replace(/Elastix/gi, "MyTel")
+                        .replace(/FreePBX/g, "MyTel PBX");
+                }
+            }
+        });
         markLtrInputs(root);
         /* placeholders */
         root.querySelectorAll && root.querySelectorAll("[placeholder]").forEach(function (el) {
