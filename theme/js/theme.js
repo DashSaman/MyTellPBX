@@ -323,7 +323,12 @@
         }, 3000);
 
         /* ---------- submit inputs whose label is an untranslated value:
-           swap to a Persian button + a hidden input preserving name/value ---------- */
+           swap to a Persian button that itself carries name/value.
+           No hidden action field: a hidden input is submitted on EVERY
+           submit of the form, so two swapped buttons would send both
+           actions and the dispatcher could act on the wrong one. A
+           native submit button reports its own name/value only when it
+           is the clicked submitter — semantics of the original input. ---------- */
         var swapSubmitLabels = function (root) {
             root.querySelectorAll('input[type=submit], input[type=button]').forEach(function (inp) {
                 var fa = TEXT_MAP[inp.value];
@@ -336,12 +341,7 @@
                 btn.textContent = fa;
                 btn.name = inp.name || '';
                 btn.value = inp.value;
-                var hidden = document.createElement('input');
-                hidden.type = 'hidden';
-                hidden.name = inp.name || '';
-                hidden.value = inp.value;
                 inp.parentNode.insertBefore(btn, inp);
-                inp.parentNode.insertBefore(hidden, inp);
                 inp.remove();
             });
         };
@@ -1615,29 +1615,22 @@
                 srow.appendChild(submitBtn);
                 wrap.appendChild(srow);
             }
-            /* Persian save control: the module keeps rewriting the stock
-               button label, so show our own submit and hide the original */
+            /* Persian save control: replace the stock submit with a native
+               button carrying the SAME name/value — no hidden action field,
+               so only the clicked submitter reports its action */
             var saveBtn = wrap.querySelector('input[type="submit"], button[type="submit"]');
             if (saveBtn) {
-                saveBtn.style.display = 'none';
-                var mySave = document.createElement('button');
-                mySave.type = 'submit';
-                mySave.className = 'mt-tpl-save';
-                mySave.textContent = 'ذخیرهٔ تغییرات';
-                /* carry the stock control's name/value so the server accepts it */
-                if (saveBtn.name) mySave.name = saveBtn.name;
-                mySave.value = '1'; /* keep the POST key non-empty */
-                if (saveBtn.value && saveBtn.tagName === 'INPUT') {
-                    var h = document.createElement('input');
-                    h.type = 'hidden';
-                    h.name = saveBtn.name;
-                    h.value = saveBtn.value;
-                    wrap.appendChild(h);
+                if (saveBtn.tagName === 'INPUT') {
+                    var mySave = document.createElement('button');
+                    mySave.type = 'submit';
+                    mySave.className = 'mt-tpl-save';
+                    mySave.textContent = 'ذخیرهٔ تغییرات';
+                    if (saveBtn.name) mySave.name = saveBtn.name;
+                    if (saveBtn.value) mySave.value = saveBtn.value;
+                    saveBtn.parentNode.replaceChild(mySave, saveBtn);
+                } else {
+                    saveBtn.textContent = 'ذخیرهٔ تغییرات';
                 }
-                var srow2 = document.createElement('div');
-                srow2.className = 'mt-tpl-row';
-                srow2.appendChild(mySave);
-                wrap.appendChild(srow2);
             }
         };
         setTimeout(persianizeEmailTemplate, 1200);

@@ -2,23 +2,50 @@
 /**
  * MyTellPBX OpDesk Bridge — پل احراز هویت بومی پنل ایزابل
  *
+ * فقط کاربران گروه «administrator» پنل ایزابل توکن مدیر OpDesk می‌گیرند؛
+ * سایر کاربران واردشده پیام «دسترسی ندارید» می‌بینند و توکنی صادر نمی‌شود.
+ *
  * @license GPL-2.0 (MyTellPBX project)
  */
+session_name('issabelSession'); // همان کوکی چارچوب ایزابل — این صفحه مستقل بارگذاری می‌شود
 session_start();
 
 $loggedIn = !empty($_SESSION['issabel_user']);
+$isAdmin  = false;
+if ($loggedIn) {
+    // عضویت در گروه ۱ (administrator) از پایگاه‌داده ACL — فقط‌خواندنی
+    try {
+        $acl = new PDO('sqlite:/var/www/db/acl.db');
+        $acl->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
+        $sql = 'SELECT COUNT(*) FROM acl_membership M JOIN acl_user U ON U.id = M.id_user WHERE U.name = ? AND M.id_group = 1';
+        $st = $acl->prepare($sql);
+        $st->execute(array($_SESSION['issabel_user']));
+        $isAdmin = ((int)$st->fetchColumn()) > 0;
+    } catch (Exception $e) {
+        $isAdmin = false;
+    }
+}
 $token = '';
 $error = '';
 
-if ($loggedIn) {
-    $envFile = '/etc/mytellpbx/opdesk.env';
+if ($loggedIn && !$isAdmin) {
+    // بدون مجوز — نه توکن، نه خطای سرویس
+} elseif ($loggedIn) {
     $bridgePw = '';
-    if (is_readable($envFile)) {
+    // فایل اختصاصی رمز پل (خواندنی برای وب‌کاربر)؛ در نبودش، فایل env کامل
+    $pwFiles = array('/etc/mytellpbx/opdesk-bridge.pw', '/etc/mytellpbx/opdesk.env');
+    foreach ($pwFiles as $envFile) {
+        if (!is_readable($envFile)) {
+            continue;
+        }
         foreach (file($envFile, FILE_IGNORE_NEW_LINES) as $line) {
             if (preg_match('/^OPDESK_BRIDGE_PW=(.+)$/', $line, $m)) {
                 $bridgePw = trim($m[1]);
                 break;
             }
+        }
+        if ($bridgePw !== '') {
+            break;
         }
     }
     if ($bridgePw !== '') {
@@ -73,6 +100,10 @@ a{color:#FF8A00;text-decoration:none;font-weight:700}
   <h2>🔑 لطفاً وارد پنل شوید</h2>
   <p>برای دسترسی به میز کار اپراتور ابتدا باید وارد پنل شوید.</p>
   <p><a href="/">ورود به پنل</a></p>
+<?php elseif (!$isAdmin): ?>
+  <h2>⛔ دسترسی ندارید</h2>
+  <p>میز کار اپراتور فقط برای مدیران سیستم است.</p>
+  <p><a href="/">بازگشت به پنل</a></p>
 <?php elseif ($token !== ''): ?>
   <h2>🎧 در حال ورود به میز کار اپراتور…</h2>
   <div class="spinner"></div>

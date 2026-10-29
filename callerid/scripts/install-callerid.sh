@@ -46,7 +46,11 @@ backup_once() {
 }
 
 write_state() { # key value … → JSON ساده
-    mkdir -p "$STATE_DIR"; chmod 700 "$STATE_DIR"
+    mkdir -p "$STATE_DIR"
+    # پوشهٔ مشترک با پل اپدسک است (رمز پل در opdesk-bridge.pw)؛ دسترسی پیمایش
+    # وب‌کاربر asterisk باید حفظ شود — هرگز به 0700 برگردانده نمی‌شود.
+    chown root:asterisk "$STATE_DIR" 2>/dev/null || true
+    chmod 750 "$STATE_DIR"
     python3 - "$@" <<'PY'
 import json, sys, pathlib
 p = pathlib.Path('/etc/mytellpbx/callerid-state.json')
@@ -55,6 +59,9 @@ for i in range(1, len(sys.argv), 2):
     d[sys.argv[i]] = sys.argv[i + 1]
 p.write_text(json.dumps(d, ensure_ascii=False, indent=1))
 PY
+    # خودِ فایل وضعیت، داخلیِ نرمال‌ساز است و ربطی به وب‌کاربر ندارد
+    chown root:root "$STATE_FILE" 2>/dev/null || true
+    chmod 600 "$STATE_FILE"
 }
 
 reload_dialplan() { asterisk -rx 'dialplan reload' >/dev/null; }
@@ -107,7 +114,9 @@ cmd_install() {
     need_root
     [ -d /var/lib/asterisk/agi-bin ] || die "agi-bin not found"
     [ -x /usr/sbin/asterisk ] || die "asterisk not found"
-    check_drift || true
+    # زنجیرهٔ پشتیبانی‌شده الزامی است؛ ادامهٔ نصب روی زنجیرهٔ ناشناس، مسیریابی
+    # سرور را می‌شکند (ادامهٔ انتقال در dialplan/mytellpbx-cid.conf ثابت است)
+    check_drift || die "from-pstn include chain is not the supported baseline; refusing to install (drift recorded in state). Resolve the chain or extend mytellpbx-from-pstn-rest first."
 
     # منبعِ عمومیِ خوانا برای اجرای آزمون‌ها با کاربر آستریسک
     mkdir -p "$SHARE_DIR"
@@ -141,8 +150,16 @@ cmd_enable()  { need_root; set_global MYTELLPBX_CIDNORM 1; reload_dialplan
                 write_state enabled "$(date -Is)"; log "enabled (loaded)"; }
 cmd_disable() { need_root; set_global MYTELLPBX_CIDNORM 0; reload_dialplan
                 write_state enabled "0"; log "disabled — baseline routing"; }
-cmd_quirks()  { need_root; set_global MYTELLPBX_CIDNORM_QUIRKS "$1"; reload_dialplan
-                write_state quirks "$1"; log "quirks=$1"; }
+cmd_quirks()  { need_root
+    # AGI فقط '1' را فعال می‌داند؛ ورودی انسانی on/off به 1/0 نگاشت می‌شود
+    local v
+    case "$1" in
+        1|on|ON|true)    v=1 ;;
+        0|off|OFF|false) v=0 ;;
+        *) die "usage: install-callerid.sh quirks on|off" ;;
+    esac
+    set_global MYTELLPBX_CIDNORM_QUIRKS "$v"; reload_dialplan
+    write_state quirks "$v"; log "quirks=$v"; }
 
 cmd_status() {
     local inst=0
@@ -155,6 +172,7 @@ cmd_status() {
 
 cmd_verify() {
     local ok=1
+    check_drift || { log "verify: from-pstn chain drifted from supported baseline"; ok=0; }
     asterisk -rx 'dialplan show from-pstn-custom' | grep -q '_\[0-9\]!' || { log "verify: hook pattern not loaded"; ok=0; }
     asterisk -rx 'dialplan show mytellpbx-cidnorm'  | grep -q 'AGI'        || { log "verify: gosub not loaded"; ok=0; }
     asterisk -rx 'dialplan show mytellpbx-from-pstn-rest' | grep -q 'ext-did' || { log "verify: continuation missing"; ok=0; }

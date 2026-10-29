@@ -8,8 +8,8 @@
 set -euo pipefail
 
 SRC_DIR="${1:-$(cd "$(dirname "$0")" && pwd)}"
-DEST_DIR="/var/www/html/themes/mytellpbx"
-THEME_NAME="mytellpbx"
+DEST_DIR="/var/www/html/themes/mytel"
+THEME_NAME="mytel"
 
 if [ ! -f "$SRC_DIR/themesetup.php" ] || [ ! -d "$SRC_DIR/_common" ]; then
     echo "ERROR: $SRC_DIR does not look like a MyTellPBX theme directory" >&2
@@ -60,7 +60,7 @@ php <<'PHP'
 $db = new SQLite3('/var/www/db/settings.db');
 if (!$db) { fwrite(STDERR, "cannot open settings.db\n"); exit(1); }
 $db->exec("DELETE FROM settings WHERE key = 'theme'");
-$db->exec("INSERT INTO settings (key, value) VALUES ('theme', 'mytellpbx')");
+$db->exec("INSERT INTO settings (key, value) VALUES ('theme', 'mytel')");
 $row = $db->querySingle("SELECT value FROM settings WHERE key = 'theme'");
 echo "active theme: " . $row . PHP_EOL;
 PHP

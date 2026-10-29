@@ -1,0 +1,371 @@
+body.mt-secadv-page .mt-secadv {
+  --sa-primary: var(--mt-primary, #2e3194);
+  --sa-accent: var(--mt-accent, #ff8a00);
+  --sa-border: var(--mt-border, #e8ecf3);
+  --sa-bg: var(--mt-bg, #f3f5f9);
+  --sa-text: #232a35;
+  --sa-muted: #64708a;
+
+  direction: rtl;
+  color: var(--sa-text);
+  font-family: Vazirmatn, sans-serif;
+  font-size: 14px;
+  line-height: 1.8;
+  margin: 20px 0;
+  width: 100%;
+  min-width: 0;
+}
+
+body.mt-secadv-page .mt-secadv,
+body.mt-secadv-page .mt-secadv * {
+  box-sizing: border-box;
+}
+
+body.mt-secadv-page .mt-secadv__grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  align-items: stretch;
+  gap: 20px;
+}
+
+body.mt-secadv-page .mt-secadv__card {
+  min-width: 0;
+  margin: 0;
+  padding: 0;
+  overflow: hidden;
+  background: #fff;
+  border: 1px solid var(--sa-border);
+  border-radius: 18px;
+  box-shadow: 0 5px 20px rgb(35 42 53 / 4%);
+}
+
+body.mt-secadv-page .mt-secadv__header {
+  padding: 20px 24px;
+  border-bottom: 1px solid var(--sa-border);
+  background: linear-gradient(135deg, #fff, #f7f8fd);
+}
+
+body.mt-secadv-page .mt-secadv__title {
+  margin: 0;
+  padding: 0;
+  color: var(--sa-primary);
+  font-family: inherit;
+  font-size: 17px;
+  font-weight: 750;
+  line-height: 1.8;
+  text-align: right;
+}
+
+body.mt-secadv-page .mt-secadv__intro {
+  margin: 5px 0 0;
+  color: var(--sa-muted);
+  font-size: 12px;
+  text-align: right;
+}
+
+body.mt-secadv-page .mt-secadv__fields {
+  padding: 0 24px;
+}
+
+body.mt-secadv-page .mt-secadv__field {
+  min-width: 0;
+  padding: 22px 0;
+}
+
+body.mt-secadv-page .mt-secadv__field + .mt-secadv__field {
+  border-top: 1px solid var(--sa-border);
+}
+
+body.mt-secadv-page .mt-secadv__field--toggle {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: start;
+  gap: 12px 20px;
+}
+
+body.mt-secadv-page .mt-secadv__copy {
+  min-width: 0;
+  direction: rtl;
+  text-align: right;
+}
+
+body.mt-secadv-page .mt-secadv__label {
+  display: block;
+  margin: 0;
+  color: var(--sa-text);
+  font-family: inherit;
+  font-size: 14px;
+  font-weight: 650;
+  line-height: 1.9;
+  white-space: normal;
+  cursor: pointer;
+}
+
+body.mt-secadv-page .mt-secadv__help {
+  margin: 6px 0 0;
+  color: var(--sa-muted);
+  font-size: 12px;
+  line-height: 1.95;
+  overflow-wrap: anywhere;
+}
+
+body.mt-secadv-page .mt-secadv__control {
+  min-width: 0;
+  direction: rtl;
+  text-align: right;
+}
+
+body.mt-secadv-page .mt-secadv__field--password .mt-secadv__control {
+  margin-top: 12px;
+}
+
+/* Retain stock wrappers and validation content around each input. */
+body.mt-secadv-page .mt-secadv__control > label {
+  margin: 0;
+}
+
+body.mt-secadv-page .mt-secadv input.mt-secadv__password {
+  display: block;
+  width: 100% !important;
+  min-width: 0 !important;
+  max-width: none !important;
+  height: 46px;
+  margin: 0;
+  padding: 10px 14px;
+  border: 1px solid #b8c2d3 !important;
+  border-radius: 10px !important;
+  background: #fff !important;
+  color: var(--sa-text) !important;
+  font-family: inherit;
+  font-size: 16px;
+  line-height: 1.4;
+  direction: ltr !important;
+  text-align: left !important;
+  box-shadow: none;
+}
+
+body.mt-secadv-page .mt-secadv input.mt-secadv__password:focus {
+  outline: 3px solid rgb(46 49 148 / 18%);
+  outline-offset: 2px;
+  border-color: var(--sa-primary) !important;
+}
+
+body.mt-secadv-page .mt-secadv input.mt-secadv__password:disabled {
+  background: var(--sa-bg) !important;
+  color: var(--sa-muted) !important;
+  cursor: not-allowed;
+}
+
+body.mt-secadv-page .mt-secadv input.mt-secadv__password[aria-invalid="true"] {
+  border-color: #b42318 !important;
+}
+
+/* The real checkbox remains focusable and occupies the whole switch. */
+body.mt-secadv-page .mt-secadv__switch {
+  position: relative;
+  display: inline-flex;
+  flex: 0 0 auto;
+  align-items: center;
+  width: 54px;
+  height: 32px;
+  margin: 2px 0;
+  vertical-align: middle;
+  direction: ltr;
+}
+
+body.mt-secadv-page .mt-secadv .mt-secadv__switch > input[type="checkbox"] {
+  position: absolute !important;
+  inset: 0 !important;
+  z-index: 2;
+  display: block !important;
+  width: 100% !important;
+  height: 100% !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  opacity: 0 !important;
+  cursor: pointer;
+}
+
+body.mt-secadv-page .mt-secadv__track {
+  position: relative;
+  display: block;
+  width: 54px;
+  height: 32px;
+  border: 2px solid #64708a;
+  border-radius: 999px;
+  background: #64708a;
+  pointer-events: none;
+  transition: background-color 160ms ease, border-color 160ms ease;
+}
+
+body.mt-secadv-page .mt-secadv__track::before {
+  content: "";
+  position: absolute;
+  top: 3px;
+  left: 3px;
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  background: #fff;
+  box-shadow: 0 1px 4px rgb(0 0 0 / 20%);
+  transition: transform 160ms ease;
+}
+
+body.mt-secadv-page .mt-secadv__switch > input:checked + .mt-secadv__track {
+  background: var(--sa-primary);
+  border-color: var(--sa-primary);
+}
+
+body.mt-secadv-page .mt-secadv__switch > input:checked + .mt-secadv__track::before {
+  transform: translateX(22px);
+}
+
+body.mt-secadv-page .mt-secadv__switch > input:focus-visible + .mt-secadv__track {
+  outline: 3px solid var(--sa-accent);
+  outline-offset: 3px;
+}
+
+body.mt-secadv-page .mt-secadv__switch > input:disabled {
+  cursor: not-allowed;
+}
+
+body.mt-secadv-page .mt-secadv__switch > input:disabled + .mt-secadv__track {
+  opacity: 0.5;
+}
+
+body.mt-secadv-page .mt-secadv__actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px 20px;
+  margin-top: 20px;
+  padding: 16px 24px;
+  background: #fff;
+  border: 1px solid var(--sa-border);
+  border-radius: 14px;
+}
+
+body.mt-secadv-page .mt-secadv__action-note {
+  margin: 0;
+  color: var(--sa-muted);
+  font-size: 12px;
+}
+
+/* The original action table is relocated intact. */
+body.mt-secadv-page .mt-secadv table.mt-secadv__action-table {
+  display: table !important;
+  width: auto !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  border: 0 !important;
+  background: transparent !important;
+  box-shadow: none !important;
+  border-collapse: collapse;
+}
+
+body.mt-secadv-page .mt-secadv__action-table > tbody > tr,
+body.mt-secadv-page .mt-secadv__action-table > tbody > tr > td {
+  width: auto !important;
+  padding: 0 !important;
+  border: 0 !important;
+  background: transparent !important;
+}
+
+body.mt-secadv-page .mt-secadv .mt-secadv__submit {
+  min-width: 116px;
+  min-height: 44px;
+  margin: 4px;
+  padding: 10px 22px !important;
+  border: 1px solid var(--sa-primary) !important;
+  border-radius: 10px !important;
+  background: var(--sa-primary) !important;
+  color: #fff !important;
+  font-family: inherit !important;
+  font-size: 14px;
+  font-weight: 650;
+  line-height: 1.5;
+  cursor: pointer;
+  box-shadow: 0 3px 9px rgb(46 49 148 / 15%);
+}
+
+body.mt-secadv-page .mt-secadv .mt-secadv__submit:hover {
+  filter: brightness(1.1);
+}
+
+body.mt-secadv-page .mt-secadv .mt-secadv__submit:focus-visible {
+  outline: 3px solid var(--sa-accent);
+  outline-offset: 3px;
+}
+
+body.mt-secadv-page .mt-secadv .mt-secadv__submit:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+/* Only recognized stock label cells are hidden.
+   Unknown content, including server validation messages, remains visible. */
+body.mt-secadv-page .mt-secadv__legacy-label,
+body.mt-secadv-page .mt-secadv__legacy-empty {
+  display: none !important;
+}
+
+/* The stock table remains in the DOM as a home for hidden fields and messages. */
+body.mt-secadv-page table.mt-secadv__source {
+  display: none !important;   /* controls live in the cards; the raw table
+                                 would duplicate Persian labels below them */
+}
+
+@media (max-width: 900px) {
+  body.mt-secadv-page .mt-secadv__grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+@media (max-width: 480px) {
+  body.mt-secadv-page .mt-secadv__header,
+  body.mt-secadv-page .mt-secadv__actions {
+    padding: 16px;
+  }
+
+  body.mt-secadv-page .mt-secadv__fields {
+    padding-inline: 16px;
+  }
+
+  body.mt-secadv-page .mt-secadv__field--toggle {
+    column-gap: 12px;
+  }
+
+  body.mt-secadv-page .mt-secadv__actions {
+    align-items: stretch;
+    flex-direction: column;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  body.mt-secadv-page .mt-secadv__track,
+  body.mt-secadv-page .mt-secadv__track::before {
+    transition: none;
+  }
+}
+
+@media (forced-colors: active) {
+  body.mt-secadv-page .mt-secadv__track {
+    forced-color-adjust: none;
+    background: Canvas;
+    border-color: CanvasText;
+  }
+
+  body.mt-secadv-page .mt-secadv__track::before {
+    background: CanvasText;
+  }
+
+  body.mt-secadv-page .mt-secadv__switch > input:checked + .mt-secadv__track {
+    background: Highlight;
+    border-color: Highlight;
+  }
+
+  body.mt-secadv-page .mt-secadv__switch > input:checked + .mt-secadv__track::before {
+    background: HighlightText;
+  }
+}

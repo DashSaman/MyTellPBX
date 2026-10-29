@@ -1,0 +1,874 @@
+/* ============================================================
+   MyTel dashboard — custom "control room" layout (RTL, Vazirmatn).
+   The legacy applet grid stays in the DOM only as a data source
+   and is hidden; everything visible lives in #mt-dash.
+   ============================================================ */
+
+/* the applet grid stays as the hidden data source — fixed offscreen with
+   measurable dimensions so Flot can initialize; position:fixed keeps it
+   out of the document's scrollable overflow (no horizontal scrollbar) */
+#neo-contentbox #applet_grid {
+    position: fixed !important;
+    left: -9999px !important;
+    top: 0 !important;
+    width: 1200px !important;
+    visibility: hidden !important;
+    pointer-events: none !important;
+}
+#neo-contentbox #appletbar { display: none !important; }
+
+#mt-dash {
+    max-width: 1440px;
+    margin: 0 auto;
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+    padding: 4px 0 16px;
+}
+
+/* ---------- header ---------- */
+.mt-dash-head {
+    display: flex;
+    align-items: flex-end;
+    justify-content: space-between;
+    gap: 16px;
+    padding: 2px 4px 0;
+}
+.mt-dash-head h1 {
+    margin: 0;
+    font-size: 21px;
+    font-weight: 800;
+    color: var(--mt-text);
+    letter-spacing: -0.01em;
+}
+.mt-dash-sub { font-size: 13px; color: var(--mt-text-muted); margin-top: 4px; }
+.mt-dash-fresh {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 12px;
+    color: var(--mt-text-muted);
+    font-variant-numeric: tabular-nums;
+}
+.mt-dash-fresh .mt-dot {
+    width: 8px; height: 8px;
+    border-radius: 50%;
+    background: var(--mt-success, #27965A);
+    box-shadow: 0 0 0 0 rgba(39,150,90,.5);
+    animation: mt-pulse 2.2s infinite;
+}
+.mt-dash-fresh.stale .mt-dot { background: var(--mt-text-faint); animation: none; box-shadow: none; }
+.mt-dash-fresh.stale { color: var(--mt-text-faint); }
+@keyframes mt-pulse {
+    0% { box-shadow: 0 0 0 0 rgba(39,150,90,.45); }
+    70% { box-shadow: 0 0 0 7px rgba(39,150,90,0); }
+    100% { box-shadow: 0 0 0 0 rgba(39,150,90,0); }
+}
+
+/* ---------- cards ---------- */
+#mt-dash .mt-card {
+    background: var(--mt-surface);
+    border: 1px solid #E8ECF3;
+    border-radius: 20px;
+    box-shadow: 0 6px 24px rgba(21,27,61,.045);
+    padding: 22px 24px;
+    min-width: 0;
+}
+#mt-dash .mt-card-title {
+    display: flex;
+    align-items: center;
+    gap: 9px;
+    font-size: 15px;
+    font-weight: 700;
+    color: var(--mt-text);
+}
+#mt-dash .mt-card-title::before {
+    content: '';
+    width: 4px; height: 16px;
+    border-radius: 2px;
+    background: var(--mt-accent);
+}
+.mt-card-title-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 12px;
+}
+.mt-card-title-row .mt-card-title { margin-bottom: 0; }
+.mt-card-hint {
+    font-size: 12px;
+    color: var(--mt-text-faint);
+    font-variant-numeric: tabular-nums;
+    direction: ltr;
+}
+
+/* ---------- hero row ---------- */
+.mt-hero-row {
+    display: grid;
+    grid-template-columns: minmax(0, 2fr) minmax(0, 1fr);
+    gap: 20px;
+}
+.mt-hero-figs {
+    display: flex;
+    align-items: center;
+    gap: 22px;
+    margin-bottom: 4px;
+}
+.mt-fig-num {
+    font-size: 46px;
+    font-weight: 800;
+    line-height: 1.05;
+    color: var(--mt-text);
+    font-variant-numeric: tabular-nums;
+}
+.mt-fig-num--sm { font-size: 26px; color: var(--mt-primary); }
+.mt-fig-lab { font-size: 12.5px; color: var(--mt-text-muted); margin-top: 4px; }
+.mt-fig-sep { width: 1px; height: 40px; background: #E8ECF3; }
+#mt-dash-calls { margin-top: 4px; }
+
+/* ---------- health card ---------- */
+#mt-health-rows { display: flex; flex-direction: column; margin-top: 14px; }
+.mt-hrow {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 9px 0;
+}
+.mt-hlab { font-size: 13px; color: var(--mt-text); font-weight: 600; white-space: nowrap; }
+.mt-hmeter {
+    flex: 1;
+    height: 6px;
+    border-radius: 3px;
+    background: #EDF0F5;
+    overflow: hidden;
+}
+.mt-hmeter > span {
+    display: block;
+    height: 100%;
+    border-radius: 3px;
+    transition: width .6s var(--mt-ease), background .3s;
+}
+.mt-hpct {
+    width: 44px;
+    text-align: left;
+    font-size: 13px;
+    color: var(--mt-text-muted);
+    font-variant-numeric: tabular-nums;
+}
+.mt-disk-panel {
+    margin-top: 14px;
+    background: #F7F9FC;
+    border-radius: 14px;
+    padding: 13px 15px;
+}
+.mt-disk-top {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--mt-text);
+    margin-bottom: 9px;
+}
+.mt-disk-top b { font-variant-numeric: tabular-nums; color: var(--mt-primary); }
+.mt-disk-panel .mt-hmeter { display: block; width: 100%; margin-bottom: 8px; }
+.mt-disk-sub { font-size: 11.5px; color: var(--mt-text-faint); text-align: left; font-variant-numeric: tabular-nums; }
+
+/* ---------- detail row ---------- */
+.mt-detail-row {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+    gap: 20px;
+}
+
+/* communication card */
+.mt-cmix {
+    font-size: 12px;
+    color: var(--mt-text-muted);
+    background: var(--mt-primary-tint, rgba(46,49,148,.06));
+    border-radius: 10px;
+    padding: 7px 12px;
+    margin: 12px 0 2px;
+}
+.mt-cfigs {
+    display: flex;
+    gap: 12px;
+    margin-top: 12px;
+}
+.mt-cfig {
+    flex: 1;
+    background: #F7F9FC;
+    border-radius: 14px;
+    padding: 13px 10px 11px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 3px;
+}
+.mt-cfig b { font-size: 26px; font-weight: 800; color: var(--mt-text); font-variant-numeric: tabular-nums; line-height: 1; }
+.mt-cfig span { font-size: 11.5px; color: var(--mt-text-muted); }
+.mt-crows { margin-top: 10px; }
+.mt-crow {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 8px 2px;
+    border-bottom: 1px dashed var(--mt-border);
+    font-size: 13px;
+}
+.mt-crow:last-child { border-bottom: 0; }
+.mt-crow span { color: var(--mt-text); font-weight: 600; }
+.mt-crow b { color: var(--mt-text-muted); font-weight: 500; font-variant-numeric: tabular-nums; }
+.mt-ctraffic {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-top: 12px;
+    background: rgba(255,138,0,.07);
+    border-radius: 10px;
+    padding: 8px 12px;
+    font-size: 12px;
+}
+.mt-ctraffic span { color: var(--mt-text); font-weight: 600; }
+.mt-ctraffic b { color: var(--mt-text-muted); font-weight: 500; }
+
+/* system info rows */
+.mt-sysinfo { margin-top: 10px; }
+.mt-sysrow {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 14px;
+    padding: 9px 2px;
+    border-bottom: 1px dashed var(--mt-border);
+}
+.mt-sysrow:last-child { border-bottom: 0; }
+.mt-syslabel { font-weight: 600; color: var(--mt-text); font-size: 13px; white-space: nowrap; }
+.mt-sysval {
+    color: var(--mt-text-muted);
+    font-size: 12.5px;
+    font-variant-numeric: tabular-nums;
+    unicode-bidi: isolate;
+    text-align: left;
+    overflow-wrap: anywhere;
+}
+
+/* ---------- shared chart surfaces ---------- */
+.mt-echart { min-height: 120px; direction: ltr; }
+/* loading skeleton for dashboard hosts until ECharts attaches */
+.mt-echart[data-mt-keep="1"]:not(:has(canvas))::after {
+    content: 'در حال دریافت داده…';
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    height: 100%;
+    min-height: 120px;
+    color: var(--mt-text-faint);
+    font-size: 13px;
+    animation: mt-fade 1.4s ease infinite alternate;
+}
+@keyframes mt-fade { from { opacity: .45; } to { opacity: 1; } }
+
+.mt-empty-state {
+    min-height: 150px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 20px 16px;
+    text-align: center;
+    color: var(--mt-text-faint);
+    font-size: var(--mt-fs-md);
+    font-family: var(--mt-font);
+}
+
+@media (max-width: 1279px) {
+    .mt-hero-row, .mt-detail-row { grid-template-columns: minmax(0, 1fr); }
+    #mt-dash .mt-card { padding: 18px 16px; }
+}
+
+/* ---- round-27 (Astra): shared date controls ---- */
+
+/* ---- round-27 (Astra): CDR report layout ---- */
+/* CDR only. The JS marker is set by menu=cdrreport or table#CDRreport. */
+body.mt-cdr-page {
+    --mt-cdr-primary: #2e3194;
+    --mt-cdr-ink: #263149;
+    --mt-cdr-muted: #65718a;
+    --mt-cdr-line: #e3e8f2;
+}
+
+body.mt-cdr-page #formFilter {
+    box-sizing: border-box;
+    max-width: 100%;
+    margin: 0 0 20px;
+    padding: 18px;
+    overflow-x: auto;
+    direction: rtl;
+    color: var(--mt-cdr-ink);
+    background: #ffffff;
+    border: 1px solid var(--mt-cdr-line);
+    border-radius: 16px;
+    box-shadow: 0 5px 20px rgba(38, 49, 73, .04);
+    font-family: Vazirmatn, Tahoma, sans-serif;
+    font-size: 12px;
+    line-height: 1.8;
+}
+
+body.mt-cdr-page #formFilter table {
+    width: 100% !important;
+    min-width: 700px;
+    margin: 0;
+    table-layout: auto;
+    border: 0;
+    border-collapse: collapse;
+    background: transparent;
+}
+
+body.mt-cdr-page #formFilter table td,
+body.mt-cdr-page #formFilter table th {
+    height: auto;
+    padding: 10px 9px;
+    vertical-align: middle;
+    text-align: right;
+    color: var(--mt-cdr-ink);
+    background: transparent;
+    border: 0;
+    border-bottom: 1px solid #eef1f6;
+    font-family: inherit;
+    font-size: 12px;
+    font-weight: 500;
+}
+
+body.mt-cdr-page #formFilter table tr:last-child > td,
+body.mt-cdr-page #formFilter table tr:last-child > th {
+    border-bottom: 0;
+}
+
+body.mt-cdr-page #formFilter label {
+    margin: 0;
+    color: #54617b;
+    font-weight: 600;
+}
+
+body.mt-cdr-page #formFilter input[type="text"],
+body.mt-cdr-page #formFilter input[type="search"],
+body.mt-cdr-page #formFilter input[type="number"],
+body.mt-cdr-page #formFilter select {
+    box-sizing: border-box;
+    max-width: 100%;
+    min-height: 42px;
+    margin: 3px 0;
+    padding: 8px 11px;
+    color: var(--mt-cdr-ink);
+    background-color: #ffffff;
+    border: 1px solid #d9dfed;
+    border-radius: 10px;
+    font-family: inherit;
+    font-size: 12px;
+    line-height: 1.6;
+    box-shadow: none;
+}
+
+body.mt-cdr-page #formFilter select {
+    min-width: 126px;
+    padding-inline-end: 26px;
+}
+
+body.mt-cdr-page #formFilter #field_pattern {
+    width: 190px;
+    margin-inline-start: 6px;
+    direction: ltr;
+    text-align: left;
+}
+
+body.mt-cdr-page #formFilter input.mt-date-mirror {
+    width: 176px;
+    max-width: calc(100% - 50px);
+    direction: rtl;
+    text-align: right;
+}
+
+body.mt-cdr-page #formFilter #limit,
+body.mt-cdr-page #formFilter #status {
+    direction: ltr;
+}
+
+body.mt-cdr-page #formFilter input[type="checkbox"] {
+    width: 17px;
+    height: 17px;
+    margin: 0 6px;
+    vertical-align: middle;
+    accent-color: var(--mt-cdr-primary);
+}
+
+body.mt-cdr-page #formFilter input[type="submit"],
+body.mt-cdr-page #formFilter button[type="submit"] {
+    min-height: 42px;
+    padding: 9px 24px;
+    color: #ffffff;
+    background: var(--mt-cdr-primary);
+    border: 1px solid var(--mt-cdr-primary);
+    border-radius: 10px;
+    font-family: inherit;
+    font-size: 12px;
+    font-weight: 700;
+    cursor: pointer;
+}
+
+body.mt-cdr-page #formFilter input[type="submit"]:hover,
+body.mt-cdr-page #formFilter button[type="submit"]:hover {
+    background: #242778;
+}
+
+body.mt-cdr-page #formFilter input:focus,
+body.mt-cdr-page #formFilter select:focus,
+body.mt-cdr-page #formFilter button:focus {
+    outline: 3px solid #e79624;
+    outline-offset: 2px;
+}
+
+/* Extra filters are outside the server-side form and its collapse panel. */
+body.mt-cdr-page .mt-cdr-extra {
+    box-sizing: border-box;
+    margin: 18px 0 14px;
+    overflow: hidden;
+    direction: rtl;
+    color: var(--mt-cdr-ink);
+    background: #ffffff;
+    border: 1px solid var(--mt-cdr-line);
+    border-radius: 16px;
+    font-family: Vazirmatn, Tahoma, sans-serif;
+    font-size: 12px;
+    line-height: 1.8;
+}
+
+body.mt-cdr-page .mt-cdr-extra *,
+body.mt-cdr-page .mt-cdr-table-scroll {
+    box-sizing: border-box;
+}
+
+body.mt-cdr-page .mt-cdr-extra > summary {
+    padding: 15px 18px;
+    color: var(--mt-cdr-primary);
+    background: #f5f6fd;
+    font-size: 14px;
+    font-weight: 800;
+    cursor: pointer;
+}
+
+body.mt-cdr-page .mt-cdr-extra[open] > summary {
+    border-bottom: 1px solid var(--mt-cdr-line);
+}
+
+body.mt-cdr-page .mt-cdr-extra-body {
+    padding: 18px;
+}
+
+body.mt-cdr-page .mt-cdr-extra-note {
+    margin: 0 0 14px;
+    color: var(--mt-cdr-muted);
+}
+
+body.mt-cdr-page .mt-cdr-extra-grid {
+    display: grid;
+    grid-template-columns: minmax(120px, 1fr) minmax(120px, 1fr)
+        minmax(180px, 1.6fr) minmax(150px, 1.2fr) auto;
+    align-items: end;
+    gap: 12px;
+}
+
+body.mt-cdr-page .mt-cdr-extra-field {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    min-width: 0;
+    margin: 0;
+    color: #526079;
+    font-size: 12px;
+    font-weight: 600;
+}
+
+body.mt-cdr-page .mt-cdr-extra-field input,
+body.mt-cdr-page .mt-cdr-extra-field select {
+    width: 100%;
+    min-width: 0;
+    height: 42px;
+    margin: 0;
+    padding: 8px 11px;
+    color: var(--mt-cdr-ink);
+    background: #ffffff;
+    border: 1px solid #d9dfed;
+    border-radius: 9px;
+    font-family: inherit;
+    font-size: 12px;
+    font-weight: 400;
+}
+
+body.mt-cdr-page .mt-cdr-extra-field input {
+    direction: ltr;
+    text-align: left;
+    font-variant-numeric: tabular-nums;
+}
+
+body.mt-cdr-page .mt-cdr-extra-field select {
+    padding-inline-end: 26px;
+}
+
+body.mt-cdr-page .mt-cdr-extra-field input[aria-invalid="true"] {
+    border-color: #b63850;
+    background: #fff8f9;
+}
+
+body.mt-cdr-page .mt-cdr-extra-reset {
+    min-height: 42px;
+    padding: 8px 15px;
+    color: var(--mt-cdr-primary);
+    background: #eff0fc;
+    border: 1px solid #dce0f2;
+    border-radius: 9px;
+    font-family: inherit;
+    font-size: 12px;
+    font-weight: 700;
+    cursor: pointer;
+}
+
+body.mt-cdr-page .mt-cdr-extra-reset:hover {
+    background: #e3e6fa;
+}
+
+body.mt-cdr-page .mt-cdr-extra-error {
+    margin: 12px 0 0;
+    color: #a32b43;
+    font-weight: 600;
+}
+
+body.mt-cdr-page .mt-cdr-extra-error:empty {
+    display: none;
+}
+
+body.mt-cdr-page .mt-cdr-extra-count {
+    margin: 12px 0 0;
+    color: var(--mt-cdr-muted);
+    font-variant-numeric: tabular-nums;
+}
+
+body.mt-cdr-page .mt-cdr-extra summary:focus,
+body.mt-cdr-page .mt-cdr-extra input:focus,
+body.mt-cdr-page .mt-cdr-extra select:focus,
+body.mt-cdr-page .mt-cdr-extra button:focus {
+    outline: 3px solid #e79624;
+    outline-offset: 2px;
+}
+
+/* DataTables controls remain outside the horizontally scrolling table. */
+body.mt-cdr-page #CDRreport_wrapper {
+    max-width: 100%;
+    min-width: 0;
+    direction: rtl;
+    color: var(--mt-cdr-ink);
+    font-family: Vazirmatn, Tahoma, sans-serif;
+    font-size: 12px;
+}
+
+body.mt-cdr-page .mt-cdr-table-scroll {
+    width: 100%;
+    max-width: 100%;
+    margin: 12px 0;
+    overflow-x: auto;
+    overscroll-behavior-x: contain;
+    border: 1px solid var(--mt-cdr-line);
+    border-radius: 14px;
+    scrollbar-width: thin;
+    scrollbar-color: #bec5de #f5f7fc;
+}
+
+body.mt-cdr-page #CDRreport {
+    width: 100% !important;
+    min-width: 1380px;
+    margin: 0 !important;
+    direction: rtl;
+    border: 0;
+    border-collapse: separate;
+    border-spacing: 0;
+    color: var(--mt-cdr-ink);
+    background: #ffffff;
+    font-family: Vazirmatn, Tahoma, sans-serif;
+    font-size: 12px;
+    line-height: 1.7;
+}
+
+body.mt-cdr-page #CDRreport thead th {
+    padding: 15px 12px;
+    color: #4f5b78;
+    background: #f1f3fa;
+    border: 0;
+    border-bottom: 1px solid #dfe4ef;
+    text-align: right;
+    font-size: 11px;
+    font-weight: 800;
+    white-space: nowrap;
+}
+
+body.mt-cdr-page #CDRreport thead th.sorting,
+body.mt-cdr-page #CDRreport thead th.sorting_asc,
+body.mt-cdr-page #CDRreport thead th.sorting_desc {
+    padding-right: 28px;
+}
+
+body.mt-cdr-page #CDRreport tbody td {
+    padding: 13px 12px;
+    vertical-align: middle;
+    color: var(--mt-cdr-ink);
+    background: #ffffff;
+    border: 0;
+    border-bottom: 1px solid #edf0f6;
+    text-align: right;
+    white-space: nowrap;
+    box-shadow: none;
+}
+
+body.mt-cdr-page #CDRreport tbody tr:nth-child(even) > td {
+    background: #fafbfe;
+}
+
+body.mt-cdr-page #CDRreport tbody tr:hover > td {
+    background: #f0f2ff;
+}
+
+/* preserve the stock selection indicator (multi-row select + delete):
+   explicit selected styles must outrank the plain/hover/zebra rules above */
+body.mt-cdr-page #CDRreport tbody tr.selected > td {
+    background: #d9e7fb !important;
+    box-shadow: inset 0 0 0 1px #b3cdf3;
+}
+
+body.mt-cdr-page #CDRreport tbody tr.selected:hover > td {
+    background: #cbe0f9 !important;
+}
+
+body.mt-cdr-page #CDRreport tbody tr:last-child > td {
+    border-bottom: 0;
+}
+
+/*
+ * Dates, numbers, channels, duration and identifiers are isolated LTR.
+ * Semantic classes (mt-c-*) are applied per-row by mt-cdr-filters.js from
+ * ColReorder-resolved indexes, so styling follows columns when they move
+ * or when columns are hidden — never positional nth-child.
+ */
+body.mt-cdr-page #CDRreport tbody td.mt-c-date,
+body.mt-cdr-page #CDRreport tbody td.mt-c-caller,
+body.mt-cdr-page #CDRreport tbody td.mt-c-destination,
+body.mt-cdr-page #CDRreport tbody td.mt-c-duration {
+    direction: ltr;
+    unicode-bidi: isolate;
+    text-align: left;
+    font-variant-numeric: tabular-nums;
+}
+
+body.mt-cdr-page #CDRreport tbody td.mt-c-status {
+    color: #465174;
+    font-size: 11px;
+    font-weight: 700;
+    text-align: center;
+}
+
+body.mt-cdr-page #CDRreport tbody td.mt-c-duration {
+    color: #2e3194;
+    font-weight: 700;
+}
+
+/* CEL (col 12) is LTR/isolated through the remaining stock table rules;
+   no positional overrides remain in this sheet. */
+
+body.mt-cdr-page #CDRreport tbody td.dataTables_empty,
+body.mt-cdr-page #CDRreport tbody td.dt-empty {
+    padding: 36px 16px;
+    direction: rtl;
+    text-align: center;
+    color: var(--mt-cdr-muted);
+}
+
+body.mt-cdr-page #CDRreport a {
+    color: #2e3194;
+    text-underline-offset: 3px;
+}
+
+body.mt-cdr-page #CDRreport a:hover {
+    text-decoration: underline;
+}
+
+body.mt-cdr-page #CDRreport_wrapper .dataTables_length,
+body.mt-cdr-page #CDRreport_wrapper .dataTables_filter,
+body.mt-cdr-page #CDRreport_wrapper .dataTables_info,
+body.mt-cdr-page #CDRreport_wrapper .dataTables_paginate,
+body.mt-cdr-page #CDRreport_wrapper .dt-length,
+body.mt-cdr-page #CDRreport_wrapper .dt-search,
+body.mt-cdr-page #CDRreport_wrapper .dt-info,
+body.mt-cdr-page #CDRreport_wrapper .dt-paging {
+    padding-block: 8px;
+    color: var(--mt-cdr-muted);
+    font-family: inherit;
+    font-size: 12px;
+    line-height: 1.8;
+}
+
+body.mt-cdr-page #CDRreport_wrapper .dataTables_filter input,
+body.mt-cdr-page #CDRreport_wrapper .dataTables_length select,
+body.mt-cdr-page #CDRreport_wrapper .dt-search input,
+body.mt-cdr-page #CDRreport_wrapper .dt-length select {
+    min-height: 38px;
+    margin-inline: 6px;
+    padding: 6px 10px;
+    color: var(--mt-cdr-ink);
+    background: #ffffff;
+    border: 1px solid #d9dfed;
+    border-radius: 9px;
+    font-family: inherit;
+    font-size: 12px;
+}
+
+body.mt-cdr-page #CDRreport_wrapper .dataTables_paginate .paginate_button,
+body.mt-cdr-page #CDRreport_wrapper .dt-paging .dt-paging-button {
+    min-width: 36px;
+    margin: 2px;
+    padding: 6px 10px;
+    color: #2e3194 !important;
+    background: #ffffff;
+    border: 1px solid #e0e4f1;
+    border-radius: 8px;
+    box-shadow: none;
+}
+
+body.mt-cdr-page #CDRreport_wrapper .dataTables_paginate .paginate_button.current,
+body.mt-cdr-page #CDRreport_wrapper .dt-paging .dt-paging-button.current {
+    color: #ffffff !important;
+    background: #2e3194;
+    border-color: #2e3194;
+}
+
+body.mt-cdr-page #CDRreport_wrapper .dataTables_paginate .paginate_button:hover,
+body.mt-cdr-page #CDRreport_wrapper .dt-paging .dt-paging-button:hover {
+    color: #2e3194 !important;
+    background: #edf0ff;
+    border-color: #b9c0e1;
+}
+
+body.mt-cdr-page #CDRreport_wrapper .dataTables_paginate .paginate_button.disabled,
+body.mt-cdr-page #CDRreport_wrapper .dt-paging .dt-paging-button.disabled {
+    opacity: .45;
+    cursor: default;
+}
+
+@media (max-width: 1000px) {
+    body.mt-cdr-page .mt-cdr-extra-grid {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
+    body.mt-cdr-page .mt-cdr-extra-reset {
+        justify-self: start;
+    }
+}
+
+@media (max-width: 600px) {
+    body.mt-cdr-page #formFilter {
+        padding: 10px;
+        border-radius: 12px;
+    }
+
+    body.mt-cdr-page .mt-cdr-extra-body {
+        padding: 14px;
+    }
+
+    body.mt-cdr-page .mt-cdr-extra-grid {
+        grid-template-columns: minmax(0, 1fr);
+    }
+
+    body.mt-cdr-page .mt-cdr-extra-reset {
+        width: 100%;
+    }
+
+    body.mt-cdr-page #CDRreport_wrapper .dataTables_filter,
+    body.mt-cdr-page #CDRreport_wrapper .dataTables_length,
+    body.mt-cdr-page #CDRreport_wrapper .dataTables_info,
+    body.mt-cdr-page #CDRreport_wrapper .dataTables_paginate {
+        float: none;
+        text-align: right;
+    }
+}
+
+/* ---- round-28 fix: themed date-control styles (the icon-button rules
+   were omitted when the round-27 patch was appended) ---- */
+/* Shared date controls, including report pages outside CDR. */
+input.mt-date-real {
+    display: none !important;
+}
+
+.mt-date-stock-hidden {
+    display: none !important;
+}
+
+input.mt-date-mirror {
+    box-sizing: border-box;
+    width: 176px;
+    max-width: calc(100% - 50px);
+    height: 42px;
+    margin: 3px 0;
+    padding: 8px 12px;
+    direction: rtl;
+    vertical-align: middle;
+    color: #27304a;
+    background: #ffffff;
+    border: 1px solid #d9dfed;
+    border-radius: 10px;
+    font-family: Vazirmatn, Tahoma, sans-serif;
+    font-size: 12px;
+    cursor: pointer;
+}
+
+button.mt-date-icon {
+    display: inline-flex;
+    box-sizing: border-box;
+    align-items: center;
+    justify-content: center;
+    width: 42px;
+    height: 42px;
+    margin: 3px 0;
+    margin-inline-start: 6px;
+    padding: 0;
+    vertical-align: middle;
+    color: #2e3194;
+    background: #eff0fc;
+    border: 1px solid #dce0f2;
+    border-radius: 10px;
+    cursor: pointer;
+    appearance: none;
+}
+
+button.mt-date-icon svg {
+    display: block;
+    flex: 0 0 auto;
+}
+
+button.mt-date-icon:hover {
+    background: #e3e6fa;
+    border-color: #a9afd9;
+}
+
+input.mt-date-mirror:focus,
+button.mt-date-icon:focus {
+    outline: 3px solid #e79624;
+    outline-offset: 2px;
+}
+
+input.mt-date-mirror:disabled,
+button.mt-date-icon:disabled {
+    opacity: .55;
+    cursor: not-allowed;
+}
+
+/* zero-match state of the extra-filters counter: visible, not phantom */
+.mt-cdr-extra-count.is-empty {
+    color: #B42338;
+    font-weight: 700;
+}
