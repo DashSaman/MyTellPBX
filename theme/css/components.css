@@ -556,66 +556,7 @@ td.mt-ltr, .tabForm td.mt-ltr, i.mt-ltr {
    ============================================================ */
 
 /* MyTel WebPhone launch card (portal dashboard) */
-.mt-webphone-card {
-    display: flex;
-    align-items: center;
-    gap: 16px;
-    background: linear-gradient(135deg, var(--mt-navy-800) 0%, var(--mt-primary) 100%);
-    border: 1px solid var(--mt-primary-soft);
-    border-radius: var(--mt-radius-lg);
-    box-shadow: var(--mt-shadow-2);
-    padding: 18px 22px;
-    margin: 0 0 16px;
-    text-decoration: none !important;
-    transition: box-shadow var(--mt-speed) var(--mt-ease), transform var(--mt-speed) var(--mt-ease);
-    overflow: hidden;
-    position: relative;
-}
-.mt-webphone-card::after {
-    content: '';
-    position: absolute;
-    inset-inline-start: -60px;
-    top: -60px;
-    width: 180px; height: 180px;
-    border-radius: 50%;
-    background: radial-gradient(circle, rgba(255,138,0,.18), transparent 70%);
-    pointer-events: none;
-}
-.mt-webphone-card:hover {
-    box-shadow: 0 6px 22px rgba(46,49,148,.35);
-    transform: translateY(-2px);
-    text-decoration: none;
-}
-.mt-webphone-icon {
-    flex: 0 0 54px;
-    width: 54px; height: 54px;
-    border-radius: var(--mt-radius);
-    background: linear-gradient(135deg, var(--mt-accent) 0%, var(--mt-accent-strong) 100%);
-    display: flex; align-items: center; justify-content: center;
-    box-shadow: 0 4px 14px rgba(255,138,0,.4);
-}
-.mt-webphone-icon i { color: #fff; font-size: 24px; transform: scaleX(-1); }
-.mt-webphone-text { flex: 1 1 auto; min-width: 0; }
-.mt-webphone-text b {
-    display: block;
-    color: #fff;
-    font-size: var(--mt-fs-xl);
-    font-weight: 700;
-    margin-bottom: 2px;
-}
-.mt-webphone-text small {
-    display: block;
-    color: var(--mt-side-text);
-    font-size: var(--mt-fs-md);
-    font-weight: 400;
-}
-.mt-webphone-action {
-    flex: 0 0 auto;
-    color: var(--mt-accent);
-    font-size: 22px;
-    transition: inset-inline-start var(--mt-speed) var(--mt-ease);
-}
-.mt-webphone-card:hover .mt-webphone-action { inset-inline-start: 4px; position: relative; }
+
 
 /* contextual Persian guide block (betachannel, shutdown, fax*, vacations, relay, antispam) */
 .mt-guide {

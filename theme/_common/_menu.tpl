@@ -37,6 +37,12 @@
         </div>
     </header>
 
+    <!-- MyTellPBX v7.3.1: mobile drawer slot — receives the theme toggle
+         node itself at <=991px (never a clone). See theme.js controller. -->
+    <div class="mt-drawer-theme-slot">
+        <span aria-hidden="true">پوسته</span>
+    </div>
+
     <ul id="main-menu" class="">
         <li id="search" class="mt-menu-search">
             <form method="get" action="" onsubmit="return false;">

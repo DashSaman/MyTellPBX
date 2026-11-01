@@ -29,8 +29,9 @@
     <link rel="stylesheet" href="{$WEBPATH}themes/{$THEMENAME}/css/applet.css?v=122">
     <link rel="stylesheet" href="{$WEBPATH}themes/{$THEMENAME}/css/mt-calendar.css?v=122">
     <link rel="stylesheet" href="{$WEBPATH}themes/{$THEMENAME}/css/mt-secadv.css?v=122">
-    <link rel="stylesheet" href="{$WEBPATH}themes/{$THEMENAME}/css/theme-dark.css?v=122">
-    <link rel="stylesheet" href="{$WEBPATH}themes/{$THEMENAME}/css/mytelldesk-card.css?v=122">
+    <link rel="stylesheet" href="{$WEBPATH}themes/{$THEMENAME}/css/theme-dark.css?v=731">
+    <link rel="stylesheet" href="{$WEBPATH}themes/{$THEMENAME}/css/theme-toggle.css?v=731">
+    <link rel="stylesheet" href="{$WEBPATH}themes/{$THEMENAME}/css/mytelldesk-card.css?v=731">
     <link rel="stylesheet" media="screen" type="text/css" href="{$WEBPATH}libs/js/sticky_note/sticky_note.css" >
 
     {$HEADER_LIBS_JQUERY}
@@ -98,6 +99,48 @@
     <div class="page-container mt-shell">
 
         {$MENU}
+                    {if $MT_IS_HOMEPAGE}
+                    <!-- MyTellPBX v7.3.1: compact quick links (desk + webphone).
+                         Server renders both; CSS hides the desk card for
+                         non-admins before first paint, theme.js syncs after
+                         ajax refreshes. Single link per card. -->
+                    <div id="mt-home-quicklinks" class="mt-home-quicklinks">
+                        <a id="mt-desk-banner"
+                           class="mt-home-card mt-home-card--desk"
+                           href="/modules/mytellpbxopdesk/index.php">
+                            <span class="mt-home-card__icon" aria-hidden="true">
+                                <img src="{$WEBPATH}themes/{$THEMENAME}/images/mytel-emblem.svg"
+                                     alt=""
+                                     width="28"
+                                     height="28">
+                            </span>
+                            <span class="mt-home-card__text">
+                                <b>مای‌تل دسک</b>
+                                <small>میز کار اپراتور مرکز تماس</small>
+                            </span>
+                            <span class="mt-home-card__action" aria-hidden="true">
+                                <i class="fa fa-angle-left"></i>
+                            </span>
+                        </a>
+                        <a id="mt-webphone-card"
+                           class="mt-home-card mt-home-card--webphone"
+                           href="/Phone/"
+                           target="_blank"
+                           rel="noopener"
+                           aria-label="تلفن وب مای‌تل، بازشدن در برگه جدید">
+                            <span class="mt-home-card__icon" aria-hidden="true">
+                                <i class="fa fa-phone"></i>
+                            </span>
+                            <span class="mt-home-card__text">
+                                <b>تلفن وب مای‌تل</b>
+                                <small>تماس صوتی از مرورگر</small>
+                            </span>
+                            <span class="mt-home-card__action" aria-hidden="true">
+                                <i class="fa fa-angle-left"></i>
+                            </span>
+                        </a>
+                    </div>
+                    {/if}
                     {if !empty($mb_message)}
                     <div class="div_msg_errors mt-alert-error" id="message_error">
                     {if !empty($mb_title)}
@@ -108,21 +151,6 @@
                         <div class="div_msg_errors_dismiss"><i class="fa fa-lg fa-remove" onclick="hide_message_error();"></i></div>
                         <div class="div_msg_errors_content" {if empty($mb_title)}style="margin-left: 0;"{/if}>{$mb_message}</div>
                     </div>
-                    {/if}
-                    {if $MT_CAN_ENTER_DESK && $MT_IS_HOMEPAGE}
-                    <!-- MyTellPBX v7.2.0: MyTellDesk entry banner (admin home).
-                         theme.js syncHomeCards() re-inserts it after ajax module
-                         refreshes; single link, CTA is a styled span. -->
-                    <a class="mt-desk-banner" id="mt-desk-banner" href="/modules/mytellpbxopdesk/index.php">
-                        <div class="mt-desk-banner-art">
-                            <img src="{$WEBPATH}themes/{$THEMENAME}/images/mytelldesk-card.svg" alt="" width="640" height="400" />
-                        </div>
-                        <div class="mt-desk-banner-text">
-                            <b>مای‌تل دسک</b>
-                            <small>میز کار اپراتور مرکز تماس</small>
-                            <span class="mt-desk-cta">ورود به میز کار</span>
-                        </div>
-                    </a>
                     {/if}
                     {$CONTENT}
                 </div>
@@ -213,7 +241,7 @@ $(document).ready(function(e) {
         <script src="{$WEBPATH}themes/{$THEMENAME}/js/neon-custom.js"></script>
         <script src="{$WEBPATH}themes/{$THEMENAME}/vendor/echarts/echarts.min.js"></script>
         <script src="{$WEBPATH}themes/{$THEMENAME}/js/mytel-charts.js?v=100"></script>
-        <script src="{$WEBPATH}themes/{$THEMENAME}/js/theme.js?v=124"></script>
+        <script src="{$WEBPATH}themes/{$THEMENAME}/js/theme.js?v=731"></script>
         <script src="{$WEBPATH}themes/{$THEMENAME}/js/mt-calendar.js?v=122"></script>
         <script src="{$WEBPATH}themes/{$THEMENAME}/js/mt-date-icons.js?v=122"></script>
         <script src="{$WEBPATH}themes/{$THEMENAME}/js/mt-cdr-filters.js?v=122"></script>

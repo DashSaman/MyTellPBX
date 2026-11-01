@@ -20,7 +20,8 @@
 	<link rel="shortcut icon" href="{$WEBPATH}themes/{$THEMENAME}/images/favicon.png" />
 	<link rel="stylesheet" href="{$WEBPATH}themes/{$THEMENAME}/css/fonts.css?v=120">
 	<link rel="stylesheet" href="{$WEBPATH}themes/{$THEMENAME}/css/tokens.css?v=120">
-	<link rel="stylesheet" href="{$WEBPATH}themes/{$THEMENAME}/css/login.css?v=120">
+	<link rel="stylesheet" href="{$WEBPATH}themes/{$THEMENAME}/css/login.css?v=731">
+	<link rel="stylesheet" href="{$WEBPATH}themes/{$THEMENAME}/css/theme-toggle.css?v=731">
 	{$HEADER_LIBS_JQUERY}
 </head>
 <body class="mt-login-body">

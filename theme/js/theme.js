@@ -190,6 +190,42 @@
             });
             /* initial button state (pre-paint already set the attribute) */
             apply(document.documentElement.getAttribute('data-mt-theme') === 'dark' ? 'dark' : 'light', false);
+
+            /* v7.3.1: single-node relocation — at <=991px the SAME button
+               node moves into the sticky drawer slot (below the logo,
+               above the menu); at >=992px it returns next to the burger.
+               Never cloned; the theme handler is bound once, above. */
+            var slot = document.querySelector('#mt-sidebar .mt-drawer-theme-slot');
+            if (btn && slot) {
+                var mq = window.matchMedia('(max-width: 991px)');
+                var place = function () {
+                    if (mq.matches) {
+                        if (btn.parentNode !== slot) slot.appendChild(btn);
+                    } else {
+                        var burger = document.getElementById('mt-burger');
+                        if (burger && btn.nextElementSibling !== burger && btn.parentNode !== burger.parentNode) {
+                            burger.parentNode.insertBefore(btn, burger.nextSibling);
+                        } else if (burger && btn.parentNode !== burger.parentNode) {
+                            burger.parentNode.insertBefore(btn, burger.nextSibling);
+                        }
+                    }
+                };
+                place();
+                if (mq.addEventListener) mq.addEventListener('change', place);
+                else if (mq.addListener) mq.addListener(place);
+                /* drawer closed while the toggle holds focus -> burger */
+                var shell = document.querySelector('.page-container');
+                if (shell && window.MutationObserver) {
+                    new MutationObserver(function () {
+                        if (!shell.classList.contains('mt-mobile-open') &&
+                            document.activeElement === btn) {
+                            btn.blur();
+                            var b2 = document.getElementById('mt-burger');
+                            if (b2) b2.focus();
+                        }
+                    }).observe(shell, { attributes: true, attributeFilter: ['class'] });
+                }
+            }
         })();
 
         /* click outside closes the mobile drawer */
@@ -1131,73 +1167,110 @@
         };
         setTimeout(cleanPerlNoise, 900);
 
-        /* ---------- homepage launcher cards (single sync, no duplicates) ----
-           Order inside .neo-module-content: MyTellDesk banner → WebPhone
-           card → dashboard content. Server renders the banner on the first
-           load; ajax module refreshes replace the content, so both cards are
-           re-ensured here by id. */
+        /* ---------- homepage quick links (v7.3.1, commander design) ----------
+           One compact row — desk card → webphone card — restored after AJAX.
+           Server renders the row on first paint; eligibility for the desk
+           card comes from body[data-mt-desk] (admin-only). */
         var isHomePage = function () {
-            if (new URLSearchParams(location.search).get('menu') !== 'index') return false;
-            return !!document.querySelector('.neo-module-content');
+            var menu = new URLSearchParams(location.search).get('menu');
+            menu = (menu || '').trim();
+            return (menu === '' || menu === 'index') &&
+                !!document.querySelector('.neo-module-content');
         };
-        var ensureDeskBanner = function (c) {
-            /* eligibility comes from the SERVER (body[data-mt-desk]) — the
-               banner is admin-only; ajax restoration never widens it */
-            if (!document.body || !document.body.hasAttribute('data-mt-desk')) return null;
-            if (c.querySelector('#mt-desk-banner')) return null;
+
+        var makeHomeCard = function (desk) {
             var a = document.createElement('a');
-            a.className = 'mt-desk-banner';
-            a.id = 'mt-desk-banner';
-            a.href = '/modules/mytellpbxopdesk/index.php';
+
+            a.id = desk ? 'mt-desk-banner' : 'mt-webphone-card';
+            a.className = 'mt-home-card mt-home-card--' +
+                (desk ? 'desk' : 'webphone');
+            a.href = desk ? '/modules/mytellpbxopdesk/index.php' : '/Phone/';
+
+            if (!desk) {
+                a.target = '_blank';
+                a.rel = 'noopener';
+                a.setAttribute(
+                    'aria-label',
+                    'تلفن وب مای‌تل، بازشدن در برگه جدید'
+                );
+            }
+
             a.innerHTML =
-                '<div class="mt-desk-banner-art">' +
-                    '<img src="/themes/mytel/images/mytelldesk-card.svg" alt="" width="640" height="400">' +
-                '</div>' +
-                '<div class="mt-desk-banner-text">' +
-                    '<b>مای‌تل دسک</b>' +
-                    '<small>میز کار اپراتور مرکز تماس</small>' +
-                    '<span class="mt-desk-cta">ورود به میز کار</span>' +
-                '</div>';
+                '<span class="mt-home-card__icon" aria-hidden="true">' +
+                    (desk
+                        ? '<img src="/themes/mytel/images/mytel-emblem.svg"' +
+                          ' alt="" width="28" height="28">'
+                        : '<i class="fa fa-phone"></i>') +
+                '</span>' +
+                '<span class="mt-home-card__text">' +
+                    '<b>' + (desk ? 'مای‌تل دسک' : 'تلفن وب مای‌تل') + '</b>' +
+                    '<small>' +
+                        (desk
+                            ? 'میز کار اپراتور مرکز تماس'
+                            : 'تماس صوتی از مرورگر') +
+                    '</small>' +
+                '</span>' +
+                '<span class="mt-home-card__action" aria-hidden="true">' +
+                    '<i class="fa fa-angle-left"></i>' +
+                '</span>';
+
             return a;
         };
+
         var syncHomeCards = function () {
-            if (!isHomePage()) return;
             var c = document.querySelector('.neo-module-content');
             if (!c) return;
-            var banner = c.querySelector('#mt-desk-banner');
-            if (!banner) {
-                banner = ensureDeskBanner(c);
-                if (banner) c.insertBefore(banner, c.firstChild);
-            } else if (c.firstChild !== banner) {
-                c.insertBefore(banner, c.firstChild);
+
+            var row = c.querySelector('#mt-home-quicklinks');
+
+            if (!isHomePage()) {
+                if (row) row.parentNode.removeChild(row);
+                return;
             }
-            var webphone = c.querySelector('#mt-webphone-card');
-            if (webphone && banner && webphone.previousElementSibling !== banner) {
-                c.insertBefore(webphone, banner.nextSibling);
+
+            if (!row) {
+                row = document.createElement('div');
+                row.id = 'mt-home-quicklinks';
+                row.className = 'mt-home-quicklinks';
+            }
+
+            var canDesk = document.body.hasAttribute('data-mt-desk');
+            var desk = c.querySelector('#mt-desk-banner');
+            var phone = c.querySelector('#mt-webphone-card');
+
+            if (!canDesk && desk) {
+                desk.parentNode.removeChild(desk);
+                desk = null;
+            }
+
+            if (canDesk && !desk) desk = makeHomeCard(true);
+            if (!phone) phone = makeHomeCard(false);
+
+            if (c.firstElementChild !== row) {
+                c.insertBefore(row, c.firstChild);
+            }
+
+            if (desk && row.firstElementChild !== desk) {
+                row.insertBefore(desk, row.firstChild);
+            }
+
+            var phonePosition = desk
+                ? desk.nextElementSibling
+                : row.firstElementChild;
+
+            if (phonePosition !== phone) {
+                row.insertBefore(phone, phonePosition);
             }
         };
-        var addWebphoneCard = function () {
-            if (!isHomePage()) return;
-            var c = document.querySelector('.neo-module-content');
-            if (!c || document.getElementById('mt-webphone-card')) { syncHomeCards(); return; }
-            var card = document.createElement('a');
-            card.id = 'mt-webphone-card';
-            card.className = 'mt-webphone-card';
-            card.href = '/Phone/';
-            card.target = '_blank';
-            card.rel = 'noopener';
-            card.innerHTML =
-                '<div class="mt-webphone-icon"><i class="fa fa-phone"></i></div>' +
-                '<div class="mt-webphone-text">' +
-                    '<b>تلفن وب مای‌تل</b>' +
-                    '<small>WebPhone — تماس صوتی مستقیم از داخل مرورگر</small>' +
-                '</div>' +
-                '<div class="mt-webphone-action"><i class="fa fa-angle-left"></i></div>';
-            var banner = c.querySelector('#mt-desk-banner');
-            c.insertBefore(card, banner ? banner.nextSibling : c.firstChild);
-        };
-        setTimeout(function () { addWebphoneCard(); syncHomeCards(); }, 1200);
-        $(document).ajaxComplete(function () { setTimeout(function () { addWebphoneCard(); syncHomeCards(); }, 300); });
+
+        var homeCardsTimer = null;
+
+        syncHomeCards();
+
+        $(document).ajaxComplete(function () {
+            clearTimeout(homeCardsTimer);
+            homeCardsTimer = setTimeout(syncHomeCards, 300);
+        });
 
         /* ---------- page helpers: contextual Persian guidance ---------- */
         var addGuide = function (menuId, html) {

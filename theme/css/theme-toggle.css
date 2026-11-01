@@ -1,0 +1,166 @@
+/* Shared panel/login theme control (MyTellPBX v7.3.1, commander design). */
+.mt-theme-toggle {
+    --mt-toggle-fill: var(--mt-primary-tint);
+    --mt-toggle-ink: var(--mt-primary-fg);
+    --mt-toggle-edge: var(--mt-border-strong);
+    --mt-toggle-pressed-fill: var(--mt-surface-2);
+    --mt-toggle-pressed-ink: var(--mt-accent);
+    --mt-toggle-pressed-edge: var(--mt-border-strong);
+    --mt-toggle-hover-fill: var(--mt-primary-tint-2);
+    --mt-toggle-hover-ink: var(--mt-primary-fg-hover);
+    --mt-toggle-hover-edge: var(--mt-accent-fg);
+    --mt-toggle-ring: var(--mt-focus);
+
+    box-sizing: border-box;
+    appearance: none;
+    position: relative;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    flex: 0 0 44px;
+
+    width: 44px;
+    min-width: 44px;
+    max-width: 44px;
+    height: 44px;
+    min-height: 44px;
+    max-height: 44px;
+    margin: 0;
+    padding: 0;
+
+    border: 1px solid var(--mt-toggle-edge);
+    border-radius: 14px;
+    background: var(--mt-toggle-fill);
+    color: var(--mt-toggle-ink);
+    box-shadow:
+        inset 0 -3px 0 var(--mt-accent),
+        var(--mt-shadow-1);
+
+    font-family: var(--mt-font);
+    font-size: 20px;
+    line-height: 1;
+    cursor: pointer;
+
+    transition:
+        background-color var(--mt-speed) var(--mt-ease),
+        border-color var(--mt-speed) var(--mt-ease),
+        color var(--mt-speed) var(--mt-ease),
+        box-shadow var(--mt-speed) var(--mt-ease);
+}
+
+.mt-theme-toggle > i {
+    display: block;
+    width: 20px;
+    height: 20px;
+    font-size: 20px;
+    line-height: 20px;
+    text-align: center;
+    pointer-events: none;
+}
+
+.mt-theme-toggle[aria-pressed="true"] {
+    background: var(--mt-toggle-pressed-fill);
+    border-color: var(--mt-toggle-pressed-edge);
+    color: var(--mt-toggle-pressed-ink);
+}
+
+@media (hover: hover) {
+    .mt-theme-toggle:hover {
+        background: var(--mt-toggle-hover-fill);
+        border-color: var(--mt-toggle-hover-edge);
+        color: var(--mt-toggle-hover-ink);
+        box-shadow:
+            inset 0 -3px 0 var(--mt-accent),
+            var(--mt-shadow-2);
+    }
+}
+
+.mt-theme-toggle:focus-visible {
+    outline: 3px solid var(--mt-toggle-ring);
+    outline-offset: 3px;
+}
+
+/* Exactly 12px between the burger and toggle. */
+.mt-topbar-right {
+    display: flex;
+    align-items: center;
+    flex: 0 0 auto;
+    gap: 12px;
+}
+
+/* Navy surroundings need fixed brand-surface contrast in both themes. */
+.mt-theme-toggle.mt-login-theme-toggle,
+#mt-sidebar .mt-theme-toggle {
+    --mt-toggle-fill: var(--mt-navy-700);
+    --mt-toggle-ink: var(--mt-text-invert);
+    --mt-toggle-edge: var(--mt-side-text);
+    --mt-toggle-pressed-fill: var(--mt-navy-600);
+    --mt-toggle-pressed-ink: var(--mt-accent);
+    --mt-toggle-pressed-edge: var(--mt-accent);
+    --mt-toggle-hover-fill: var(--mt-navy-600);
+    --mt-toggle-hover-ink: var(--mt-text-invert);
+    --mt-toggle-hover-edge: var(--mt-accent);
+    --mt-toggle-ring: var(--mt-accent);
+}
+
+.mt-theme-toggle.mt-login-theme-toggle {
+    position: fixed;
+    top: max(16px, env(safe-area-inset-top, 0px));
+    right: max(16px, env(safe-area-inset-right, 0px));
+    z-index: 50;
+}
+
+/* Receives the existing button on mobile; never receives a clone. */
+.mt-drawer-theme-slot {
+    display: none;
+}
+
+@media (max-width: 991px) {
+    #mt-sidebar {
+        max-height: 100vh;
+        max-height: 100dvh;
+        overflow-y: auto;
+        overscroll-behavior-y: contain;
+        visibility: hidden;
+    }
+
+    .page-container.mt-mobile-open #mt-sidebar {
+        visibility: visible;
+    }
+
+    #mt-sidebar .mt-drawer-theme-slot {
+        position: sticky;
+        top: 0;
+        z-index: 2;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        flex: 0 0 auto;
+        gap: 12px;
+        padding: 10px 16px;
+        background: var(--mt-navy-800);
+        border-bottom: 1px solid var(--mt-navy-600);
+        color: var(--mt-text-invert);
+        font-family: var(--mt-font);
+        font-size: var(--mt-fs-md);
+        font-weight: 600;
+    }
+}
+
+@media (max-width: 900px) {
+    .mt-theme-toggle.mt-login-theme-toggle {
+        top: max(12px, env(safe-area-inset-top, 0px));
+        right: max(12px, env(safe-area-inset-right, 0px));
+    }
+
+    /* Reserve space above the form for the floating control. */
+    .mt-login-panel {
+        padding-block-start: 76px;
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .mt-theme-toggle {
+        transition: none;
+    }
+}
