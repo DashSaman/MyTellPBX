@@ -83,4 +83,72 @@
     /* motion */
     --mt-ease: cubic-bezier(.4, 0, .2, 1);
     --mt-speed: .18s;
+
+    /* role tokens: foregrounds for text/icons on surfaces and tints,
+       plus AA-corrected semantic fills. Light values (see dark below). */
+    --mt-primary-fg: #2E3194;
+    --mt-primary-fg-hover: #26287C;
+    --mt-blue-fg: #1469B2;
+    --mt-accent-fg: #9C4D00;
+    --mt-success-fg: #176B43;
+    --mt-warning-fg: #805300;
+    --mt-danger-fg: #B42338;
+    --mt-info-fg: #2459C4;
+    --mt-focus: #2E3194;
+    --mt-control-border: #64708A;
+    --mt-success-fill: #176B43;
+    --mt-danger-fill: #B52F42;
+    --mt-info-fill: #2459C4;
+    --mt-warning-on: #241706;
+}
+
+/* ============================================================
+   Dark theme (MyTellPBX v7.3.0). Selected on <html data-mt-theme>.
+   Only semantic surfaces/text/tints/shadows invert; the brand
+   hues, navy scale and the sidebar palette stay untouched.
+   ============================================================ */
+:root[data-mt-theme="dark"] {
+    color-scheme: dark;
+
+    --mt-bg:             #080F1C;
+    --mt-surface:        #101D33;
+    --mt-surface-2:      #16263F;
+    --mt-border:         #2C4263;
+    --mt-border-strong:  #637A9B;
+
+    --mt-text:           #E8EEF8;
+    --mt-text-muted:     #B0BDD2;
+    --mt-text-faint:     #9AAAC2;
+
+    --mt-primary-tint:   #21264A;
+    --mt-primary-tint-2: #303763;
+    --mt-blue-tint:      #172F49;
+    --mt-accent-tint:    #382B20;
+    --mt-accent-pale:    #493327;
+
+    --mt-success-tint:   #12342B;
+    --mt-warning-tint:   #3A2D17;
+    --mt-danger-tint:    #3A202D;
+    --mt-info-tint:      #172F54;
+
+    --mt-shadow-1: 0 1px 2px #0000003D, 0 1px 3px #00000029;
+    --mt-shadow-2: 0 4px 14px #00000052;
+    --mt-shadow-3: 0 16px 44px #00000080;
+
+    --mt-primary-fg:        #B8B9FF;
+    --mt-primary-fg-hover:  #D0D1FF;
+    --mt-blue-fg:           #8DCBFF;
+    --mt-accent-fg:         #FFB86B;
+    --mt-success-fg:        #83D8AD;
+    --mt-warning-fg:        #FFD084;
+    --mt-danger-fg:         #FFADB2;
+    --mt-info-fg:           #A4C5FF;
+    --mt-focus:             #B8B9FF;
+    --mt-control-border:    #637A9B;
+}
+
+/* light-mode AA correction: meaningful faint text lifts from 2.41:1 to
+   4.6:1 on surface-2 (commander-measured) */
+:root:not([data-mt-theme="dark"]) {
+    --mt-text-faint: #64708A;
 }

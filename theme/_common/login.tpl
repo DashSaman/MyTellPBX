@@ -6,6 +6,17 @@
 	<meta name="viewport" content="width=device-width, initial-scale=1.0" />
 	<meta name="description" content="سامانه مدیریت مرکز تماس" />
 	<title>مای‌تل | سامانه مدیریت مرکز تماس</title>
+	<script>
+	/* MyTellPBX theme pre-paint (shared choice with the panel shell) */
+	(function () {
+		try {
+			var t = localStorage.getItem('mt-theme');
+			if (t !== 'dark' && t !== 'light') t = 'light';
+			document.documentElement.setAttribute('data-mt-theme', t);
+			document.documentElement.style.colorScheme = t;
+		} catch (e) { document.documentElement.setAttribute('data-mt-theme', 'light'); }
+	})();
+	</script>
 	<link rel="shortcut icon" href="{$WEBPATH}themes/{$THEMENAME}/images/favicon.png" />
 	<link rel="stylesheet" href="{$WEBPATH}themes/{$THEMENAME}/css/fonts.css?v=120">
 	<link rel="stylesheet" href="{$WEBPATH}themes/{$THEMENAME}/css/tokens.css?v=120">
@@ -13,6 +24,11 @@
 	{$HEADER_LIBS_JQUERY}
 </head>
 <body class="mt-login-body">
+
+<button type="button" class="mt-theme-toggle mt-login-theme-toggle" id="mt-theme-toggle"
+        aria-pressed="false" aria-label="حالت تاریک" title="تغییر به حالت تاریک">
+    <i class="fa fa-moon" aria-hidden="true"></i>
+</button>
 
 <div class="mt-login-stage">
 
@@ -82,6 +98,29 @@
 
 </div>
 
+<script>
+(function () {
+	/* theme toggle on the login page (same storage key as the shell) */
+	var b = document.getElementById('mt-theme-toggle');
+	if (b) {
+		var paint = function (t) {
+			var dark = t === 'dark';
+			b.setAttribute('aria-pressed', dark ? 'true' : 'false');
+			b.title = dark ? 'تغییر به حالت روشن' : 'تغییر به حالت تاریک';
+			var i = b.querySelector('i');
+			if (i) i.className = dark ? 'fa fa-sun' : 'fa fa-moon';
+		};
+		b.addEventListener('click', function () {
+			var next = document.documentElement.getAttribute('data-mt-theme') === 'dark' ? 'light' : 'dark';
+			document.documentElement.setAttribute('data-mt-theme', next);
+			document.documentElement.style.colorScheme = next;
+			try { localStorage.setItem('mt-theme', next); } catch (e) {}
+			paint(next);
+		});
+		paint(document.documentElement.getAttribute('data-mt-theme'));
+	}
+})();
+</script>
 <script>
 (function () {
 	var f = document.getElementById('mt-login-form');

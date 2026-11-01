@@ -370,6 +370,24 @@ a:hover { color: var(--mt-primary-soft); }
 }
 .mt-topbar-burger:hover { color: var(--mt-primary); border-color: var(--mt-primary-soft); background: var(--mt-primary-tint); }
 
+/* theme toggle (dark/light) — sits beside the burger on the physical
+   right edge of the topbar; 40px target (44 on coarse pointers) */
+.mt-theme-toggle {
+    background: none;
+    border: 1px solid var(--mt-border);
+    border-radius: 9px;
+    color: var(--mt-text-muted);
+    width: 34px; height: 34px;
+    font-size: 15px;
+    cursor: pointer;
+    margin-inline-start: 8px;
+    transition: color var(--mt-speed) var(--mt-ease), background var(--mt-speed) var(--mt-ease),
+                border-color var(--mt-speed) var(--mt-ease);
+}
+.mt-theme-toggle:hover { color: var(--mt-primary); border-color: var(--mt-primary-soft); background: var(--mt-primary-tint); }
+.mt-theme-toggle:focus-visible { outline: 2px solid var(--mt-focus); outline-offset: 3px; }
+@media (pointer: coarse) { .mt-theme-toggle { width: 44px; height: 44px; } }
+
 .mt-topbar-left { display: flex; align-items: center; gap: 6px; }
 .mt-topbar-left .user-info, .mt-topbar-left .links-list { list-style: none; margin: 0; padding: 0; }
 .mt-topbar-links li { display: inline-block; }

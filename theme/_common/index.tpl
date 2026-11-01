@@ -4,6 +4,20 @@
     <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>{$BRAND_NAME} | {$BRAND_TAGLINE}</title>
+    <script>
+    /* MyTellPBX theme pre-paint: resolve the stored choice before the
+       first paint so the shell never flashes the wrong theme. */
+    (function () {
+      try {
+        var t = localStorage.getItem('mt-theme');
+        if (t !== 'dark' && t !== 'light') t = 'light';
+        document.documentElement.setAttribute('data-mt-theme', t);
+        document.documentElement.style.colorScheme = t;
+      } catch (e) {
+        document.documentElement.setAttribute('data-mt-theme', 'light');
+      }
+    })();
+    </script>
     <link rel="shortcut icon" href="{$WEBPATH}themes/{$THEMENAME}/images/favicon.png" />
     <link rel="icon" type="image/svg+xml" href="{$WEBPATH}themes/{$THEMENAME}/images/mytel-emblem.svg" />
 
@@ -15,6 +29,7 @@
     <link rel="stylesheet" href="{$WEBPATH}themes/{$THEMENAME}/css/applet.css?v=122">
     <link rel="stylesheet" href="{$WEBPATH}themes/{$THEMENAME}/css/mt-calendar.css?v=122">
     <link rel="stylesheet" href="{$WEBPATH}themes/{$THEMENAME}/css/mt-secadv.css?v=122">
+    <link rel="stylesheet" href="{$WEBPATH}themes/{$THEMENAME}/css/theme-dark.css?v=122">
     <link rel="stylesheet" href="{$WEBPATH}themes/{$THEMENAME}/css/mytelldesk-card.css?v=122">
     <link rel="stylesheet" media="screen" type="text/css" href="{$WEBPATH}libs/js/sticky_note/sticky_note.css" >
 

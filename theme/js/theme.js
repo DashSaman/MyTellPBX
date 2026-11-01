@@ -145,6 +145,53 @@
             $li.toggleClass('opened');
         });
 
+        /* ---------- MyTellPBX theme toggle (dark / light) ----------
+           Storage key 'mt-theme'; pre-paint script in <head> applies the
+           stored choice before first paint. Here we only react to clicks,
+           keep the button state, and mirror the attribute into same-origin
+           iframes (e.g. the PBX admin app) live. Other tabs sync through
+           the native 'storage' event. */
+        (function mtThemeController() {
+            var btn = document.getElementById('mt-theme-toggle');
+            var apply = function (t, persist) {
+                document.documentElement.setAttribute('data-mt-theme', t);
+                document.documentElement.style.colorScheme = t;
+                try { if (persist) localStorage.setItem('mt-theme', t); } catch (e) {}
+                if (btn) {
+                    var dark = t === 'dark';
+                    btn.setAttribute('aria-pressed', dark ? 'true' : 'false');
+                    btn.title = dark ? 'تغییر به حالت روشن' : 'تغییر به حالت تاریک';
+                    var icon = btn.querySelector('i');
+                    if (icon) icon.className = dark ? 'fa fa-sun' : 'fa fa-moon';
+                }
+                /* live-sync same-origin frames (the admin iframe has its own
+                   pre-paint for loads; this covers an already-open frame) */
+                Array.prototype.forEach.call(document.querySelectorAll('iframe'), function (f) {
+                    try {
+                        var d = f.contentDocument;
+                        if (d && d.documentElement) {
+                            d.documentElement.setAttribute('data-mt-theme', t);
+                            d.documentElement.style.colorScheme = t;
+                        }
+                    } catch (e) { /* cross-origin frame: ignore */ }
+                });
+            };
+            if (btn) {
+                btn.addEventListener('click', function () {
+                    var next = document.documentElement.getAttribute('data-mt-theme') === 'dark' ? 'light' : 'dark';
+                    apply(next, true);
+                });
+            }
+            /* other tabs changed the choice */
+            window.addEventListener('storage', function (ev) {
+                if (ev.key === 'mt-theme' && (ev.newValue === 'dark' || ev.newValue === 'light')) {
+                    apply(ev.newValue, false);
+                }
+            });
+            /* initial button state (pre-paint already set the attribute) */
+            apply(document.documentElement.getAttribute('data-mt-theme') === 'dark' ? 'dark' : 'light', false);
+        })();
+
         /* click outside closes the mobile drawer */
         $(document).on('click', function (e) {
             if ($container.hasClass('mt-mobile-open') &&

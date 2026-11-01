@@ -99,7 +99,9 @@
     "answered": "پاسخ‌داده",
     "abandoned": "رهاشده",
     "searchResults": "نتایج",
-    "noResults": "نتیجه‌ای یافت نشد"
+    "noResults": "نتیجه‌ای یافت نشد",
+    "switchLight": "تغییر به حالت روشن",
+    "switchDark": "تغییر به حالت تاریک"
   },
   "stats": {
     "extensions": "داخلی‌ها",

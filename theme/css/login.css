@@ -81,8 +81,8 @@ body.mt-login-body {
 
 .mt-login-error {
     background: var(--mt-danger-tint);
-    border: 1px solid #F3C2C4;
-    color: #8C2427;
+    border: 1px solid var(--mt-border);
+    color: var(--mt-danger-fg);
     border-radius: var(--mt-radius-sm);
     padding: 10px 14px;
     font-size: var(--mt-fs-md);
@@ -214,3 +214,33 @@ body.mt-login-body {
     .mt-login-brandpane { display: none; }
     .mt-login-panel { background: linear-gradient(160deg, var(--mt-navy-800), var(--mt-navy-950)); }
 }
+
+
+/* MyTellPBX v7.3.0 — floating theme toggle, page top-right (both themes) */
+.mt-login-theme-toggle {
+    position: fixed;
+    top: 16px;
+    right: 16px;
+    z-index: 50;
+    width: 40px; height: 40px;
+    border-radius: 9px;
+    font-size: 15px;
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    transition: color .12s ease, background .12s ease, border-color .12s ease;
+    background: rgba(255, 255, 255, .10);
+    border: 1px solid rgba(255, 255, 255, .28);
+    color: #fff;
+}
+html[data-mt-theme="light"] .mt-login-theme-toggle {
+    background: var(--mt-surface);
+    border-color: var(--mt-border);
+    color: var(--mt-text-muted);
+}
+html[data-mt-theme="light"] .mt-login-theme-toggle:hover { color: var(--mt-primary); border-color: var(--mt-primary-soft); background: var(--mt-primary-tint); }
+html[data-mt-theme="dark"] .mt-login-theme-toggle:hover { background: rgba(255, 255, 255, .18); color: #fff; }
+.mt-login-theme-toggle:focus-visible { outline: 2px solid #B8B9FF; outline-offset: 3px; }
+@media (pointer: coarse) { .mt-login-theme-toggle { width: 44px; height: 44px; } }
+@media (max-width: 900px) { .mt-login-theme-toggle { top: 12px; right: 12px; } }

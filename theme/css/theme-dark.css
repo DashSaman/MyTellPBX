@@ -1,0 +1,190 @@
+/* ============================================================
+   MyTellPBX v7.3.0 — panel dark-mode content fixes.
+   Scoped to <html data-mt-theme="dark">; loaded after the other
+   theme stylesheets. Covers markup injected into the panel shell
+   by legacy modules and the admin-dashboard ajax fragments, which
+   the token layer alone cannot invert.
+   ============================================================ */
+
+/* ---- admin-dashboard fragments rendered inside the panel home ---- */
+html[data-mt-theme="dark"] #sysinfo,
+html[data-mt-theme="dark"] #syslog,
+html[data-mt-theme="dark"] .infobox,
+html[data-mt-theme="dark"] .ui-widget-content,
+html[data-mt-theme="dark"] .ui-widget {
+    background: var(--mt-surface) !important;
+    color: var(--mt-text) !important;
+    border-color: var(--mt-border) !important;
+}
+html[data-mt-theme="dark"] .ui-widget-header {
+    background: var(--mt-surface-2) !important;
+    color: #F2F6FD !important;
+    border-color: var(--mt-border) !important;
+}
+html[data-mt-theme="dark"] .ui-state-default {
+    background: var(--mt-surface-2) !important;
+    color: var(--mt-text) !important;
+    border-color: var(--mt-border-strong) !important;
+}
+html[data-mt-theme="dark"] .databox { color: var(--mt-text-muted); }
+html[data-mt-theme="dark"] .dataname { color: var(--mt-text-muted); }
+html[data-mt-theme="dark"] div[class^="datavalue_"],
+html[data-mt-theme="dark"] div[class*=" datavalue_"] {
+    background: var(--mt-surface-2) !important;
+    color: #E8EEF8 !important;
+    border: 1px solid var(--mt-border) !important;
+    border-radius: 6px;
+}
+html[data-mt-theme="dark"] .statusbox .datavalue_Asterisk { color: var(--mt-success-fg) !important; }
+html[data-mt-theme="dark"] th {
+    background: #182A47 !important;
+    color: #E8EEF8 !important;
+    border-color: var(--mt-border) !important;
+}
+
+/* ---- legacy module skins that hardcode light surfaces ---- */
+html[data-mt-theme="dark"] .issabel-standard > tbody > tr:nth-child(even) td,
+html[data-mt-theme="dark"] table.issabel-standard tr:nth-child(even) td { background: var(--mt-surface-2); }
+html[data-mt-theme="dark"] .button, html[data-mt-theme="dark"] input[type="submit"], html[data-mt-theme="dark"] input[type="button"] {
+    color-scheme: dark;
+}
+html[data-mt-theme="dark"] .action-bar, html[data-mt-theme="dark"] .searchbox {
+    background: var(--mt-surface-2);
+    border-color: var(--mt-border);
+    color: var(--mt-text);
+}
+html[data-mt-theme="dark"] .filelist, html[data-mt-theme="dark"] .filelist li {
+    background: var(--mt-surface);
+    color: var(--mt-text);
+    border-color: var(--mt-border);
+}
+
+/* charts rendered by the JS brand layer keep their palette; only the
+   plot background/grid needs to follow the theme */
+html[data-mt-theme="dark"] .flot-base, html[data-mt-theme="dark"] .legend table {
+    color: var(--mt-text-muted);
+}
+html[data-mt-theme="dark"] .mt-ltr { color: var(--mt-text); }
+
+/* ---- bootstrap form controls & tables inside module content ---- */
+html[data-mt-theme="dark"] .neo-module-content input[type="text"],
+html[data-mt-theme="dark"] .neo-module-content input[type="password"],
+html[data-mt-theme="dark"] .neo-module-content input[type="number"],
+html[data-mt-theme="dark"] .neo-module-content input[type="date"],
+html[data-mt-theme="dark"] .neo-module-content input:not([type]),
+html[data-mt-theme="dark"] .neo-module-content select,
+html[data-mt-theme="dark"] .neo-module-content textarea {
+    background: var(--mt-surface-2);
+    color: var(--mt-text);
+    border: 1px solid var(--mt-border-strong);
+    color-scheme: dark;
+}
+html[data-mt-theme="dark"] .neo-module-content input::placeholder,
+html[data-mt-theme="dark"] .neo-module-content textarea::placeholder { color: #8FA0BC; }
+html[data-mt-theme="dark"] .neo-module-content input:focus,
+html[data-mt-theme="dark"] .neo-module-content select:focus,
+html[data-mt-theme="dark"] .neo-module-content textarea:focus {
+    border-color: var(--mt-primary-fg);
+    outline: 2px solid var(--mt-primary-tint);
+}
+html[data-mt-theme="dark"] .neo-module-content summary,
+html[data-mt-theme="dark"] .neo-module-content details {
+    background: var(--mt-surface-2);
+    color: var(--mt-text);
+    border-color: var(--mt-border);
+}
+html[data-mt-theme="dark"] table.table,
+html[data-mt-theme="dark"] .neo-module-content table {
+    background: var(--mt-surface);
+    color: var(--mt-text);
+    border-color: var(--mt-border);
+}
+html[data-mt-theme="dark"] table.table td,
+html[data-mt-theme="dark"] table.table th { border-color: var(--mt-border) !important; color: var(--mt-text); }
+html[data-mt-theme="dark"] table.table-striped > tbody > tr:nth-of-type(odd) { background: var(--mt-surface); }
+html[data-mt-theme="dark"] table.table-striped > tbody > tr:nth-of-type(even) { background: var(--mt-surface-2); }
+html[data-mt-theme="dark"] table.table-hover > tbody > tr:hover { background: #1B2C49; }
+html[data-mt-theme="dark"] table.table-bordered { border: 1px solid var(--mt-border); }
+/* the striped/hover combo carries an !important light bg upstream */
+html[data-mt-theme="dark"] table.table-striped.table-bordered,
+html[data-mt-theme="dark"] table.table-striped.table-bordered.table-hover,
+html[data-mt-theme="dark"] table.table-striped.table-bordered.table-hover > tbody > tr,
+html[data-mt-theme="dark"] table.table-striped.table-bordered > tbody > tr > td {
+    background: var(--mt-surface) !important;
+    color: var(--mt-text) !important;
+    border-color: var(--mt-border) !important;
+}
+html[data-mt-theme="dark"] table.table-striped.table-bordered > tbody > tr:nth-of-type(even),
+html[data-mt-theme="dark"] table.table-striped.table-bordered.table-hover > tbody > tr:nth-of-type(even),
+html[data-mt-theme="dark"] table.table-striped.table-bordered.table-hover > tbody > tr:nth-of-type(even) > td {
+    background: var(--mt-surface-2) !important;
+}
+html[data-mt-theme="dark"] table.table-hover > tbody > tr:hover,
+html[data-mt-theme="dark"] table.table-hover > tbody > tr:hover > td {
+    background: #1B2C49 !important;
+}
+html[data-mt-theme="dark"] table.table-striped.table-bordered > thead > tr > th {
+    background: #182A47 !important;
+    color: #E8EEF8 !important;
+}
+html[data-mt-theme="dark"] .neo-module-content .btn-default,
+html[data-mt-theme="dark"] .neo-module-content button:not(.mt-fa-submit) {
+    background: var(--mt-surface-2);
+    color: var(--mt-text);
+    border: 1px solid var(--mt-border-strong);
+}
+
+/* ---- applet windows (asteriskcli, monitoring widgets) ---- */
+html[data-mt-theme="dark"] .appletwindow,
+html[data-mt-theme="dark"] .neo-applet-hd-innerbox,
+html[data-mt-theme="dark"] .mt-disk-panel,
+html[data-mt-theme="dark"] .mt-cfig {
+    background: var(--mt-surface) !important;
+    color: var(--mt-text) !important;
+    border-color: var(--mt-border) !important;
+}
+html[data-mt-theme="dark"] .appletwindow .title,
+html[data-mt-theme="dark"] .neo-applet-title { color: #F2F6FD; }
+
+/* ---- Jalali month grid (mt-calendar): invert surfaces AND the private
+   ink/holiday/today/outside roles on their real selectors ---- */
+html[data-mt-theme="dark"] #calendar_main .mt-jmonth {
+    --mt-cal-ink: #E8EEF8;
+    --mt-cal-muted: #B0BDD2;
+    --mt-cal-line: #2C4263;
+    --mt-cal-surface: #101D33;
+    --mt-cal-soft: #16263F;
+    --mt-cal-danger: #FFADB2;
+}
+/* the range header keeps its own pale gradient; give it a dark surface so
+   the muted subtitle (12px) stays high-contrast in dark mode */
+html[data-mt-theme="dark"] #calendar_main .mt-jmonth-head,
+html[data-mt-theme="dark"] #calendar_main .mt-jmonth-range,
+html[data-mt-theme="dark"] #calendar_main .mt-jmonth-header {
+    background: linear-gradient(110deg, #16263F 25%, #1B2C49 100%) !important;
+    color: #E8EEF8 !important;
+    border-bottom-color: #2C4263 !important;
+}
+/* brand-indigo title is unreadable on the dark header; use the light
+   primary-foreground role instead */
+html[data-mt-theme="dark"] #calendar_main .mt-jmonth-title { color: #B8B9FF !important; }
+html[data-mt-theme="dark"] .mt-jmonth,
+html[data-mt-theme="dark"] .mt-jmonth-table,
+html[data-mt-theme="dark"] .mt-jmonth-table td,
+html[data-mt-theme="dark"] .mt-jmonth-table th {
+    background: var(--mt-surface) !important;
+    color: var(--mt-text) !important;
+    border-color: var(--mt-border) !important;
+}
+html[data-mt-theme="dark"] #calendar_main .mt-jday-open { color: var(--mt-text) !important; }
+html[data-mt-theme="dark"] #calendar_main .mt-jday-open:hover { background: #1B2C49 !important; }
+html[data-mt-theme="dark"] #calendar_main .mt-jfriday .mt-jday-open,
+html[data-mt-theme="dark"] #calendar_main .mt-jholiday .mt-jday-open { color: var(--mt-danger-fg) !important; }
+html[data-mt-theme="dark"] #calendar_main .mt-jtoday .mt-jday-open {
+    background: var(--mt-accent-tint) !important;
+    color: var(--mt-accent-fg) !important;
+}
+html[data-mt-theme="dark"] #calendar_main .mt-jtoday .mt-jday-open:hover { background: #493327 !important; }
+html[data-mt-theme="dark"] #calendar_main .mt-jtoday-label { color: var(--mt-accent-fg) !important; }
+html[data-mt-theme="dark"] #calendar_main .mt-joutside .mt-jday-open,
+html[data-mt-theme="dark"] #calendar_main .mt-joutside .mt-jday-number { color: #7488A6 !important; }

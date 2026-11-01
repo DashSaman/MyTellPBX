@@ -123,6 +123,10 @@
         <button type="button" class="mt-topbar-burger" id="mt-burger" aria-label="menu">
             <i class="fa fa-bars"></i>
         </button>
+        <button type="button" class="mt-theme-toggle" id="mt-theme-toggle"
+                aria-pressed="false" aria-label="حالت تاریک" title="تغییر به حالت تاریک">
+            <i class="fa fa-moon" aria-hidden="true"></i>
+        </button>
     </div>
 
     <!-- Profile Info and Notifications -->
