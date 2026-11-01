@@ -46,6 +46,23 @@
                 </button>
             </form>
         </li>
+        {if $MT_CAN_ENTER_DESK}
+        <!-- MyTellPBX v7.2.0: admin-only desk entry (theme-owned; the bridge
+             module enforces authorization independently) -->
+        <li id="mt-menu-mytelldesk">
+            <a href="#" data-mt-disclosure-only="1">
+                <i class="fa fa-desktop"></i>
+                <span>ورود به میز کار</span>
+            </a>
+            <ul>
+                <li>
+                    <a href="/modules/mytellpbxopdesk/index.php">
+                        <span>مای‌تل دسک</span>
+                    </a>
+                </li>
+            </ul>
+        </li>
+        {/if}
         {foreach from=$arrMainMenu key=idMenu item=menu name=menuMain}
             {if $idMenu eq $idMainMenuSelected}
                 <li class="active opened active">

@@ -43,6 +43,23 @@ function themeSetup(&$smarty, $selectedMenu, $pdbACL, $pACL, $idUser)
     $smarty->assign("BRAND_NAME", 'مای‌تل');
     $smarty->assign("BRAND_NAME_LATIN", 'MyTel');
     $smarty->assign("BRAND_TAGLINE", 'سامانه مدیریت مرکز تماس');
+
+    /* MyTellDesk (v7.2.0): admin-only entry points — the bridge itself
+       re-checks authorization; this flag only controls presentation. */
+    $canEnterDesk = false;
+    if ($idUser && is_object($pdbACL)) {
+        $res = $pdbACL->fetchTable(
+            'SELECT COUNT(*) FROM acl_membership M JOIN acl_user U ON U.id = M.id_user '
+            . 'WHERE U.id = ? AND M.id_group = 1', false, array($idUser));
+        $canEnterDesk = is_array($res) && isset($res[0][0]) && ((int)$res[0][0] > 0);
+    }
+    $smarty->assign('MT_CAN_ENTER_DESK', $canEnterDesk ? 1 : 0);
+
+    /* homepage detection for the desk banner: default module (no menu param
+       or menu=index) or a bare / or /index.php request */
+    $reqMenu = isset($_GET['menu']) ? trim((string)$_GET['menu']) : '';
+    $smarty->assign('MT_IS_HOMEPAGE', ($reqMenu === '' || $reqMenu === 'index') ? 1 : 0);
+
     $extension = $pACL->getUserExtension($_SESSION['issabel_user']);
     $smarty->assign(array(
         "ABOUT_ISSABEL2"            =>  _tr('About Issabel'),

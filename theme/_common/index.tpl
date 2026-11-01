@@ -15,6 +15,7 @@
     <link rel="stylesheet" href="{$WEBPATH}themes/{$THEMENAME}/css/applet.css?v=122">
     <link rel="stylesheet" href="{$WEBPATH}themes/{$THEMENAME}/css/mt-calendar.css?v=122">
     <link rel="stylesheet" href="{$WEBPATH}themes/{$THEMENAME}/css/mt-secadv.css?v=122">
+    <link rel="stylesheet" href="{$WEBPATH}themes/{$THEMENAME}/css/mytelldesk-card.css?v=122">
     <link rel="stylesheet" media="screen" type="text/css" href="{$WEBPATH}libs/js/sticky_note/sticky_note.css" >
 
     {$HEADER_LIBS_JQUERY}
@@ -78,7 +79,7 @@
     {$HEADER}
     {$HEADER_MODULES}
     </head>
-    <body leftmargin="0" topmargin="0" marginwidth="0" marginheight="0" class="mt-body page-body" {$BODYPARAMS}>
+    <body leftmargin="0" topmargin="0" marginwidth="0" marginheight="0" class="mt-body page-body" {$BODYPARAMS}{if $MT_CAN_ENTER_DESK} data-mt-desk="1"{/if}>
     <div class="page-container mt-shell">
 
         {$MENU}
@@ -92,6 +93,21 @@
                         <div class="div_msg_errors_dismiss"><i class="fa fa-lg fa-remove" onclick="hide_message_error();"></i></div>
                         <div class="div_msg_errors_content" {if empty($mb_title)}style="margin-left: 0;"{/if}>{$mb_message}</div>
                     </div>
+                    {/if}
+                    {if $MT_CAN_ENTER_DESK && $MT_IS_HOMEPAGE}
+                    <!-- MyTellPBX v7.2.0: MyTellDesk entry banner (admin home).
+                         theme.js syncHomeCards() re-inserts it after ajax module
+                         refreshes; single link, CTA is a styled span. -->
+                    <a class="mt-desk-banner" id="mt-desk-banner" href="/modules/mytellpbxopdesk/index.php">
+                        <div class="mt-desk-banner-art">
+                            <img src="{$WEBPATH}themes/{$THEMENAME}/images/mytelldesk-card.svg" alt="" width="640" height="400" />
+                        </div>
+                        <div class="mt-desk-banner-text">
+                            <b>مای‌تل دسک</b>
+                            <small>میز کار اپراتور مرکز تماس</small>
+                            <span class="mt-desk-cta">ورود به میز کار</span>
+                        </div>
+                    </a>
                     {/if}
                     {$CONTENT}
                 </div>
@@ -182,7 +198,7 @@ $(document).ready(function(e) {
         <script src="{$WEBPATH}themes/{$THEMENAME}/js/neon-custom.js"></script>
         <script src="{$WEBPATH}themes/{$THEMENAME}/vendor/echarts/echarts.min.js"></script>
         <script src="{$WEBPATH}themes/{$THEMENAME}/js/mytel-charts.js?v=100"></script>
-        <script src="{$WEBPATH}themes/{$THEMENAME}/js/theme.js?v=122"></script>
+        <script src="{$WEBPATH}themes/{$THEMENAME}/js/theme.js?v=124"></script>
         <script src="{$WEBPATH}themes/{$THEMENAME}/js/mt-calendar.js?v=122"></script>
         <script src="{$WEBPATH}themes/{$THEMENAME}/js/mt-date-icons.js?v=122"></script>
         <script src="{$WEBPATH}themes/{$THEMENAME}/js/mt-cdr-filters.js?v=122"></script>

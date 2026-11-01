@@ -1,0 +1,131 @@
+/* ============================================================
+   MyTellPBX — MyTellDesk entry banner (admin home page)
+   Glass card over the v2 navy aesthetic. RTL: text right,
+   artwork left. Pairs with images/mytelldesk-card.svg.
+   ============================================================ */
+
+.mt-desk-banner {
+    display: flex;
+    flex-direction: row; /* rtl => first child (art) sits left */
+    align-items: center;
+    gap: 26px;
+    width: 100%;
+    max-width: 1440px;
+    min-height: 220px;
+    margin: 0 0 18px;
+    padding: 22px 30px;
+    border-radius: 18px;
+    text-decoration: none;
+    position: relative;
+    overflow: hidden;
+    direction: rtl;
+    background:
+        radial-gradient(620px 320px at 12% 112%, rgba(255, 138, 0, .16), transparent 62%),
+        radial-gradient(560px 300px at 88% -12%, rgba(94, 99, 255, .20), transparent 60%),
+        linear-gradient(180deg, #262B58 0%, #1B1E48 52%, #12153B 100%);
+    border: 1px solid rgba(255, 255, 255, .16);
+    box-shadow:
+        inset 0 1px 0 rgba(255, 255, 255, .10),
+        0 18px 44px rgba(10, 14, 34, .38);
+    transition: transform .22s ease, box-shadow .22s ease, border-color .22s ease;
+}
+
+.mt-desk-banner:hover,
+.mt-desk-banner:focus-visible {
+    transform: translateY(-2px);
+    border-color: rgba(255, 138, 0, .55);
+    box-shadow:
+        inset 0 1px 0 rgba(255, 255, 255, .12),
+        0 22px 54px rgba(10, 14, 34, .46),
+        0 0 0 3px rgba(255, 138, 0, .16);
+}
+
+.mt-desk-banner:focus-visible {
+    outline: 2px solid #FF8A00;
+    outline-offset: 3px;
+}
+
+/* soft orange glow behind the illustration */
+.mt-desk-banner-art {
+    flex: 0 0 auto;
+    width: 288px;
+    max-width: 34%;
+    position: relative;
+}
+.mt-desk-banner-art::before {
+    content: '';
+    position: absolute;
+    inset: -12% -8%;
+    background: radial-gradient(closest-side, rgba(255, 138, 0, .22), transparent 72%);
+    pointer-events: none;
+}
+.mt-desk-banner-art img {
+    display: block;
+    width: 100%;
+    height: auto;
+}
+
+.mt-desk-banner-text {
+    flex: 1 1 auto;
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start; /* rtl start = right */
+    gap: 8px;
+    color: #fff;
+}
+.mt-desk-banner-text b {
+    font-family: Vazirmatn, Tahoma, sans-serif;
+    font-size: 32px;
+    font-weight: 800;
+    line-height: 1.25;
+    color: #fff;
+    background: linear-gradient(180deg, #FFFFFF 34%, #C8CEF2 100%);
+    -webkit-background-clip: text;
+    background-clip: text;
+    -webkit-text-fill-color: transparent;
+}
+.mt-desk-banner-text small {
+    font-family: Vazirmatn, Tahoma, sans-serif;
+    font-size: 16px;
+    font-weight: 400;
+    color: rgba(232, 237, 250, .82);
+}
+
+.mt-desk-cta {
+    margin-top: 10px;
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    min-height: 44px;
+    padding: 10px 26px;
+    border-radius: 999px;
+    background: linear-gradient(135deg, #FF9A1F, #F57600);
+    color: #14164A;
+    font-family: Vazirmatn, Tahoma, sans-serif;
+    font-size: 15px;
+    font-weight: 800;
+    box-shadow: 0 10px 26px rgba(255, 138, 0, .38), inset 0 1px 0 rgba(255, 255, 255, .35);
+    transition: filter .18s ease, transform .18s ease;
+}
+.mt-desk-banner:hover .mt-desk-cta { filter: brightness(1.06); transform: translateY(-1px); }
+
+/* ── mobile: stack without overflow ── */
+@media (max-width: 700px) {
+    .mt-desk-banner {
+        flex-direction: column-reverse; /* art under text */
+        text-align: center;
+        gap: 14px;
+        min-height: 0;
+        padding: 20px 18px;
+    }
+    .mt-desk-banner-art { width: 62%; max-width: 260px; }
+    .mt-desk-banner-text { align-items: center; }
+    .mt-desk-banner-text b { font-size: 26px; }
+    .mt-desk-banner-text small { font-size: 14px; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .mt-desk-banner, .mt-desk-cta { transition: none; }
+    .mt-desk-banner:hover, .mt-desk-banner:hover .mt-desk-cta { transform: none; }
+}

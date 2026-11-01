@@ -32,9 +32,13 @@ if ($loggedIn && !$isAdmin) {
     // بدون مجوز — نه توکن، نه خطای سرویس
 } elseif ($loggedIn) {
     $bridgePw = '';
-    // فایل اختصاصی رمز پل (خواندنی برای وب‌کاربر)؛ در نبودش، فایل env کامل
+    // فایل اختصاصی رمز پل: هر «کلید=مقدار» خطی پارس می‌شود؛ وگرنه کل
+    // محتوای تک‌خطی فایل — هرچند درونش «=» باشد (مثل پایه۶۴) — خودِ
+    // گذرواژه است، چون کار این فایل فقط همین است. فایل env عمومی فقط
+    // قالب کلید=مقدار دارد.
     $pwFiles = array('/etc/mytellpbx/opdesk-bridge.pw', '/etc/mytellpbx/opdesk.env');
     foreach ($pwFiles as $envFile) {
+        $dedicatedPw = ($envFile === '/etc/mytellpbx/opdesk-bridge.pw');
         if (!is_readable($envFile)) {
             continue;
         }
@@ -42,6 +46,12 @@ if ($loggedIn && !$isAdmin) {
             if (preg_match('/^OPDESK_BRIDGE_PW=(.+)$/', $line, $m)) {
                 $bridgePw = trim($m[1]);
                 break;
+            }
+        }
+        if ($bridgePw === '' && $dedicatedPw) {
+            $raw = trim((string)file_get_contents($envFile));
+            if ($raw !== '' && strpos($raw, "\n") === false) {
+                $bridgePw = $raw;
             }
         }
         if ($bridgePw !== '') {
@@ -110,7 +120,7 @@ a{color:#FF8A00;text-decoration:none;font-weight:700}
   <p>در حال انتقال امن…</p>
   <script>
   var t = <?= json_encode($token, JSON_HEX_APOS | JSON_HEX_QUOT) ?>;
-  var u = '/opdesk/#t=' + encodeURIComponent(t);
+  var u = '/MytellDesk/#t=' + encodeURIComponent(t);
   setTimeout(function(){ window.location.replace(u); }, 500);
   </script>
 <?php else: ?>

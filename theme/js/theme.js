@@ -635,8 +635,11 @@
             li.className = 'root-level';
             li.dataset.mtDashRoot = '1';
             li.innerHTML = '<a href="index.php?menu=index"><i class="fa fa-dashboard"></i><span>داشبورد</span></a>';
-            /* insert right after the search box, before the first group label */
-            var anchor = menu.querySelector('.mt-menu-label') || menu.querySelector('li.root-level');
+            /* insert right after the search box: before the MyTellDesk group
+               (mt-menu-mytelldesk) when present, else before the first group */
+            var anchor = menu.querySelector('#mt-menu-mytelldesk')
+                       || menu.querySelector('.mt-menu-label')
+                       || menu.querySelector('li.root-level');
             menu.insertBefore(li, anchor);
             var onLanding = /menu=index/.test(location.search) ||
                 (!/menu=/.test(location.search) && /index\.php$/.test(location.pathname.replace(/\/$/, '')));
@@ -1081,11 +1084,55 @@
         };
         setTimeout(cleanPerlNoise, 900);
 
-        /* ---------- MyTel WebPhone launch card on the portal dashboard ---------- */
-        var addWebphoneCard = function () {
-            if (new URLSearchParams(location.search).get('menu') !== 'index') return;
+        /* ---------- homepage launcher cards (single sync, no duplicates) ----
+           Order inside .neo-module-content: MyTellDesk banner → WebPhone
+           card → dashboard content. Server renders the banner on the first
+           load; ajax module refreshes replace the content, so both cards are
+           re-ensured here by id. */
+        var isHomePage = function () {
+            if (new URLSearchParams(location.search).get('menu') !== 'index') return false;
+            return !!document.querySelector('.neo-module-content');
+        };
+        var ensureDeskBanner = function (c) {
+            /* eligibility comes from the SERVER (body[data-mt-desk]) — the
+               banner is admin-only; ajax restoration never widens it */
+            if (!document.body || !document.body.hasAttribute('data-mt-desk')) return null;
+            if (c.querySelector('#mt-desk-banner')) return null;
+            var a = document.createElement('a');
+            a.className = 'mt-desk-banner';
+            a.id = 'mt-desk-banner';
+            a.href = '/modules/mytellpbxopdesk/index.php';
+            a.innerHTML =
+                '<div class="mt-desk-banner-art">' +
+                    '<img src="/themes/mytel/images/mytelldesk-card.svg" alt="" width="640" height="400">' +
+                '</div>' +
+                '<div class="mt-desk-banner-text">' +
+                    '<b>مای‌تل دسک</b>' +
+                    '<small>میز کار اپراتور مرکز تماس</small>' +
+                    '<span class="mt-desk-cta">ورود به میز کار</span>' +
+                '</div>';
+            return a;
+        };
+        var syncHomeCards = function () {
+            if (!isHomePage()) return;
             var c = document.querySelector('.neo-module-content');
-            if (!c || document.getElementById('mt-webphone-card')) return;
+            if (!c) return;
+            var banner = c.querySelector('#mt-desk-banner');
+            if (!banner) {
+                banner = ensureDeskBanner(c);
+                if (banner) c.insertBefore(banner, c.firstChild);
+            } else if (c.firstChild !== banner) {
+                c.insertBefore(banner, c.firstChild);
+            }
+            var webphone = c.querySelector('#mt-webphone-card');
+            if (webphone && banner && webphone.previousElementSibling !== banner) {
+                c.insertBefore(webphone, banner.nextSibling);
+            }
+        };
+        var addWebphoneCard = function () {
+            if (!isHomePage()) return;
+            var c = document.querySelector('.neo-module-content');
+            if (!c || document.getElementById('mt-webphone-card')) { syncHomeCards(); return; }
             var card = document.createElement('a');
             card.id = 'mt-webphone-card';
             card.className = 'mt-webphone-card';
@@ -1099,10 +1146,11 @@
                     '<small>WebPhone — تماس صوتی مستقیم از داخل مرورگر</small>' +
                 '</div>' +
                 '<div class="mt-webphone-action"><i class="fa fa-angle-left"></i></div>';
-            c.insertBefore(card, c.firstChild);
+            var banner = c.querySelector('#mt-desk-banner');
+            c.insertBefore(card, banner ? banner.nextSibling : c.firstChild);
         };
-        setTimeout(addWebphoneCard, 1200);
-        $(document).ajaxComplete(function () { setTimeout(addWebphoneCard, 300); });
+        setTimeout(function () { addWebphoneCard(); syncHomeCards(); }, 1200);
+        $(document).ajaxComplete(function () { setTimeout(function () { addWebphoneCard(); syncHomeCards(); }, 300); });
 
         /* ---------- page helpers: contextual Persian guidance ---------- */
         var addGuide = function (menuId, html) {
