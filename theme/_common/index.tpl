@@ -30,7 +30,7 @@
     <link rel="stylesheet" href="{$WEBPATH}themes/{$THEMENAME}/css/mt-calendar.css?v=122">
     <link rel="stylesheet" href="{$WEBPATH}themes/{$THEMENAME}/css/mt-secadv.css?v=122">
     <link rel="stylesheet" href="{$WEBPATH}themes/{$THEMENAME}/css/theme-dark.css?v=731">
-    <link rel="stylesheet" href="{$WEBPATH}themes/{$THEMENAME}/css/theme-toggle.css?v=731">
+    <link rel="stylesheet" href="{$WEBPATH}themes/{$THEMENAME}/css/theme-toggle.css?v=732">
     <link rel="stylesheet" href="{$WEBPATH}themes/{$THEMENAME}/css/mytelldesk-card.css?v=731">
     <link rel="stylesheet" media="screen" type="text/css" href="{$WEBPATH}libs/js/sticky_note/sticky_note.css" >
 
@@ -241,7 +241,7 @@ $(document).ready(function(e) {
         <script src="{$WEBPATH}themes/{$THEMENAME}/js/neon-custom.js"></script>
         <script src="{$WEBPATH}themes/{$THEMENAME}/vendor/echarts/echarts.min.js"></script>
         <script src="{$WEBPATH}themes/{$THEMENAME}/js/mytel-charts.js?v=100"></script>
-        <script src="{$WEBPATH}themes/{$THEMENAME}/js/theme.js?v=731"></script>
+        <script src="{$WEBPATH}themes/{$THEMENAME}/js/theme.js?v=732"></script>
         <script src="{$WEBPATH}themes/{$THEMENAME}/js/mt-calendar.js?v=122"></script>
         <script src="{$WEBPATH}themes/{$THEMENAME}/js/mt-date-icons.js?v=122"></script>
         <script src="{$WEBPATH}themes/{$THEMENAME}/js/mt-cdr-filters.js?v=122"></script>

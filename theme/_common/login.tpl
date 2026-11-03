@@ -21,14 +21,14 @@
 	<link rel="stylesheet" href="{$WEBPATH}themes/{$THEMENAME}/css/fonts.css?v=120">
 	<link rel="stylesheet" href="{$WEBPATH}themes/{$THEMENAME}/css/tokens.css?v=120">
 	<link rel="stylesheet" href="{$WEBPATH}themes/{$THEMENAME}/css/login.css?v=731">
-	<link rel="stylesheet" href="{$WEBPATH}themes/{$THEMENAME}/css/theme-toggle.css?v=731">
+	<link rel="stylesheet" href="{$WEBPATH}themes/{$THEMENAME}/css/theme-toggle.css?v=732">
 	{$HEADER_LIBS_JQUERY}
 </head>
 <body class="mt-login-body">
 
 <button type="button" class="mt-theme-toggle mt-login-theme-toggle" id="mt-theme-toggle"
         aria-pressed="false" aria-label="حالت تاریک" title="تغییر به حالت تاریک">
-    <i class="fa fa-moon" aria-hidden="true"></i>
+    <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20.6 13.2A8.6 8.6 0 0 1 10.8 3.4a8.6 8.6 0 1 0 9.8 9.8Z"/></svg>
 </button>
 
 <div class="mt-login-stage">
@@ -108,8 +108,10 @@
 			var dark = t === 'dark';
 			b.setAttribute('aria-pressed', dark ? 'true' : 'false');
 			b.title = dark ? 'تغییر به حالت روشن' : 'تغییر به حالت تاریک';
-			var i = b.querySelector('i');
-			if (i) i.className = dark ? 'fa fa-sun' : 'fa fa-moon';
+			/* v7.3.2: inline SVG swap — loaded FA subset lacks sun/moon glyphs */
+			b.innerHTML = dark
+				? '<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="4.4"/><path d="M12 2.5v2.2M12 19.3v2.2M4.3 4.3l1.6 1.6M18.1 18.1l1.6 1.6M2.5 12h2.2M19.3 12h2.2M4.3 19.7l1.6-1.6M18.1 5.9l1.6-1.6"/></svg>'
+				: '<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20.6 13.2A8.6 8.6 0 0 1 10.8 3.4a8.6 8.6 0 1 0 9.8 9.8Z"/></svg>';
 		};
 		b.addEventListener('click', function () {
 			var next = document.documentElement.getAttribute('data-mt-theme') === 'dark' ? 'light' : 'dark';

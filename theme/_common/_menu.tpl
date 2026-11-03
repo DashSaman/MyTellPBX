@@ -131,7 +131,7 @@
         </button>
         <button type="button" class="mt-theme-toggle" id="mt-theme-toggle"
                 aria-pressed="false" aria-label="حالت تاریک" title="تغییر به حالت تاریک">
-            <i class="fa fa-moon" aria-hidden="true"></i>
+            <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20.6 13.2A8.6 8.6 0 0 1 10.8 3.4a8.6 8.6 0 1 0 9.8 9.8Z"/></svg>
         </button>
     </div>
 

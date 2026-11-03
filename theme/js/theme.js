@@ -153,6 +153,10 @@
            the native 'storage' event. */
         (function mtThemeController() {
             var btn = document.getElementById('mt-theme-toggle');
+            /* v7.3.2: inline SVG icons — the loaded FA subset has no
+               fa-sun/fa-moon glyphs, which rendered an empty button. */
+            var SUN = '<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="4.4"/><path d="M12 2.5v2.2M12 19.3v2.2M4.3 4.3l1.6 1.6M18.1 18.1l1.6 1.6M2.5 12h2.2M19.3 12h2.2M4.3 19.7l1.6-1.6M18.1 5.9l1.6-1.6"/></svg>';
+            var MOON = '<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20.6 13.2A8.6 8.6 0 0 1 10.8 3.4a8.6 8.6 0 1 0 9.8 9.8Z"/></svg>';
             var apply = function (t, persist) {
                 document.documentElement.setAttribute('data-mt-theme', t);
                 document.documentElement.style.colorScheme = t;
@@ -161,8 +165,7 @@
                     var dark = t === 'dark';
                     btn.setAttribute('aria-pressed', dark ? 'true' : 'false');
                     btn.title = dark ? 'تغییر به حالت روشن' : 'تغییر به حالت تاریک';
-                    var icon = btn.querySelector('i');
-                    if (icon) icon.className = dark ? 'fa fa-sun' : 'fa fa-moon';
+                    btn.innerHTML = dark ? SUN : MOON;
                 }
                 /* live-sync same-origin frames (the admin iframe has its own
                    pre-paint for loads; this covers an already-open frame) */
