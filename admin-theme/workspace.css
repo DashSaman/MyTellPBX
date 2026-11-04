@@ -1,0 +1,167 @@
+/* Presentation only. Stock LTR PBX form order/direction stays untouched. */
+@import url('/themes/mytel/css/fonts.css?v=740');
+@import url('/themes/mytel/css/tokens.css?v=740');
+
+:root { --mt-muted: var(--mt-text-muted); --mt-navy: var(--mt-side-bg); }
+:root[data-mt-theme] { background: var(--mt-bg); }
+:root body { background: var(--mt-bg); color: var(--mt-text); font-family: var(--mt-font); font-size: 14px; line-height: 1.65; }
+:root body a { color: var(--mt-primary-fg); }
+:root body a:hover { color: var(--mt-primary-fg-hover); }
+:root body :focus-visible { outline: 3px solid var(--mt-focus) !important; outline-offset: 3px; }
+:root body :is(#page, #page_body, .section, .container) { background: transparent; color: var(--mt-text); }
+:root body .content { padding: 24px; padding-bottom: 92px; }
+:root body #footer { width: calc(100% - 20px); max-width: calc(100% - 20px); box-sizing: border-box; }
+:root body .content :is(h1,h2,h3,h4,h5,h6,strong) { color: var(--mt-text); }
+
+/* Preserve native menu metrics (including the 3-column 600px dropdown). */
+:root body .navbar.is-dark { background: var(--mt-side-bg) !important; box-shadow: none !important; border: 0 !important; border-bottom: 1px solid #304763 !important; min-height: 60px; }
+:root body .navbar.is-dark :is(.navbar-link, .navbar-item) { color: #C0CEE1; }
+:root body .navbar.is-dark .navbar-item.has-dropdown:hover .navbar-link { color: #FFFFFF !important; background: #254262 !important; }
+:root body .navbar.is-dark .navbar-brand img { filter: none; }
+:root body .navbar.is-dark .navbar-dropdown,
+:root body .navbar.is-dark .navbar-dropdown.multicolumn {
+    background: var(--mt-surface) !important; border: 0 !important; border-radius: 10px !important;
+    padding: 8px 0 !important; box-shadow: 0 0 0 1px var(--mt-border), var(--mt-shadow-3) !important;
+}
+:root body .navbar.is-dark .navbar-dropdown :is(a.navbar-item, .navbar-item) { color: var(--mt-text) !important; background: transparent !important; }
+:root body .navbar.is-dark .navbar-dropdown a.navbar-item:hover { background: var(--mt-primary-tint) !important; color: var(--mt-primary-fg) !important; }
+:root body .navbar.is-dark .navbar-dropdown a.navbar-item.is-active { color: var(--mt-primary-fg) !important; background: var(--mt-primary-tint) !important; box-shadow: inset 3px 0 0 var(--mt-primary-fg); border-radius: 0; }
+:root body .navbar.is-dark .navbar-dropdown a.navbar-item::after { color: var(--mt-text-muted); font-size: 11px; opacity: 1; }
+:root body .navbar-divider { background: var(--mt-border) !important; }
+:root body .navbar.is-dark .mt-admin-theme-toggle {
+    width: 44px; min-width: 44px; height: 44px; min-height: 44px; padding: 0;
+    display: inline-flex; align-items: center; justify-content: center; flex: 0 0 44px;
+    margin: 0 10px; border: 1px solid #7185A2; border-radius: 10px;
+    background: #192E48 !important; color: #EAF0FA !important; cursor: pointer;
+}
+:root body .navbar.is-dark .mt-admin-theme-toggle:hover { background: #254262 !important; color: #FFFFFF !important; }
+:root body .mt-admin-theme-toggle svg { width: 20px; height: 20px; pointer-events: none; }
+:root body #button_reload {
+    /* No !important display: upstream .hide() MUST still hide this control. */
+    background: #FFC28B !important; color: #402209 !important; border: 1px solid #D68C4E !important;
+    text-shadow: none; box-shadow: none !important; border-radius: 8px !important;
+}
+:root body #button_reload::after { color: #5B3413 !important; }
+:root body #button_reload:hover { background: #FFD4AC !important; color: #402209 !important; box-shadow: none !important; }
+
+/* Content surfaces: no white chips or pale rules left in dark forms. */
+:root[data-mt-theme] body :is(.box, .panel, .card, .notification, .message, .infobox, .content > form, form.popover-form, form.checksubmit, #mainform, fieldset) {
+    background: var(--mt-surface) !important; color: var(--mt-text) !important; border-color: var(--mt-border) !important;
+    border-radius: 12px !important; box-shadow: var(--mt-shadow-1) !important; background-image: none !important;
+}
+:root[data-mt-theme] body :is(.panel-heading, .message-header, .ui-widget-header) { background: var(--mt-surface-2) !important; color: var(--mt-text) !important; border-color: var(--mt-border) !important; background-image: none !important; }
+:root[data-mt-theme] body .moduleheader { background: var(--mt-surface-2) !important; color: var(--mt-text); border-color: var(--mt-border); }
+:root[data-mt-theme] body .content:not(:has(form, table)):has(> a:nth-of-type(3)),
+:root[data-mt-theme] body .content:not(:has(form, table)):has(> a:nth-of-type(3)) > h2 { background: var(--mt-surface) !important; border-color: var(--mt-border); }
+:root[data-mt-theme] body .content :is(h2#title, tr.guielToggle td, tr.guielToggle h5, form h5) {
+    background: var(--mt-surface-2) !important; color: var(--mt-text) !important;
+    border-color: var(--mt-border) !important; background-image: none !important; font-weight: 650;
+}
+:root[data-mt-theme] body .content h2#title { padding: 18px 20px !important; font-size: 18px !important; line-height: 1.5; gap: 12px; border-radius: 12px 12px 0 0 !important; }
+:root[data-mt-theme] body .content h2#title::before { background: var(--mt-primary-fg); width: 3px; }
+:root[data-mt-theme] body .content :is(h2#title .mt-sub, tr.guielToggle .mt-sub) { background: transparent !important; color: var(--mt-text-muted) !important; border: 0; margin: 0; padding: 3px 0; font-size: 12px; }
+:root[data-mt-theme] body :is(.content label, #mainform label, form td, .label) { color: var(--mt-text) !important; }
+:root[data-mt-theme] body :is(form td, form th) { border-color: var(--mt-border) !important; }
+:root[data-mt-theme] body :is(.mt-sub, .deftext, .help, .help-block, .content small, #instructions, .mt-note) { color: var(--mt-text-muted) !important; }
+:root[data-mt-theme] body :is(.button.is-primary, #rnavadd) :is(.mt-sub, .mt-sub-t) { color: #FFFFFF !important; }
+:root[data-mt-theme] body :is(.button.is-primary, #rnavadd) :is(span, strong, i) { color: #FFFFFF !important; }
+:root[data-mt-theme] body .tag.is-info,
+:root[data-mt-theme] body .tag.is-info span { background: var(--mt-info-tint); color: var(--mt-info-fg) !important; }
+:root[data-mt-theme] body #recordButton { background: var(--mt-danger-fill) !important; color: #FFFFFF !important; }
+:root[data-mt-theme] body .content .mt-jhint { color: var(--mt-text-muted) !important; }
+:root[data-mt-theme] body .content h3 { color: var(--mt-text) !important; }
+:root[data-mt-theme="dark"] body .content span[style*="color: black"],
+:root[data-mt-theme="dark"] body .content span[style*="color: rgb(0, 0, 0)"] { color: var(--mt-text) !important; }
+:root[data-mt-theme] body :is(#footer_text, #footer a, footer a, .footer a) { color: var(--mt-text-muted) !important; }
+:root[data-mt-theme] body :is(.mt-note, .attention) { background: var(--mt-surface-2) !important; border-color: var(--mt-border) !important; }
+:root[data-mt-theme] body .infohelp { background: var(--mt-primary-tint); color: var(--mt-primary-fg) !important; }
+:root[data-mt-theme] body .infohelp > span { background: #112239 !important; color: #EAF0FA !important; border: 1px solid #586C87 !important; max-width: min(340px, 78vw); }
+:root[data-mt-theme] body :is(.mt-pagedesc-panel, .help-panel, .page-desc, #page-desc) { background: var(--mt-surface) !important; color: var(--mt-text) !important; border-color: var(--mt-border) !important; }
+:root[data-mt-theme] body :is(.mt-pagedesc-toggle, .mt-pd-example) { background: var(--mt-surface-2) !important; color: var(--mt-primary-fg) !important; border-color: var(--mt-border-strong) !important; }
+
+/* Standard controls: legible resting, focused, selected and disabled states. */
+:root[data-mt-theme] body :is(input:not([type]), input[type="text"], input[type="password"], input[type="email"], input[type="number"], input[type="search"], input[type="date"], input[type="time"], select, textarea, .chosen-single, .chosen-choices) {
+    background: var(--mt-control-bg) !important; color: var(--mt-text) !important; border: 1px solid var(--mt-control-border) !important;
+    background-image: none !important; box-shadow: none !important; font: 13px/1.6 var(--mt-font) !important; max-width: 100%;
+}
+:root[data-mt-theme] body :is(input, textarea)::placeholder { color: var(--mt-text-faint) !important; opacity: 1; }
+:root[data-mt-theme] body :is(input, select, textarea):disabled { background: var(--mt-surface-2) !important; color: var(--mt-text-muted) !important; opacity: 1; }
+:root[data-mt-theme] body :is(input[type="checkbox"], input[type="radio"]) { accent-color: var(--mt-primary); }
+:root[data-mt-theme] body :is(.chosen-drop, .chosen-results, .chosen-results li) { background: var(--mt-surface) !important; color: var(--mt-text) !important; border-color: var(--mt-border) !important; }
+:root[data-mt-theme] body .chosen-results :is(li.highlighted, li.result-selected) { background: var(--mt-primary-tint) !important; color: var(--mt-primary-fg) !important; }
+:root[data-mt-theme] body .radiotoggle > label { background: var(--mt-surface-2) !important; color: var(--mt-text-muted) !important; border: 1px solid var(--mt-control-border) !important; border-radius: 6px !important; font-size: 12px !important; text-shadow: none; }
+:root[data-mt-theme] body .radiotoggle > :is(input:checked + label, label:has(input:checked)) { background: var(--mt-primary-tint) !important; color: var(--mt-primary-fg) !important; border-color: var(--mt-primary-fg) !important; }
+:root[data-mt-theme] body label.is-checkbox { background: var(--mt-surface-2) !important; color: var(--mt-text) !important; border-color: var(--mt-control-border) !important; }
+:root[data-mt-theme] body :is(label.is-checkbox.checked, label.is-checkbox:has(input:checked)) { background: var(--mt-primary) !important; color: #FFFFFF !important; }
+:root[data-mt-theme] body :is(label.is-checkbox.checked, label.is-checkbox:has(input:checked)) span { color: #FFFFFF !important; }
+:root[data-mt-theme] body .mt-jhint { color: var(--mt-text-muted) !important; }
+:root[data-mt-theme] body h3 { color: var(--mt-text) !important; }
+:root[data-mt-theme="dark"] body span:is([style*="color:black" i], [style*="color: black" i], [style*="color:#000" i], [style*="color: #000" i]) { color: var(--mt-text) !important; }
+
+:root[data-mt-theme] body :is(.button, input[type="submit"], input[type="button"], input[type="reset"]) { background: var(--mt-surface-2) !important; color: var(--mt-text) !important; border: 1px solid var(--mt-control-border) !important; box-shadow: none !important; text-shadow: none; }
+:root[data-mt-theme] body :is(.button.is-primary, input[type="submit"], nav.rnav #rnavadd) { background: var(--mt-primary) !important; color: #FFFFFF !important; border-color: var(--mt-primary) !important; }
+:root[data-mt-theme] body .button.is-danger { background: var(--mt-danger-tint) !important; color: var(--mt-danger-fg) !important; border-color: var(--mt-danger-fg) !important; }
+:root[data-mt-theme] body :is(.button.is-link, .button.is-text) { color: var(--mt-primary-fg) !important; background: var(--mt-surface-2) !important; }
+:root[data-mt-theme] body :is(.button, input[type="submit"]):disabled { background: var(--mt-surface-2) !important; color: var(--mt-text-muted) !important; border-color: var(--mt-border) !important; opacity: 1; }
+
+/* Native record navigation stays on its existing side. */
+:root[data-mt-theme] body :is(nav.rnav, nav.rnav ul, nav.rnav li) { background: var(--mt-surface) !important; border-color: var(--mt-border) !important; box-shadow: none !important; }
+:root[data-mt-theme] body nav.rnav { border-radius: 12px !important; }
+:root[data-mt-theme] body nav.rnav a:not(.button) { color: var(--mt-text) !important; background: transparent !important; }
+:root[data-mt-theme] body nav.rnav :is(a.is-active, a[aria-current="page"], li.current > a):not(.button) { background: var(--mt-primary-tint) !important; color: var(--mt-primary-fg) !important; border-inline-start-color: var(--mt-primary-fg) !important; }
+:root[data-mt-theme] body nav.rnav a:not(.button):hover { background: var(--mt-surface-2) !important; color: var(--mt-primary-fg) !important; }
+:root[data-mt-theme] body nav.rnav .mt-sub { color: var(--mt-text-muted) !important; }
+:root[data-mt-theme] body a.current { background: var(--mt-primary-tint) !important; color: var(--mt-primary-fg) !important; }
+
+/* Every installed report module, including legacy inline/gradient tables. */
+:root[data-mt-theme] body :is(table, .table-container, #asterniccontent, #asternicmain) { background-color: var(--mt-surface); color: var(--mt-text); border-color: var(--mt-border) !important; }
+:root[data-mt-theme] body table :is(thead, th, thead td) { background: var(--mt-table-head) !important; color: var(--mt-text) !important; border-color: var(--mt-border) !important; background-image: none !important; }
+:root[data-mt-theme] body table tbody tr { background: var(--mt-surface) !important; color: var(--mt-text) !important; }
+:root[data-mt-theme] body table tbody tr:nth-child(even) { background: var(--mt-surface-2) !important; }
+:root[data-mt-theme] body table tbody td { color: var(--mt-text); border-color: var(--mt-border) !important; background-image: none !important; }
+:root[data-mt-theme] body .table.is-striped tbody tr:not(.is-selected):nth-child(2n) td { background: var(--mt-surface-2) !important; }
+:root[data-mt-theme] body .content table.table.is-striped tbody tr:not(.is-selected):nth-child(2n),
+:root[data-mt-theme] body .content table.table.is-striped tbody tr:not(.is-selected):nth-child(2n) td { background: var(--mt-surface-2) !important; }
+:root[data-mt-theme] body .content table.table tr:first-child td strong { background: var(--mt-table-head); color: var(--mt-text); }
+:root[data-mt-theme] body .content table.table tbody tr:hover td { background: var(--mt-primary-tint) !important; }
+:root[data-mt-theme] body :is(.content .table-container, .content > table.table, .content > div > table.table) { background: var(--mt-surface) !important; box-shadow: none; border-radius: 12px; }
+:root[data-mt-theme] body :is(.pagination-link, .tabs a) { color: var(--mt-text-muted); border-color: var(--mt-border-strong); }
+:root[data-mt-theme] body :is(.pagination-link.is-current, .tabs li.is-active a) { color: var(--mt-primary-fg) !important; border-color: var(--mt-primary-fg) !important; background: var(--mt-primary-tint) !important; }
+.mt-admin-table-scroll { max-width: 100%; overflow-x: auto; overscroll-behavior-inline: contain; border-radius: 12px; }
+.mt-admin-table-scroll:focus-visible { outline-offset: -3px !important; }
+:root[data-mt-theme] body :is(.CodeMirror, .CodeMirror-scroll, .CodeMirror-gutters, .CodeMirror-lines) { background: var(--mt-control-bg); color: var(--mt-text); border-color: var(--mt-border); }
+:root[data-mt-theme] body .CodeMirror .cm-comment { color: var(--mt-text-muted); }
+:root[data-mt-theme] body .CodeMirror .cm-keyword { color: var(--mt-primary-fg); }
+:root[data-mt-theme] body .CodeMirror .cm-string { color: var(--mt-success-fg); }
+:root[data-mt-theme] body .CodeMirror .cm-number { color: var(--mt-accent-fg); }
+
+/* The original action bar can be hidden by upstream JS; never override display. */
+:root[data-mt-theme] body #action-bar { background: var(--mt-surface) !important; color: var(--mt-text); border: 1px solid var(--mt-border) !important; border-radius: 12px; box-shadow: var(--mt-shadow-2) !important; padding: 8px; max-width: calc(100vw - 24px); }
+:root[data-mt-theme] body #action-bar :is(a, button, input[type="button"]) { color: var(--mt-primary-fg); }
+:root[data-mt-theme] body :is(.modal-card, .modal-content, .swal2-popup) { background: var(--mt-surface); color: var(--mt-text); border-color: var(--mt-border); }
+:root[data-mt-theme] body :is(.modal-card-head, .modal-card-foot) { background: var(--mt-surface-2); border-color: var(--mt-border); }
+:root[data-mt-theme] body :is(.modal-card-title, .swal2-title) { color: var(--mt-text); }
+
+@media (max-width: 1023px) {
+    :root body .navbar.is-dark { flex-wrap: wrap; }
+    :root body .navbar.is-dark .navbar-menu { background: var(--mt-side-bg); }
+    :root body .navbar.is-dark .navbar-menu:not(.is-active) { display: none; }
+    :root body .navbar-menu.is-active { max-height: calc(100dvh - 70px); overflow-y: auto; }
+    :root body .navbar-menu.is-active .navbar-dropdown { box-shadow: none !important; border-radius: 0 !important; }
+}
+@media (max-width: 700px) {
+    :root body .content { padding: 16px 12px 96px; max-width: 100%; min-width: 0 !important; }
+    :root body .content :is(form, .table-container) { max-width: 100%; overflow-x: auto !important; }
+    /* Print filters live outside .content. Keep their native LTR table intact. */
+    :root body form:has(> table.table.is-borderless) { max-width: 100%; overflow-x: auto; }
+    :root body form table tr > td:first-child { min-width: 145px; }
+    :root body .content h2#title { padding: 16px !important; }
+    :root body .content .mt-pagedesc-panel { max-width: 100%; }
+    :root body .navbar.is-dark .mt-admin-theme-toggle { margin-inline: 6px; }
+    :root body .button { min-height: 40px; }
+    :root body #controls { width: 100%; max-width: 100%; flex-wrap: wrap; gap: 6px; }
+    :root body #controls button.audio { flex: 1 1 90px; min-width: 0; margin: 0; }
+}
+@media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after { animation-duration: .001ms !important; animation-iteration-count: 1 !important; transition-duration: .001ms !important; scroll-behavior: auto !important; }
+}

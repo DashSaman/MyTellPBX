@@ -1,29 +1,33 @@
-<li class="nav-item dropdown">
+{* Match the installed shell's list navigation, not the retired Tabler navbar. *}
+<li>
     {if $SHORTCUT_BOOKMARKS}
-        <a class="nav-link dropdown-toggle" href="#navbar-menu-bookmarks" role="button" data-menu-group="navbar-menu-bookmarks" aria-expanded="false">
-            <span class="nav-link-icon"><i class="ti ti-star"></i></span>
-            <span class="nav-link-title">{$SHORTCUT_BOOKMARKS_LABEL}</span>
+        <a href="#">
+            <i class="fa fa-star"></i>
+            <span>{$SHORTCUT_BOOKMARKS_LABEL}</span>
         </a>
-        <div class="dropdown-menu" id="navbar-menu-bookmarks">
+        <ul>
             {foreach from=$SHORTCUT_BOOKMARKS item=shortcut name=shortcut}
-                <a class="dropdown-item" href="index.php?menu={$shortcut.namemenu}">
-                    {$shortcut.name}
-                </a>
+                <li>
+                    <a href="index.php?menu={$shortcut.namemenu}">
+                        <span>{$shortcut.name}</span>
+                    </a>
+                </li>
             {/foreach}
-        </div>
+        </ul>
     {/if}
 </li>
-
-<li class="nav-item dropdown">
-    <a class="nav-link dropdown-toggle" href="#navbar-menu-history" role="button" data-menu-group="navbar-menu-history" aria-expanded="false">
-        <span class="nav-link-icon"><i class="ti ti-history"></i></span>
-        <span class="nav-link-title">{$SHORTCUT_HISTORY_LABEL}</span>
+<li>
+    <a href="#">
+        <i class="fa fa-history"></i>
+        <span>{$SHORTCUT_HISTORY_LABEL}</span>
     </a>
-    <div class="dropdown-menu" id="navbar-menu-history">
+    <ul>
         {foreach from=$SHORTCUT_HISTORY item=shortcut}
-            <a class="dropdown-item" href="index.php?menu={$shortcut.namemenu}">
-                {$shortcut.name}
-            </a>
+            <li>
+                <a href="index.php?menu={$shortcut.namemenu}">
+                    <span>{$shortcut.name}</span>
+                </a>
+            </li>
         {/foreach}
-    </div>
+    </ul>
 </li>

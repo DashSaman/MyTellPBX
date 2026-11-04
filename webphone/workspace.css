@@ -1,0 +1,75 @@
+/* No SIP code here. The dialer stays LTR and its IDs/events are unchanged. */
+@import url('/themes/mytel/css/fonts.css?v=740');
+@import url('/themes/mytel/css/tokens.css?v=740');
+
+:root {
+    --primary: var(--mt-primary);
+    --primary-strong: var(--mt-primary-strong);
+    --primary-tint: var(--mt-primary-tint);
+    --surface: var(--mt-surface);
+    --bg: var(--mt-bg);
+    --text: var(--mt-text);
+    --muted: var(--mt-text-muted);
+    --faint: var(--mt-text-faint);
+    --border: var(--mt-border);
+    --success: var(--mt-success-fill);
+    --danger: var(--mt-danger-fill);
+    --shadow: var(--mt-shadow-2);
+}
+body { background: var(--mt-bg); color: var(--mt-text); padding: 90px 20px 36px; font-family: 'Vazirmatn', 'Segoe UI', sans-serif; min-height: 100vh; min-height: 100dvh; }
+.mt-shell { max-width: 460px; }
+.mt-header { color: var(--mt-text); gap: 16px; margin-bottom: 24px; flex-wrap: wrap; }
+.mt-brand { gap: 12px; }
+.mt-emblem { width: 40px; height: 40px; filter: none; }
+.mt-brand-text b { font-size: 18px; letter-spacing: 0; }
+.mt-brand-text small { font-size: 12px; color: var(--mt-text-muted); line-height: 1.8; }
+.mt-badge { background: var(--mt-surface); color: var(--mt-text-muted); border: 1px solid var(--mt-border-strong); font-size: 12px; }
+.mt-badge.on { color: var(--mt-success-fg); background: var(--mt-success-tint); border-color: var(--mt-success-fg); }
+.mt-badge.on .dot { background: var(--mt-success-fg); box-shadow: none; }
+.mt-header .mt-btn.ghost { background: var(--mt-surface); color: var(--mt-text-muted); border-color: var(--mt-control-border); }
+.mt-header .mt-btn.ghost:hover { background: var(--mt-surface-2); color: var(--mt-primary-fg); border-color: var(--mt-primary-fg); }
+/* Logout also cancels failed connections; never hide the existing control. */
+.mt-card { padding: 28px; border-color: var(--mt-border); border-radius: 16px; box-shadow: var(--mt-shadow-1); }
+.login h2 { color: var(--mt-text); font-size: 22px; line-height: 1.5; margin-bottom: 10px; }
+.login .hint { font-size: 13px; color: var(--mt-text-muted); line-height: 1.9; margin-bottom: 26px; }
+.login label { color: var(--mt-text); font-size: 13px; margin-bottom: 20px; }
+.login input, #dialInput, .mt-select { background: var(--mt-control-bg); color: var(--mt-text); border-color: var(--mt-control-border); font-family: inherit; min-width: 0; }
+.login input { min-height: 46px; margin-top: 8px; font-size: 14px; }
+.login input::placeholder, #dialInput::placeholder { color: var(--mt-text-faint); opacity: 1; }
+.login input:focus, #dialInput:focus { outline: 2px solid var(--mt-focus); outline-offset: 2px; box-shadow: none; }
+:focus-visible { outline: 3px solid var(--mt-focus); outline-offset: 3px; }
+.mt-btn { min-height: 44px; font-size: 13px; font-weight: 600; }
+.mt-btn.ghost { background: var(--mt-surface-2); color: var(--mt-text); border-color: var(--mt-control-border); }
+.mt-btn.ghost:hover { color: var(--mt-primary-fg); border-color: var(--mt-primary-fg); }
+.mt-btn.primary { background: var(--mt-primary); color: #FFFFFF; }
+.mt-btn.danger { background: var(--mt-danger-fill); color: #FFFFFF; }
+.mt-btn.success { background: var(--mt-success-fill); color: #FFFFFF; }
+.err { color: var(--mt-danger-fg); font-size: 13px; line-height: 1.8; }
+.mt-notice { color: var(--mt-warning-fg); background: var(--mt-warning-tint); border-color: var(--mt-warning-fg); }
+.mt-notice a { color: var(--mt-warning-fg); text-decoration: underline; }
+.pad button { background: var(--mt-surface-2); color: var(--mt-text); border-color: var(--mt-border-strong); min-height: 60px; }
+.pad button:hover { border-color: var(--mt-primary-fg); background: var(--mt-primary-tint); }
+.pad button span { font-size: 10px; color: var(--mt-text-muted); }
+.call-head .dir { color: var(--mt-primary-fg); background: var(--mt-primary-tint); }
+.incoming { animation: none; border-color: var(--mt-primary-fg); line-height: 1.8; flex-wrap: wrap; }
+#btnMute.active, #btnHold.active { background: var(--mt-warning-tint); color: var(--mt-warning-fg); border-color: var(--mt-warning-fg); }
+.mt-foot { color: var(--mt-text-muted); font-size: 12px; gap: 12px; padding-inline: 4px; }
+#verInfo { opacity: 1; }
+.mt-phone-theme-toggle {
+    position: fixed; top: max(20px, env(safe-area-inset-top, 0px)); right: max(20px, env(safe-area-inset-right, 0px));
+    width: 44px; height: 44px; padding: 0; display: inline-flex; align-items: center; justify-content: center;
+    background: var(--mt-surface); color: var(--mt-text-muted); border: 1px solid var(--mt-control-border); border-radius: 10px; cursor: pointer;
+}
+.mt-phone-theme-toggle:hover { color: var(--mt-primary-fg); border-color: var(--mt-primary-fg); }
+.mt-phone-theme-toggle svg { width: 20px; height: 20px; }
+@media (max-width: 520px) {
+    body { padding-inline: 16px; align-items: flex-start; }
+    .mt-card { padding: 24px 20px; }
+    .call-actions { flex-wrap: wrap; }
+    .call-line .mt-btn { padding-inline: 14px; }
+    .mt-header-right { flex-wrap: wrap; }
+    .settings-row { flex-wrap: wrap; gap: 12px; }
+}
+@media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after { animation-duration: .001ms !important; animation-iteration-count: 1 !important; transition-duration: .001ms !important; }
+}

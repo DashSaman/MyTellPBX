@@ -1,23 +1,12 @@
-/* inline tables */
-table.inline {
-  background-color: #ffffff;
-  border-spacing: 0px;
-  border-collapse: collapse;
-}
-
-table.inline th {
-  padding: 3px;
-  border: 1px solid #aaaaaa;
-  background-color: #eeeeee;
-  font-size: 11px;
-}
-
-table.inline td {
-  padding: 3px;
-  border: 1px solid #aaaaaa;
-  font-size: 11px;
-}
-
-.mainHelp{
-   background-color:#FAFAFA;
-}
+/* Self-contained help frames; no dependency on an unrelated parent stylesheet. */
+@import url('css/fonts.css?v=740');
+@import url('css/tokens.css?v=740');
+body { font-family: var(--mt-font); color: var(--mt-text); background: var(--mt-surface); font-size: 14px; line-height: 1.9; margin: 0; padding: 20px; overflow-wrap: anywhere; }
+a { color: var(--mt-primary-fg); }
+a:hover { color: var(--mt-primary-fg-hover); }
+h1, h2, h3, h4 { font-weight: 650; color: var(--mt-text); line-height: 1.6; }
+table { border-collapse: collapse; width: 100%; background: var(--mt-surface); color: var(--mt-text); }
+th, td { border: 1px solid var(--mt-border); padding: 10px 12px; text-align: start; }
+th { background: var(--mt-surface-2); color: var(--mt-text); font-weight: 600; }
+.mainHelp { background: var(--mt-bg); }
+:focus-visible { outline: 3px solid var(--mt-focus); outline-offset: 3px; }

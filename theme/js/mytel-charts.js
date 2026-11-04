@@ -47,6 +47,82 @@
 
     var EMPTY_MSG = "در بازه انتخاب‌شده داده‌ای برای نمایش وجود ندارد.";
 
+    /* Canvas does not inherit CSS. Resolve role tokens and repaint existing
+       charts when the shell theme changes, preserving data/selection/zoom. */
+    var colorRoles = {
+        '#2e3194': 'primary', '#26287c': 'primaryStrong', '#1e88e5': 'blue',
+        '#ff8a00': 'accent', '#e67a00': 'accentStrong', '#27965a': 'success',
+        '#f5a623': 'warning', '#e5484d': 'danger', '#3e7bfa': 'info',
+        '#8e44ad': 'violet', '#e91e8c': 'pink', '#e8b84b': 'warning'
+    };
+    var tokenRoles = {
+        primary: '--mt-primary-fg', primaryStrong: '--mt-primary-fg-hover',
+        blue: '--mt-blue-fg', accent: '--mt-accent-fg', accentStrong: '--mt-accent-fg',
+        success: '--mt-success-fg', warning: '--mt-warning-fg', danger: '--mt-danger-fg',
+        info: '--mt-info-fg', text: '--mt-text', muted: '--mt-text-muted',
+        faint: '--mt-text-faint', border: '--mt-border', surface: '--mt-surface', bg: '--mt-bg',
+        violet: '--mt-violet-fg', pink: '--mt-pink-fg'
+    };
+    function syncTokens() {
+        var css = getComputedStyle(document.documentElement);
+        Object.keys(tokenRoles).forEach(function (key) {
+            if (T[key]) colorRoles[T[key].toLowerCase()] = key;
+            var value = css.getPropertyValue(tokenRoles[key]).trim();
+            if (value) T[key] = value;
+        });
+    }
+    function seriesColor(color) {
+        return typeof color === 'string' && colorRoles[color.toLowerCase()]
+            ? T[colorRoles[color.toLowerCase()]] : color;
+    }
+    function recolorStyle(style) {
+        if (!style || !style.color) return;
+        if (typeof style.color === 'string') style.color = seriesColor(style.color);
+        else if (style.color.colorStops) style.color.colorStops.forEach(function (stop) { stop.color = seriesColor(stop.color); });
+    }
+    function themeOption(option) {
+        syncTokens();
+        if (option.textStyle) option.textStyle.color = T.text;
+        if (option.title && option.title.textStyle) option.title.textStyle.color = T.faint;
+        if (option.legend && option.legend.textStyle) option.legend.textStyle.color = T.muted;
+        if (option.color) option.color = option.color.map(seriesColor);
+        ['xAxis', 'yAxis'].forEach(function (key) {
+            var axes = option[key] ? (Array.isArray(option[key]) ? option[key] : [option[key]]) : [];
+            axes.forEach(function (axis) {
+                if (axis.axisLabel) {
+                    axis.axisLabel.color = T.muted;
+                    if (axis.axisLabel.rich && axis.axisLabel.rich.ltr) axis.axisLabel.rich.ltr.color = T.muted;
+                }
+                if (axis.axisLine && axis.axisLine.lineStyle) axis.axisLine.lineStyle.color = T.border;
+                if (axis.splitLine && axis.splitLine.lineStyle) axis.splitLine.lineStyle.color = T.border;
+            });
+        });
+        if (option.toolbox) {
+            option.toolbox.iconStyle = { borderColor: T.muted };
+            Object.keys(option.toolbox.feature || {}).forEach(function (key) {
+                option.toolbox.feature[key].iconStyle = { borderColor: T.muted };
+            });
+        }
+        (option.series || []).forEach(function (series) {
+            if (series.label) series.label.color = T.muted;
+            if (series.title) series.title.color = T.muted;
+            if (series.detail) series.detail.color = T.text;
+            if (series.backgroundStyle) series.backgroundStyle.color = T.border;
+            recolorStyle(series.itemStyle);
+            recolorStyle(series.lineStyle);
+            if (series.type === 'pie' && series.itemStyle) series.itemStyle.borderColor = T.surface;
+            if (series.labelLine && series.labelLine.lineStyle) series.labelLine.lineStyle.color = T.border;
+            if (series.progress) recolorStyle(series.progress.itemStyle);
+            (series.data || []).forEach(function (point) {
+                if (point && typeof point === 'object' && point.itemStyle) recolorStyle(point.itemStyle);
+            });
+            if (series.type === 'gauge' && series.axisLine) series.axisLine.lineStyle.color = [[1, T.border]];
+        });
+        option.animation = !(global.matchMedia && global.matchMedia('(prefers-reduced-motion: reduce)').matches);
+        return option;
+    }
+    syncTokens();
+
     function pick(name, fallback, idx) {
         if (name !== undefined && name !== null) {
             var n = String(name).trim();
@@ -75,7 +151,7 @@
             axisLine: { lineStyle: { color: T.border } },
             axisTick: { show: false },
             axisLabel: { color: T.muted, fontSize: 11, fontFamily: "Vazirmatn, Tahoma, sans-serif" },
-            splitLine: { lineStyle: { color: "#EDF0F5" } }
+            splitLine: { lineStyle: { color: T.border } }
         };
     }
 
@@ -104,14 +180,17 @@
     }
 
     /* instance registry — one instance per DOM node, safe re-init, resize */
-    var registry = {};
+    var registry = new Map();
+
+    function retire(dom, inst) {
+        if (inst.__mtResizeObserver) inst.__mtResizeObserver.disconnect();
+        if (!inst.isDisposed()) inst.dispose();
+        registry.delete(dom);
+    }
 
     function getInstance(dom) {
-        var key = dom.id || dom.getAttribute("data-mt-chart") || "";
         var inst = global.echarts.getInstanceByDom(dom);
-        if (!inst && registry[key] && registry[key].getZr && !registry[key].isDisposed()) {
-            try { registry[key].dispose(); } catch (e) {}
-        }
+        if (!inst && registry.has(dom)) retire(dom, registry.get(dom));
         return inst;
     }
 
@@ -120,14 +199,14 @@
         var inst = getInstance(dom);
         if (!inst) {
             inst = global.echarts.init(dom, null, { renderer: "canvas" });
-            var key = dom.id || dom.getAttribute("data-mt-chart") || String(Date.now());
-            registry[key] = inst;
+            registry.set(dom, inst);
             /* keep charts correct when the sidebar collapses or tabs appear */
             if (global.ResizeObserver) {
                 var ro = new global.ResizeObserver(function () {
                     if (!inst.isDisposed()) { try { inst.resize(); } catch (e) {} }
                 });
                 ro.observe(dom);
+                inst.__mtResizeObserver = ro;
             }
             /* a canvas drawn before the webfont finishes loading keeps the
                fallback font — repaint once fonts are ready */
@@ -142,12 +221,8 @@
         var isEmpty = isEmptySeries(meta && meta.rawSeries);
         /* remember the option actually applied — the font-ready repaint must
            not overwrite a displayed empty state with the full chart */
-        inst.__mtOption = isEmpty ? emptyOption(dom) : option;
-        if (isEmpty) {
-            inst.setOption(emptyOption(dom), true);
-        } else {
-            inst.setOption(option, true);
-        }
+        inst.__mtOption = themeOption(isEmpty ? emptyOption(dom) : option);
+        inst.setOption(inst.__mtOption, true);
         return inst;
     }
 
@@ -216,7 +291,7 @@
                 { type: "inside" },
                 { type: "slider", height: 18, bottom: 8, borderColor: T.border }
             ];
-            option.grid.bottom = 66;
+            common.grid.bottom = 66;
         }
         var full = Object.assign({}, common, option);
         /* time series with real zero values keep context — bypass empty state */
@@ -387,7 +462,7 @@
         root = root || document;
         root.querySelectorAll("[_echarts_instance_]").forEach(function (dom) {
             var inst = global.echarts.getInstanceByDom(dom);
-            if (inst) { try { inst.dispose(); } catch (e) {} }
+            if (inst) retire(dom, inst);
         });
     }
 
@@ -396,4 +471,15 @@
         kpiCard: kpiCard, render: render, disposeAll: disposeAll,
         pickColor: pick, EMPTY_MSG: EMPTY_MSG
     };
+
+    if (global.MutationObserver) {
+        new MutationObserver(function () {
+            registry.forEach(function (inst, dom) {
+                if (!dom.isConnected || inst.isDisposed()) retire(dom, inst);
+                else if (inst.__mtOption) {
+                    inst.setOption(themeOption(inst.__mtOption), { notMerge: false, lazyUpdate: true });
+                }
+            });
+        }).observe(document.documentElement, { attributes: true, attributeFilter: ['data-mt-theme'] });
+    }
 })(window);

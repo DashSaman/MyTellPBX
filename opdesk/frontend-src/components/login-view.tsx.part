@@ -1,0 +1,66 @@
+  // MyTell workspace v740: presentation only; authentication above is preserved.
+  return (
+    <div className="login-page">
+      <ThemeToggle variant="floating" />
+      <div className="desk-login-layout">
+        <aside className="desk-login-intro">
+          <div className="desk-login-product">
+            <img src={(import.meta.env.BASE_URL || '/').replace(/\/$/, '') + '/mytel-emblem.svg'} alt="" />
+            <div>
+              <strong>{t('app.title')}</strong>
+              <span>{t('login.workspaceProduct')}</span>
+            </div>
+          </div>
+          <h1>{t('login.workspaceHeading')}</h1>
+          <p>{t('login.workspaceDescription')}</p>
+          <div className="desk-login-signal" aria-hidden="true">
+            <i /><i /><i /><i /><i /><i /><i /><i /><i /><i /><i /><i />
+          </div>
+        </aside>
+        <Card className="login-panel" icon={Radio} title={t('login.workspaceSignIn')} description={t('login.workspaceWelcome')}>
+          <div className="login-source" role="radiogroup" aria-label={t('login.sourceLabel')}
+            onKeyDown={(event) => {
+              if (!['ArrowLeft', 'ArrowRight', 'Home', 'End'].includes(event.key)) return;
+              event.preventDefault();
+              const next = event.key === 'Home' ? 'panel' : event.key === 'End' ? 'desk' : source === 'panel' ? 'desk' : 'panel';
+              pickSource(next);
+              event.currentTarget.querySelectorAll<HTMLButtonElement>('button')[next === 'panel' ? 0 : 1]?.focus();
+            }}>
+            <button type="button" role="radio" aria-checked={source === 'panel'} tabIndex={source === 'panel' ? 0 : -1}
+              className={'login-source-btn' + (source === 'panel' ? ' is-active' : '')}
+              onClick={() => pickSource('panel')}>{t('login.sourcePanel')}</button>
+            <button type="button" role="radio" aria-checked={source === 'desk'} tabIndex={source === 'desk' ? 0 : -1}
+              className={'login-source-btn' + (source === 'desk' ? ' is-active' : '')}
+              onClick={() => pickSource('desk')}>{t('login.sourceDesk')}</button>
+          </div>
+          <p className="login-source-hint" id="login-source-hint">
+            {t(source === 'panel' ? 'login.workspacePanelHint' : 'login.workspaceDeskHint')}
+          </p>
+          <form onSubmit={handleSubmit} noValidate>
+            <FormRow single>
+              <FormField label={t(source === 'panel' ? 'login.workspacePanelUsername' : 'login.extensionLabel')} htmlFor="login-user">
+                <input id="login-user" type="text" className="form-input" placeholder={t('login.extensionPlaceholder')}
+                  value={login} onChange={(e) => setLogin(e.target.value)} autoComplete="username" autoFocus
+                  aria-describedby="login-source-hint" disabled={loading} />
+              </FormField>
+            </FormRow>
+            <FormRow single>
+              <FormField label={t('fields.password')} htmlFor="login-password">
+                <input id="login-password" type="password" className="form-input" placeholder={t('fields.password')}
+                  value={password} onChange={(e) => setPassword(e.target.value)} autoComplete="current-password" disabled={loading} />
+              </FormField>
+            </FormRow>
+            <Alert className="u-mb-4">{error}</Alert>
+            <button type="submit" className="btn btn-primary u-w-full" disabled={loading}>
+              {loading ? <><Loader2 size={14} className="spinner" />{t('login.signingIn')}</> : <><LogIn size={14} />{t('login.signIn')}</>}
+            </button>
+          </form>
+          <div className="desk-login-footer">
+            <a href="/">{t('login.workspaceBack')}</a>
+            <span>MyTel</span>
+          </div>
+        </Card>
+      </div>
+    </div>
+  );
+}
