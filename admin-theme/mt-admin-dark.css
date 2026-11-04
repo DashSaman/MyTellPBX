@@ -213,6 +213,347 @@
 :root[data-mt-theme="dark"] .searchbox .input { background: var(--mt-surface-2); }
 :root[data-mt-theme="dark"] .scrollbar-ui::-webkit-scrollbar-thumb { background: var(--mt-border-strong); }
 
+/* ---------- v7.3.2: deep coverage for FreePBX module UIs ---------- */
+
+/* dropdown menus (incl. multicolumn) — was white with light text */
+:root[data-mt-theme="dark"] .navbar-dropdown,
+:root[data-mt-theme="dark"] .navbar-dropdown.multicolumn,
+:root[data-mt-theme="dark"] .navbar-dropdown .navbar-dropdown {
+    background: var(--mt-surface) !important;
+    background-image: none !important;
+    border: 1px solid var(--mt-border) !important;
+    box-shadow: 0 14px 38px rgba(0, 0, 0, .55) !important;
+}
+:root[data-mt-theme="dark"] .navbar-dropdown a.navbar-item,
+:root[data-mt-theme="dark"] .navbar-dropdown .navbar-item,
+:root[data-mt-theme="dark"] .navbar-dropdown .menu-label {
+    background: transparent !important;
+    color: var(--mt-text) !important;
+}
+:root[data-mt-theme="dark"] .navbar-dropdown a.navbar-item:hover,
+:root[data-mt-theme="dark"] .navbar-dropdown .navbar-item:hover {
+    background: var(--mt-surface-2) !important;
+    color: #FFFFFF !important;
+}
+:root[data-mt-theme="dark"] .navbar-dropdown .navbar-item small,
+:root[data-mt-theme="dark"] .navbar-dropdown .navbar-item .mt-sub { color: var(--mt-muted) !important; }
+:root[data-mt-theme="dark"] .navbar-divider { background: var(--mt-border) !important; }
+
+/* chosen selects (advanced settings and everywhere) */
+:root[data-mt-theme="dark"] .chosen-container .chosen-single,
+:root[data-mt-theme="dark"] .chosen-container-single .chosen-single {
+    background: var(--mt-surface-2) !important;
+    color: var(--mt-text) !important;
+    border: 1px solid var(--mt-border-strong) !important;
+    box-shadow: none !important;
+}
+:root[data-mt-theme="dark"] .chosen-container .chosen-drop,
+:root[data-mt-theme="dark"] .chosen-container .chosen-results {
+    background: var(--mt-surface) !important;
+    color: var(--mt-text) !important;
+    border-color: var(--mt-border) !important;
+}
+:root[data-mt-theme="dark"] .chosen-container .chosen-results li,
+:root[data-mt-theme="dark"] .chosen-container .chosen-results li.active-result {
+    color: var(--mt-text) !important;
+    background: var(--mt-surface) !important;
+}
+:root[data-mt-theme="dark"] .chosen-container .chosen-results li.highlighted,
+:root[data-mt-theme="dark"] .chosen-container .chosen-results li.result-selected {
+    background: var(--mt-primary-tint) !important;
+    color: var(--mt-primary-fg) !important;
+}
+:root[data-mt-theme="dark"] .chosen-container-multi .chosen-choices,
+:root[data-mt-theme="dark"] .chosen-container .chosen-choices li.search-field input,
+:root[data-mt-theme="dark"] .chosen-container .chosen-search input[type="text"] {
+    background: var(--mt-surface-2) !important;
+    color: var(--mt-text) !important;
+    border-color: var(--mt-border-strong) !important;
+}
+
+/* action bar + page description toggle */
+:root[data-mt-theme="dark"] #action-bar,
+:root[data-mt-theme="dark"] .action-bar {
+    background: var(--mt-surface) !important;
+    color: var(--mt-text) !important;
+    border-color: var(--mt-border) !important;
+    box-shadow: none !important;
+}
+:root[data-mt-theme="dark"] button.mt-pagedesc-toggle,
+:root[data-mt-theme="dark"] .mt-pagedesc-toggle {
+    background: var(--mt-surface-2) !important;
+    color: var(--mt-primary-fg) !important;
+    border: 1px solid var(--mt-border-strong) !important;
+}
+:root[data-mt-theme="dark"] .mt-pagedesc-toggle:hover {
+    background: var(--mt-primary-tint) !important;
+    border-color: var(--mt-primary-fg) !important;
+}
+:root[data-mt-theme="dark"] .mt-pagedesc,
+:root[data-mt-theme="dark"] .mt-pagedesc-panel {
+    background: var(--mt-surface) !important;
+    color: var(--mt-text) !important;
+    border-color: var(--mt-border) !important;
+}
+
+/* report tables: ANY header row and cell, incl. inline-gradient shading */
+:root[data-mt-theme="dark"] table thead th,
+:root[data-mt-theme="dark"] table thead td,
+:root[data-mt-theme="dark"] table tr th {
+    background: #182A47 !important;
+    color: #E8EEF8 !important;
+    border-color: var(--mt-border) !important;
+    background-image: none !important;
+}
+:root[data-mt-theme="dark"] table tbody tr { background: var(--mt-surface) !important; color: var(--mt-text) !important; }
+:root[data-mt-theme="dark"] table tbody tr:nth-child(even) { background: var(--mt-surface-2) !important; }
+:root[data-mt-theme="dark"] table tbody td { color: var(--mt-text) !important; background-image: none !important; }
+:root[data-mt-theme="dark"] table td[style*="background"],
+:root[data-mt-theme="dark"] table th[style*="background"] {
+    background-color: var(--mt-surface-2) !important;
+    background-image: none !important;
+    color: var(--mt-text) !important;
+}
+
+/* white boxes: record nav, info boxes, fieldsets */
+:root[data-mt-theme="dark"] nav.rnav,
+:root[data-mt-theme="dark"] nav.rnav ul,
+:root[data-mt-theme="dark"] nav.rnav li,
+:root[data-mt-theme="dark"] nav.rnav a:not(.button),
+:root[data-mt-theme="dark"] .infobox,
+:root[data-mt-theme="dark"] fieldset,
+:root[data-mt-theme="dark"] legend {
+    background: var(--mt-surface) !important;
+    color: var(--mt-text) !important;
+    border-color: var(--mt-border) !important;
+    background-image: none !important;
+}
+:root[data-mt-theme="dark"] nav.rnav a.is-active,
+:root[data-mt-theme="dark"] nav.rnav a:hover { background: var(--mt-surface-2) !important; color: #fff !important; }
+
+/* page description help boxes (advanced settings white panel) */
+:root[data-mt-theme="dark"] .page-desc,
+:root[data-mt-theme="dark"] #page-desc,
+:root[data-mt-theme="dark"] .help-panel {
+    background: var(--mt-surface) !important;
+    color: var(--mt-text) !important;
+    border-color: var(--mt-border) !important;
+}
+
+/* module forms: labels, fields, submit rows */
+:root[data-mt-theme="dark"] .content input[type="text"],
+:root[data-mt-theme="dark"] .content input[type="password"],
+:root[data-mt-theme="dark"] .content input[type="number"],
+:root[data-mt-theme="dark"] .content input:not([type]),
+:root[data-mt-theme="dark"] .content select,
+:root[data-mt-theme="dark"] .content textarea,
+:root[data-mt-theme="dark"] #mainform input[type="text"],
+:root[data-mt-theme="dark"] #mainform select,
+:root[data-mt-theme="dark"] #mainform textarea {
+    background: var(--mt-surface-2) !important;
+    color: var(--mt-text) !important;
+    border: 1px solid var(--mt-border-strong) !important;
+    color-scheme: dark;
+}
+:root[data-mt-theme="dark"] .content label,
+:root[data-mt-theme="dark"] #mainform label,
+:root[data-mt-theme="dark"] .content .field-label { color: var(--mt-text) !important; }
+:root[data-mt-theme="dark"] .content .help,
+:root[data-mt-theme="dark"] .content .help-block,
+:root[data-mt-theme="dark"] #mainform .help,
+:root[data-mt-theme="dark"] #mainform .help-block { color: var(--mt-muted) !important; }
+:root[data-mt-theme="dark"] .content button[type="submit"],
+:root[data-mt-theme="dark"] .content input[type="submit"],
+:root[data-mt-theme="dark"] .content input[type="reset"],
+:root[data-mt-theme="dark"] .content input[type="button"],
+:root[data-mt-theme="dark"] #mainform input[type="submit"],
+:root[data-mt-theme="dark"] #mainform input[type="reset"],
+:root[data-mt-theme="dark"] #mainform input[type="button"] {
+    background: var(--mt-surface-2) !important;
+    color: var(--mt-text) !important;
+    border: 1px solid var(--mt-border-strong) !important;
+}
+:root[data-mt-theme="dark"] .content button[type="submit"].button,
+:root[data-mt-theme="dark"] .content input[type="submit"].button { color: var(--mt-text) !important; }
+
+/* alert/warning boxes on module pages */
+:root[data-mt-theme="dark"] .alert,
+:root[data-mt-theme="dark"] .alert-warning,
+:root[data-mt-theme="dark"] .alert-danger,
+:root[data-mt-theme="dark"] .alert-info {
+    background: var(--mt-surface-2) !important;
+    color: var(--mt-text) !important;
+    border-color: var(--mt-border-strong) !important;
+}
+
+/* keep brand-styled elements (orange apply button) readable */
+:root[data-mt-theme="dark"] #button_reload { color: #FFFFFF !important; }
+
+/* ---------- v7.3.2b: module edit forms (the big white surfaces) ---------- */
+:root[data-mt-theme="dark"] .content form,
+:root[data-mt-theme="dark"] form.popover-form,
+:root[data-mt-theme="dark"] form.checksubmit,
+:root[data-mt-theme="dark"] #mainform {
+    background: var(--mt-surface) !important;
+    color: var(--mt-text) !important;
+    border-color: var(--mt-border) !important;
+    background-image: none !important;
+}
+:root[data-mt-theme="dark"] .content form h1,
+:root[data-mt-theme="dark"] .content form h2,
+:root[data-mt-theme="dark"] .content form h3,
+:root[data-mt-theme="dark"] .content form h4,
+:root[data-mt-theme="dark"] .content form h5,
+:root[data-mt-theme="dark"] .content form h6,
+:root[data-mt-theme="dark"] #mainform h1,
+:root[data-mt-theme="dark"] #mainform h2,
+:root[data-mt-theme="dark"] #mainform h3,
+:root[data-mt-theme="dark"] #mainform h4,
+:root[data-mt-theme="dark"] #mainform h5,
+:root[data-mt-theme="dark"] #mainform h6 {
+    color: #F2F6FD !important;
+}
+:root[data-mt-theme="dark"] .content form label,
+:root[data-mt-theme="dark"] form label,
+:root[data-mt-theme="dark"] #mainform label,
+:root[data-mt-theme="dark"] .content form td,
+:root[data-mt-theme="dark"] form td,
+:root[data-mt-theme="dark"] #mainform td {
+    color: var(--mt-text) !important;
+    background-color: transparent !important;
+    background-image: none !important;
+}
+:root[data-mt-theme="dark"] .content form td[style*="background"],
+:root[data-mt-theme="dark"] form td[style*="background"] {
+    background-color: var(--mt-surface-2) !important;
+}
+:root[data-mt-theme="dark"] .content form .help,
+:root[data-mt-theme="dark"] .content form .help-block,
+:root[data-mt-theme="dark"] form .help,
+:root[data-mt-theme="dark"] form .help-block { color: var(--mt-muted) !important; }
+:root[data-mt-theme="dark"] .content form input[type="text"],
+:root[data-mt-theme="dark"] .content form input[type="password"],
+:root[data-mt-theme="dark"] .content form input[type="number"],
+:root[data-mt-theme="dark"] .content form input:not([type]),
+:root[data-mt-theme="dark"] .content form select,
+:root[data-mt-theme="dark"] .content form textarea,
+:root[data-mt-theme="dark"] form input[type="text"],
+:root[data-mt-theme="dark"] form select,
+:root[data-mt-theme="dark"] form textarea {
+    background: var(--mt-surface-2) !important;
+    color: var(--mt-text) !important;
+    border: 1px solid var(--mt-border-strong) !important;
+    color-scheme: dark;
+}
+:root[data-mt-theme="dark"] .content form input[type="submit"],
+:root[data-mt-theme="dark"] .content form button[type="submit"],
+:root[data-mt-theme="dark"] form input[type="submit"],
+:root[data-mt-theme="dark"] form button[type="submit"],
+:root[data-mt-theme="dark"] .content input[type="reset"],
+:root[data-mt-theme="dark"] form input[type="reset"] {
+    background: var(--mt-surface-2) !important;
+    color: var(--mt-text) !important;
+    border: 1px solid var(--mt-border-strong) !important;
+}
+/* boxed sub-sections inside forms (dahdi style boxes) */
+:root[data-mt-theme="dark"] .content form div[style*="background"],
+:root[data-mt-theme="dark"] form div[style*="background"] {
+    background-color: var(--mt-surface-2) !important;
+    background-image: none !important;
+    color: var(--mt-text) !important;
+}
+:root[data-mt-theme="dark"] .content form div[style*="border"],
+:root[data-mt-theme="dark"] form div[style*="border"] {
+    border-color: var(--mt-border) !important;
+}
+
+/* FreePBX section headers (h5/h2) carry #EEE background from mainstyle */
+:root[data-mt-theme="dark"] .content form h5,
+:root[data-mt-theme="dark"] .content form h2,
+:root[data-mt-theme="dark"] form h5,
+:root[data-mt-theme="dark"] form h2,
+:root[data-mt-theme="dark"] #mainform h5,
+:root[data-mt-theme="dark"] #mainform h2,
+:root[data-mt-theme="dark"] h5, :root[data-mt-theme="dark"] h2 {
+    background: var(--mt-surface-2) !important;
+    color: #F2F6FD !important;
+    background-image: none !important;
+}
+
+/* asternic_cdr module: own stylesheet paints white containers */
+:root[data-mt-theme="dark"] #asternicmain,
+:root[data-mt-theme="dark"] #topdash,
+:root[data-mt-theme="dark"] #asternicmain #left,
+:root[data-mt-theme="dark"] #asternicmain #right,
+:root[data-mt-theme="dark"] #asternicmain table,
+:root[data-mt-theme="dark"] #asternicmain caption,
+:root[data-mt-theme="dark"] #asternicmain th,
+:root[data-mt-theme="dark"] #asternicmain td {
+    background: var(--mt-surface) !important;
+    color: var(--mt-text) !important;
+    border-color: var(--mt-border) !important;
+    background-image: none !important;
+}
+:root[data-mt-theme="dark"] #asternicmain caption { color: #F2F6FD !important; }
+:root[data-mt-theme="dark"] #asternicmain th { background: #182A47 !important; }
+:root[data-mt-theme="dark"] #asternicmain a { color: var(--mt-primary-fg) !important; }
+:root[data-mt-theme="dark"] #asternicmain .button,
+:root[data-mt-theme="dark"] #asternicmain input[type="submit"] {
+    background: var(--mt-surface-2) !important;
+    color: var(--mt-text) !important;
+    border: 1px solid var(--mt-border-strong) !important;
+}
+
+/* asternic own stylesheet (#asterniccontent) hardcodes light surfaces */
+:root[data-mt-theme="dark"] #asterniccontent,
+:root[data-mt-theme="dark"] #asterniccontent #topdash,
+:root[data-mt-theme="dark"] #asterniccontent #left,
+:root[data-mt-theme="dark"] #asterniccontent #right {
+    background: var(--mt-surface) !important;
+    color: var(--mt-text) !important;
+    border-color: var(--mt-border) !important;
+}
+:root[data-mt-theme="dark"] #asterniccontent .mt-field-help,
+:root[data-mt-theme="dark"] #asterniccontent .mt-notice {
+    background: var(--mt-accent-tint) !important;
+    color: var(--mt-accent-fg) !important;
+}
+:root[data-mt-theme="dark"] #asterniccontent canvas {
+    background: var(--mt-surface) !important;
+}
+:root[data-mt-theme="dark"] #asterniccontent caption {
+    background: var(--mt-primary-tint) !important;
+    color: var(--mt-primary-fg) !important;
+}
+:root[data-mt-theme="dark"] #asterniccontent td,
+:root[data-mt-theme="dark"] #asterniccontent th {
+    background: var(--mt-surface) !important;
+    color: var(--mt-text) !important;
+    border-color: var(--mt-border) !important;
+}
+:root[data-mt-theme="dark"] #asternicheader #primary,
+:root[data-mt-theme="dark"] #asterniccontent .card,
+:root[data-mt-theme="dark"] #asterniccontent div[style*="background"] {
+    background-color: var(--mt-surface-2) !important;
+    background-image: none !important;
+    color: var(--mt-text) !important;
+}
+:root[data-mt-theme="dark"] #asterniccontent .mt-jmirror {
+    background: var(--mt-surface-2) !important;
+    color: var(--mt-text) !important;
+    border: 1px solid var(--mt-border-strong) !important;
+}
+:root[data-mt-theme="dark"] #asterniccontent .mt-jmirror:hover {
+    border-color: var(--mt-accent) !important;
+}
+
+/* mt-note hint strip (skin) — light background hardcoded */
+:root[data-mt-theme="dark"] .mt-note {
+    background: var(--mt-surface-2) !important;
+    color: var(--mt-muted) !important;
+    border-color: var(--mt-border) !important;
+}
+
 /* ---------- standalone theme toggle (injected in footer when top===self) ---------- */
 .mt-admin-theme-toggle {
     background: transparent;
@@ -228,3 +569,86 @@
 }
 .mt-admin-theme-toggle:hover { color: var(--mt-primary-fg); border-color: var(--mt-primary-fg); background: var(--mt-primary-tint); }
 .mt-admin-theme-toggle:focus-visible { outline: 2px solid var(--mt-primary-fg); outline-offset: 3px; }
+
+
+/* ---------- v7.3.3: True/False toggles + help panel sub-boxes ---------- */
+
+/* Frame-local aliases matching MyTel design tokens */
+:root {
+    --mt-font: 'Vazirmatn', Tahoma, Arial, sans-serif;
+    --mt-surface-2: #F8F9FC;
+    --mt-text-muted: var(--mt-muted);
+    --mt-primary-tint: #EEEFFA;
+    --mt-primary-fg: var(--mt-primary);
+    --mt-control-border: var(--mt-muted);
+    --mt-radio-selected-bg: var(--mt-primary-tint);
+    --mt-radio-selected-fg: var(--mt-primary-fg);
+}
+
+:root[data-mt-theme="dark"] {
+    --mt-control-border: var(--mt-border-strong);
+    --mt-radio-selected-bg: var(--mt-accent-tint);
+    --mt-radio-selected-fg: var(--mt-accent-fg);
+}
+
+/* True/False toggle switches — brand-styled for both themes */
+:root :is(.radio, #mainform .radio) > .radiotoggle > label {
+    background: var(--mt-surface-2) !important;
+    color: var(--mt-text-muted) !important;
+    border: 1px solid var(--mt-control-border) !important;
+    border-radius: 999px !important;
+    box-sizing: border-box;
+    font-family: var(--mt-font) !important;
+    text-shadow: none !important;
+    box-shadow: none !important;
+}
+
+:root :is(.radio, #mainform .radio) > .radiotoggle > :is(
+    input[type="radio"]:checked + label,
+    label:has(input[type="radio"]:checked)
+) {
+    background: var(--mt-radio-selected-bg) !important;
+    color: var(--mt-radio-selected-fg) !important;
+    border-color: var(--mt-radio-selected-fg) !important;
+}
+
+:root :is(.radio, #mainform .radio) > .radiotoggle > :is(
+    input[type="radio"]:focus-visible + label,
+    label:has(input[type="radio"]:focus-visible)
+) {
+    outline: 2px solid var(--mt-primary-fg) !important;
+    outline-offset: 2px;
+}
+
+/* Help/description panel + ALL children: dark + readable */
+:root :is(.mt-pagedesc-panel, #mainform .mt-pagedesc-panel),
+:root[data-mt-theme="dark"] :is(.mt-pagedesc-panel, #mainform .mt-pagedesc-panel) {
+    background: var(--mt-surface) !important;
+    color: var(--mt-text) !important;
+    border-color: var(--mt-border) !important;
+}
+
+/* Clear inherited legacy fills, gradients and text colors */
+:root :is(.mt-pagedesc-panel, #mainform .mt-pagedesc-panel) *,
+:root[data-mt-theme="dark"] :is(.mt-pagedesc-panel, #mainform .mt-pagedesc-panel) * {
+    background: transparent !important;
+    color: var(--mt-text) !important;
+    border-color: var(--mt-border) !important;
+    box-shadow: none !important;
+}
+
+/* Bottom Persian example/tip and nested help-block: distinct surface */
+:root :is(.mt-pagedesc-panel, #mainform .mt-pagedesc-panel) :is(.mt-pd-example, .help-block),
+:root[data-mt-theme="dark"] :is(.mt-pagedesc-panel, #mainform .mt-pagedesc-panel) :is(.mt-pd-example, .help-block) {
+    background: var(--mt-surface-2) !important;
+    color: var(--mt-text) !important;
+    border-color: var(--mt-border) !important;
+}
+
+/* Keep links distinguishable */
+:root :is(.mt-pagedesc-panel, #mainform .mt-pagedesc-panel) :is(a, a *),
+:root[data-mt-theme="dark"] :is(.mt-pagedesc-panel, #mainform .mt-pagedesc-panel) :is(a, a *) {
+    color: var(--mt-primary-fg) !important;
+}
+
+:root .mt-pagedesc-panel a { text-decoration: underline; }
