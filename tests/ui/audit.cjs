@@ -15,14 +15,18 @@ const CANDIDATE = process.env.MT_CANDIDATE_ROOT ? path.resolve(process.env.MT_CA
 const BUILD = process.env.MT_BUILD_ROOT ? path.resolve(process.env.MT_BUILD_ROOT) : null;
 const ARTIFACT = process.env.MT_ARTIFACT_ROOT ? path.resolve(process.env.MT_ARTIFACT_ROOT) : null;
 const artifactFiles = new Map();
+const artifactInputs = new Set();
 let manifestHash = null;
 if (ARTIFACT) {
   const bytes = fs.readFileSync(path.join(ARTIFACT, 'manifest.json'));
   manifestHash = crypto.createHash('sha256').update(bytes).digest('hex');
-  for (const item of JSON.parse(bytes).files) {
+  const manifest = JSON.parse(bytes);
+  for (const item of manifest.inputs || []) artifactInputs.add(item.root + ':' + item.path);
+  for (const item of manifest.files) {
     const data = fs.readFileSync(path.join(ARTIFACT, item.payload));
     if (data.length !== item.size || crypto.createHash('sha256').update(data).digest('hex') !== item.after) throw new Error('Artifact payload mismatch');
-    const prefix = { panel: '/themes/mytel/', admin: '/admin/', phone: '/Phone/', desk: '/MytellDesk/' }[item.root];
+    const prefix = { panel: '/themes/mytel/', admin: '/admin/', phone: '/Phone/', desk: '/MytellDesk/', legacy: '/' }[item.root];
+    if (!prefix) throw new Error('Unknown artifact UI root');
     if (item.root !== 'desk' || item.path.startsWith('dist/')) artifactFiles.set(prefix + item.path.replace(/^dist\//, ''), data);
   }
 }
@@ -40,6 +44,15 @@ function safeURL(url) {
 
 function contentType(file) {
   return file.endsWith('.css') ? 'text/css' : file.endsWith('.js') ? 'application/javascript' : file.endsWith('.html') ? 'text/html' : undefined;
+}
+
+function previewGeoipHome(html, template) {
+  const fragment = /homePolygon\s*=\s*polygonSeries\.getPolygonById\(home\);(?:\s*if \(!homePolygon\) return;)?\s*homeLatitude\s*=\s*homePolygon\.visualLatitude;\s*homeLongitude\s*=\s*homePolygon\.visualLongitude;/g;
+  const patches = template.match(fragment) || [];
+  const originals = html.match(fragment) || [];
+  if (patches.length !== 2 || originals.length !== 2 || patches.some(patch => !patch.includes('if (!homePolygon) return;'))) throw new Error('GeoIP template preview anchors changed');
+  let index = 0;
+  return html.replace(fragment, () => patches[index++]);
 }
 
 async function installRoutes(context, events) {
@@ -64,6 +77,10 @@ async function installRoutes(context, events) {
     }
     if (!CANDIDATE && !ARTIFACT) return route.continue();
     if (artifactFiles.has(url.pathname)) return route.fulfill({ status: 200, contentType: contentType(url.pathname), body: artifactFiles.get(url.pathname) });
+    if (ARTIFACT && url.pathname === '/admin/config.php' && url.searchParams.get('handler') === 'file' && url.searchParams.get('module') === 'asternic_cdr' && url.searchParams.get('file') === 'asternic_cdr.css') {
+      const stylesheet = artifactFiles.get('/admin/modules/asternic_cdr/asternic_cdr.css');
+      if (stylesheet) return route.fulfill({ status: 200, contentType: 'text/css', body: stylesheet });
+    }
     const replacements = {
       '/themes/mytel/css/tokens.css': 'theme/css/tokens.css',
       '/themes/mytel/css/workspace.css': 'theme/css/workspace.css',
@@ -93,29 +110,48 @@ async function installRoutes(context, events) {
     if (request.isNavigationRequest() && request.resourceType() === 'document') {
       if (url.pathname.startsWith('/MytellDesk/') && !url.pathname.startsWith('/MytellDesk/api/') && (ARTIFACT || BUILD)) {
         const body = ARTIFACT ? artifactFiles.get('/MytellDesk/index.html') : fs.readFileSync(path.join(BUILD, 'frontend/dist/index.html'));
-        if (!body) throw new Error('Missing artifact desk document');
+        if (!body) {
+          if (artifactInputs.has('desk:dist/index.html')) return route.continue();
+          throw new Error('Missing artifact desk document');
+        }
         return route.fulfill({ status: 200, contentType: 'text/html', body });
       }
       if (url.pathname === '/Phone/' && (ARTIFACT || BUILD)) {
         const body = ARTIFACT ? artifactFiles.get('/Phone/index.html') : fs.readFileSync(path.join(BUILD, 'phone/index.html'));
-        if (!body) throw new Error('Missing artifact phone document');
+        if (!body) {
+          if (artifactInputs.has('phone:index.html')) return route.continue();
+          throw new Error('Missing artifact phone document');
+        }
         return route.fulfill({ status: 200, contentType: 'text/html', body });
       }
       // Do not flatten redirects (notably /mail -> /mail/) or alter unrelated
       // applications. Relative scripts must resolve at the browser's real URL.
       if (!(url.pathname === '/' || url.pathname === '/index.php' || url.pathname.startsWith('/admin/'))) return route.continue();
-      const response = await route.fetch({ maxRedirects: 0 });
+      let response;
+      try { response = await route.fetch({ maxRedirects: 0 }); }
+      catch (error) {
+        // Record a real failure and let goto fail, but do not kill unrelated
+        // remaining cases with an unhandled asynchronous route rejection.
+        if (!events.routeErrors) events.routeErrors = [];
+        events.routeErrors.push({ key: events.currentCase || 'discovery', path: safeURL(request.url()), error: 'Document fetch failed' });
+        await route.abort('failed').catch(() => {});
+        return;
+      }
       if (response.status() >= 300 && response.status() < 400) return route.fulfill({ response });
       if (!(response.headers()['content-type'] || '').includes('text/html')) return route.fulfill({ response });
       let html = await response.text();
-      if (url.pathname.startsWith('/admin/')) {
+      if (ARTIFACT && url.searchParams.get('menu') === 'sec_geoip_map') {
+        const template = artifactFiles.get('/modules/sec_geoip_map/themes/default/map.tpl');
+        if (template) html = previewGeoipHome(html, template.toString('utf8'));
+      }
+      if (url.pathname.startsWith('/admin/') && (!ARTIFACT || artifactFiles.has('/admin/views/header.php'))) {
         // Mirror the PHP migration without editing a served file.
         html = html.replace(/<!-- MyTellPBX theme pre-paint[^>]*-->\s*<script>[\s\S]*?<\/script>\s*(?:<script>\(function\(\)\{var btn=null;[\s\S]*?<\/script>)?/, '');
         html = html.replace(/<script>\/\* MyTellPBX standalone theme toggle[\s\S]*?<\/script>/, '');
         html = html.replace('<head>', '<head><script src="assets/mytel/workspace.js?v=740"></script>');
         html = html.replace('</head>', '<link rel="stylesheet" href="assets/mytel/workspace.css?v=740"></head>');
         html = html.replace('https://maxcdn.bootstrapcdn.com/font-awesome/4.7.0/css/font-awesome.min.css', '/libs/font-icons/font-awesome/css/font-awesome.min.css');
-      } else if (html.includes('mt-body') || html.includes('mt-login-body')) {
+      } else if ((html.includes('mt-body') || html.includes('mt-login-body')) && (!ARTIFACT || artifactFiles.has('/themes/mytel/_common/index.tpl'))) {
         html = html.replace('</head>', '<link rel="stylesheet" href="/themes/mytel/css/workspace.css?v=740"></head>');
         html = html.replace('</body>', '<script src="/themes/mytel/js/workspace.js?v=740"></script></body>');
         const shellBody = /<body\b[^>]*\bclass=["'][^"']*\bmt-body\b[^"']*["'][^>]*>/i;
@@ -334,6 +370,7 @@ async function main() {
     report.inventory = await inventory(discovery);
     const auth = ONLY.includes('desk') ? await deskAuth(discovery) : null;
     report.blockedWrites.push(...discoveryEvents.blocked);
+    report.errors.push(...(discoveryEvents.routeErrors || []));
     report.blockedWebSockets.push(...(discoveryEvents.webSockets || []));
     report.externalOrigins.push(...discoveryEvents.external);
     await discovery.close();
@@ -398,6 +435,7 @@ async function main() {
         fs.writeFileSync(path.join(OUTPUT, 'report.json'), JSON.stringify(report, null, 2));
       }
       report.blockedWrites.push(...events.blocked);
+      report.errors.push(...(events.routeErrors || []));
       report.blockedWebSockets.push(...(events.webSockets || []));
       report.externalOrigins.push(...events.external);
       await context.close();
@@ -412,5 +450,5 @@ async function main() {
   if (!report.cases.length || report.errors.length || problems.length || report.blockedWrites.length) process.exitCode = 1;
 }
 
-module.exports = { installRoutes, inspectDOM, settle, deskAuth, inventory, hasFindings, artifactManifestSha256: manifestHash };
+module.exports = { installRoutes, inspectDOM, settle, deskAuth, inventory, hasFindings, previewGeoipHome, artifactManifestSha256: manifestHash };
 if (require.main === module) main().catch(error => { fs.writeFileSync(path.join(OUTPUT, 'fatal.txt'), error.stack); console.error(error.stack); process.exitCode = 1; });

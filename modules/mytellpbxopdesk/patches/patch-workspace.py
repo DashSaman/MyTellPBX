@@ -41,6 +41,17 @@ TRANSLATIONS = {
 }
 
 
+def sound_paths(text):
+    # Dynamic Audio URLs are not rewritten by Vite. Keep call logic unchanged.
+    for name, count in (("ringtone", 1), ("dialing", 2), ("hangup", 1)):
+        old = "new Audio('/sounds/" + name + ".wav')"
+        new = "new Audio(import.meta.env.BASE_URL + 'sounds/" + name + ".wav')"
+        if text.count(old) + text.count(new) != count:
+            raise ValueError("Desk sound URL anchors changed: " + name)
+        text = text.replace(old, new)
+    return text
+
+
 def plan(frontend):
     src = frontend / "src"
     main = src / "main.tsx"
@@ -61,6 +72,8 @@ def plan(frontend):
     login_text = prefix + (OVERLAY / "components/login-view.tsx.part").read_text(encoding="utf-8")
     changes = {main: main_text, login: login_text,
                src / "styles/mytell-workspace.css": (OVERLAY / "styles/mytell-workspace.css").read_text(encoding="utf-8")}
+    phone_hook = src / "hooks/useWebPhone.ts"
+    changes[phone_hook] = sound_paths(phone_hook.read_text(encoding="utf-8"))
     for language, values in TRANSLATIONS.items():
         path = src / f"i18n/locales/{language}/translation.json"
         data = json.loads(path.read_text(encoding="utf-8"))
