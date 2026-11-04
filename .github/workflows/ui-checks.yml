@@ -1,0 +1,35 @@
+name: UI regression checks
+
+on:
+  push:
+    branches: [main, 'ui/**']
+  pull_request:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ui-checks-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  offline-regression:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4, resolved 2026-11-04
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+        with:
+          node-version: '22'
+      - name: Patcher, rollback and presentation contracts
+        run: python3 -m unittest discover -s tests -v
+      - name: Chart runtime regressions
+        run: node --test tests/ui/charts.test.cjs
+      - name: JavaScript syntax
+        shell: bash
+        run: |
+          for file in theme/js/theme.js theme/js/mytel-charts.js theme/js/workspace.js theme/js/appearance.js admin-theme/workspace.js webphone/theme.js tests/ui/audit.cjs tests/ui/interactions.cjs; do
+            node --check "$file"
+          done

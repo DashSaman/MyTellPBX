@@ -126,9 +126,13 @@
 
 <div class="mt-topbar">
     <div class="mt-topbar-right">
-        <button type="button" class="mt-topbar-burger" id="mt-burger" aria-label="menu">
+        <button type="button" class="mt-topbar-burger" id="mt-burger" aria-label="باز و بسته کردن فهرست" aria-controls="mt-sidebar" aria-expanded="false">
             <i class="fa fa-bars"></i>
         </button>
+        <div class="mt-topbar-context">
+            <small>سامانه مدیریت مرکز تماس</small>
+            <strong id="mt-page-context">{foreach from=$BREADCRUMB item=value name=context}{if $smarty.foreach.context.last}{$value}{/if}{/foreach}</strong>
+        </div>
         <button type="button" class="mt-theme-toggle" id="mt-theme-toggle"
                 aria-pressed="false" aria-label="حالت تاریک" title="تغییر به حالت تاریک">
             <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20.6 13.2A8.6 8.6 0 0 1 10.8 3.4a8.6 8.6 0 1 0 9.8 9.8Z"/></svg>
@@ -228,7 +232,7 @@
 
 <!-- module content -->
 <div id="neo-contentbox">
-    <div id="neo-contentbox-maincolumn">
+    <div id="neo-contentbox-maincolumn" tabindex="-1">
         <input type="hidden" id="issabel_framework_module_id" value="{if empty($idSubMenu2Selected)}{$idSubMenuSelected}{else}{$idSubMenu2Selected}{/if}" />
         <input type="hidden" id="issabel_framework_webCommon" value="{$WEBCOMMON}" />
         <div class="neo-module-content mt-module-content">

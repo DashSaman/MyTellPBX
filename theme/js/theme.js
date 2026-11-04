@@ -165,6 +165,7 @@
                     var dark = t === 'dark';
                     btn.setAttribute('aria-pressed', dark ? 'true' : 'false');
                     btn.title = dark ? 'تغییر به حالت روشن' : 'تغییر به حالت تاریک';
+                    btn.setAttribute('aria-label', btn.title);
                     btn.innerHTML = dark ? SUN : MOON;
                 }
                 /* live-sync same-origin frames (the admin iframe has its own
@@ -178,6 +179,7 @@
                         }
                     } catch (e) { /* cross-origin frame: ignore */ }
                 });
+                window.dispatchEvent(new CustomEvent('mt-themechange', { detail: { theme: t } }));
             };
             if (btn) {
                 btn.addEventListener('click', function () {

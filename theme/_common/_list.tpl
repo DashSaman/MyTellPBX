@@ -132,7 +132,7 @@
         </div>
     {/if}
 
-    {*<div class="neo-table-ref-table">*}
+    <div class="mt-table-scroll" role="region" tabindex="0" aria-label="فهرست اطلاعات">
         <table class="issabel-standard-table" align="center" width="100%" >
         <thead>
             <tr>
@@ -182,7 +182,7 @@
         </tfoot>
             {/if}
         </table>
-    {*</div>*}
+    </div>
 
     {if $numData > 3 and $numPage > 1}
         <div class="neo-table-footer-row">
@@ -265,7 +265,7 @@ $(document).ready(function() {
         }
     });
 
-    $('form.issabel-standard-formgrid>table.issabel-standard-table').each(function() {
+    $('form.issabel-standard-formgrid>.mt-table-scroll>table.issabel-standard-table').each(function() {
         var wt = $(this).find('thead>tr').width();
         $(this).find('thead>tr>th').each(function () {
             var wc = $(this).width();
@@ -285,4 +285,3 @@ $(document).ready(function() {
 {literal}
 </script>
 {/literal}
-

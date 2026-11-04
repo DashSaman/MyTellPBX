@@ -23,7 +23,7 @@
 
     <link rel="stylesheet" href="{$WEBPATH}themes/{$THEMENAME}/css/fonts.css?v=122">
     <link rel="stylesheet" href="{$WEBPATH}themes/{$THEMENAME}/css/glyphicons.css?v=122">
-    <link rel="stylesheet" href="{$WEBPATH}themes/{$THEMENAME}/css/tokens.css?v=122">
+    <link rel="stylesheet" href="{$WEBPATH}themes/{$THEMENAME}/css/tokens.css?v=740">
     <link rel="stylesheet" href="{$WEBPATH}themes/{$THEMENAME}/css/base.css?v=122">
     <link rel="stylesheet" href="{$WEBPATH}themes/{$THEMENAME}/css/components.css?v=122">
     <link rel="stylesheet" href="{$WEBPATH}themes/{$THEMENAME}/css/applet.css?v=122">
@@ -94,8 +94,10 @@
 
     {$HEADER}
     {$HEADER_MODULES}
+    <link rel="stylesheet" href="{$WEBPATH}themes/{$THEMENAME}/css/workspace.css?v=740">
     </head>
     <body leftmargin="0" topmargin="0" marginwidth="0" marginheight="0" class="mt-body page-body" {$BODYPARAMS}{if $MT_CAN_ENTER_DESK} data-mt-desk="1"{/if}>
+    <a href="#neo-contentbox-maincolumn" class="mt-skip-link">رفتن به محتوای صفحه</a>
     <div class="page-container mt-shell">
 
         {$MENU}
@@ -240,12 +242,13 @@ $(document).ready(function(e) {
         <script src="{$WEBPATH}themes/{$THEMENAME}/js/mytel-loader.js?v=122"></script>
         <script src="{$WEBPATH}themes/{$THEMENAME}/js/neon-custom.js"></script>
         <script src="{$WEBPATH}themes/{$THEMENAME}/vendor/echarts/echarts.min.js"></script>
-        <script src="{$WEBPATH}themes/{$THEMENAME}/js/mytel-charts.js?v=100"></script>
-        <script src="{$WEBPATH}themes/{$THEMENAME}/js/theme.js?v=732"></script>
+        <script src="{$WEBPATH}themes/{$THEMENAME}/js/mytel-charts.js?v=740"></script>
+        <script src="{$WEBPATH}themes/{$THEMENAME}/js/theme.js?v=740"></script>
         <script src="{$WEBPATH}themes/{$THEMENAME}/js/mt-calendar.js?v=122"></script>
         <script src="{$WEBPATH}themes/{$THEMENAME}/js/mt-date-icons.js?v=122"></script>
         <script src="{$WEBPATH}themes/{$THEMENAME}/js/mt-cdr-filters.js?v=122"></script>
         <script src="{$WEBPATH}themes/{$THEMENAME}/js/mt-secadv.js?v=122"></script>
+        <script src="{$WEBPATH}themes/{$THEMENAME}/js/workspace.js?v=740"></script>
     </div>
 </body>
 </html>

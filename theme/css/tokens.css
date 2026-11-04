@@ -1,6 +1,6 @@
 /* ============================================================
    MyTel design system — single source of truth (tokens)
-   Palette derived from the MyTel brand: deep navy, brand indigo,
+   Palette derived from the MyTel brand: deep navy, signal blue,
    signal orange. Do not hardcode colors in other files.
    ============================================================ */
 :root {
@@ -11,12 +11,12 @@
     --mt-navy-700: #16263F;
     --mt-navy-600: #1E3252;
 
-    /* brand indigo — primary actions */
-    --mt-primary: #2E3194;
-    --mt-primary-strong: #26287C;
-    --mt-primary-soft: #4A4DB8;
-    --mt-primary-tint: #EEEFFA;
-    --mt-primary-tint-2: #DDDEF5;
+    /* signal blue — primary actions */
+    --mt-primary: #245CC5;
+    --mt-primary-strong: #194BA9;
+    --mt-primary-soft: #326CCD;
+    --mt-primary-tint: #EBF2FE;
+    --mt-primary-tint-2: #D8E6FD;
 
     /* signal blue + accent orange (logo family) */
     --mt-blue: #1E88E5;
@@ -37,39 +37,44 @@
     --mt-info-tint: #E9F0FE;
 
     /* surfaces */
-    --mt-bg: #F3F5F9;
+    --mt-bg: #F3F6FA;
     --mt-surface: #FFFFFF;
-    --mt-surface-2: #F8F9FC;
-    --mt-border: #E3E7EE;
-    --mt-border-strong: #CBD2DD;
+    --mt-surface-2: #F7F9FC;
+    --mt-border: #DFE6F0;
+    --mt-border-strong: #B8C5D6;
+    --mt-control-bg: #FFFFFF;
+    --mt-table-head: #EEF3F9;
 
     /* text */
-    --mt-text: #232A35;
-    --mt-text-muted: #64708A;
-    --mt-text-faint: #9AA3B5;
+    --mt-text: #18283E;
+    --mt-text-muted: #52647C;
+    --mt-text-faint: #607089;
     --mt-text-invert: #FFFFFF;
 
     /* sidebar palette */
-    --mt-side-text: #AAB6CE;
+    --mt-side-bg: #112239;
+    --mt-side-text: #C0CEE1;
+    --mt-side-muted: #98ADC9;
     --mt-side-text-hover: #FFFFFF;
-    --mt-side-active-bg: rgba(255, 138, 0, 0.14);
-    --mt-side-active-text: #FFB25C;
+    --mt-side-active-bg: #254262;
+    --mt-side-active-text: #FFFFFF;
+    --mt-side-active-mark: #8DBBFF;
 
     /* radius */
-    --mt-radius-sm: 6px;
-    --mt-radius: 9px;
-    --mt-radius-lg: 14px;
+    --mt-radius-sm: 8px;
+    --mt-radius: 12px;
+    --mt-radius-lg: 16px;
 
     /* shadows */
-    --mt-shadow-1: 0 1px 2px rgba(11, 21, 38, .05), 0 1px 3px rgba(11, 21, 38, .07);
-    --mt-shadow-2: 0 3px 10px rgba(11, 21, 38, .09);
+    --mt-shadow-1: 0 2px 4px rgba(17, 34, 57, .025);
+    --mt-shadow-2: 0 6px 20px rgba(17, 34, 57, .07);
     --mt-shadow-3: 0 14px 38px rgba(11, 21, 38, .22);
 
     /* typography */
     --mt-font: 'Vazirmatn', Tahoma, Arial, sans-serif;
-    --mt-fs-xs: 11px;
-    --mt-fs-sm: 12px;
-    --mt-fs-md: 13.5px;
+    --mt-fs-xs: 12px;
+    --mt-fs-sm: 13px;
+    --mt-fs-md: 14px;
     --mt-fs-base: 14.5px;
     --mt-fs-lg: 16px;
     --mt-fs-xl: 19px;
@@ -78,7 +83,7 @@
     /* layout */
     --mt-sidebar-w: 262px;
     --mt-sidebar-w-collapsed: 66px;
-    --mt-topbar-h: 60px;
+    --mt-topbar-h: 72px;
 
     /* motion */
     --mt-ease: cubic-bezier(.4, 0, .2, 1);
@@ -86,16 +91,18 @@
 
     /* role tokens: foregrounds for text/icons on surfaces and tints,
        plus AA-corrected semantic fills. Light values (see dark below). */
-    --mt-primary-fg: #2E3194;
-    --mt-primary-fg-hover: #26287C;
+    --mt-primary-fg: #245CC5;
+    --mt-primary-fg-hover: #194BA9;
     --mt-blue-fg: #1469B2;
     --mt-accent-fg: #9C4D00;
     --mt-success-fg: #176B43;
     --mt-warning-fg: #805300;
     --mt-danger-fg: #B42338;
     --mt-info-fg: #2459C4;
-    --mt-focus: #2E3194;
-    --mt-control-border: #64708A;
+    --mt-violet-fg: #6741B4;
+    --mt-pink-fg: #A52272;
+    --mt-focus: #245CC5;
+    --mt-control-border: #8090A6;
     --mt-success-fill: #176B43;
     --mt-danger-fill: #B52F42;
     --mt-info-fill: #2459C4;
@@ -110,18 +117,21 @@
 :root[data-mt-theme="dark"] {
     color-scheme: dark;
 
-    --mt-bg:             #080F1C;
-    --mt-surface:        #101D33;
-    --mt-surface-2:      #16263F;
-    --mt-border:         #2C4263;
-    --mt-border-strong:  #637A9B;
+    --mt-bg:             #0C1422;
+    --mt-surface:        #131F30;
+    --mt-surface-2:      #19283C;
+    --mt-border:         #2B3B51;
+    --mt-border-strong:  #586C87;
+    --mt-control-bg:     #152338;
+    --mt-table-head:     #1B2D44;
+    --mt-side-bg:        #101D2F;
 
-    --mt-text:           #E8EEF8;
-    --mt-text-muted:     #B0BDD2;
-    --mt-text-faint:     #9AAAC2;
+    --mt-text:           #EAF0FA;
+    --mt-text-muted:     #B1BED2;
+    --mt-text-faint:     #A1B1C9;
 
-    --mt-primary-tint:   #21264A;
-    --mt-primary-tint-2: #303763;
+    --mt-primary-tint:   #1C3556;
+    --mt-primary-tint-2: #25466F;
     --mt-blue-tint:      #172F49;
     --mt-accent-tint:    #382B20;
     --mt-accent-pale:    #493327;
@@ -131,24 +141,26 @@
     --mt-danger-tint:    #3A202D;
     --mt-info-tint:      #172F54;
 
-    --mt-shadow-1: 0 1px 2px #0000003D, 0 1px 3px #00000029;
-    --mt-shadow-2: 0 4px 14px #00000052;
+    --mt-shadow-1: 0 2px 4px #00000014;
+    --mt-shadow-2: 0 6px 20px #00000029;
     --mt-shadow-3: 0 16px 44px #00000080;
 
-    --mt-primary-fg:        #B8B9FF;
-    --mt-primary-fg-hover:  #D0D1FF;
+    --mt-primary-fg:        #A9C9FF;
+    --mt-primary-fg-hover:  #D0E2FF;
     --mt-blue-fg:           #8DCBFF;
-    --mt-accent-fg:         #FFB86B;
+    --mt-accent-fg:         #FFBB7A;
     --mt-success-fg:        #83D8AD;
     --mt-warning-fg:        #FFD084;
     --mt-danger-fg:         #FFADB2;
     --mt-info-fg:           #A4C5FF;
-    --mt-focus:             #B8B9FF;
-    --mt-control-border:    #637A9B;
+    --mt-violet-fg:         #C7B7FF;
+    --mt-pink-fg:           #F5A5D1;
+    --mt-focus:             #A9C9FF;
+    --mt-control-border:    #7185A2;
 }
 
 /* light-mode AA correction: meaningful faint text lifts from 2.41:1 to
    4.6:1 on surface-2 (commander-measured) */
 :root:not([data-mt-theme="dark"]) {
-    --mt-text-faint: #64708A;
+    --mt-text-faint: #607089;
 }

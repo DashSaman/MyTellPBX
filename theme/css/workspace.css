@@ -1,0 +1,455 @@
+/* MyTell workspace v7.4.0. Loaded AFTER module CSS; no PBX iframe mirroring. */
+html { scroll-padding-top: 88px; }
+body.mt-body { font-size: var(--mt-fs-base); font-family: var(--mt-font) !important; }
+/* The current shell no longer loads compat.css. Its list/export visibility
+   utility is still part of the stock module's class-toggle contract. */
+.neo-display-none { display: none !important; }
+body.mt-body a { color: var(--mt-primary-fg); }
+body.mt-body a:hover { color: var(--mt-primary-fg-hover); }
+:is(body.mt-body, body.mt-login-body) :focus-visible {
+    outline: 3px solid var(--mt-focus);
+    outline-offset: 3px;
+}
+.mt-skip-link { position: fixed; top: -100px; right: 20px; z-index: 3000; padding: 10px 18px; background: var(--mt-surface); border-radius: var(--mt-radius-sm); }
+.mt-skip-link:focus { top: 12px; }
+
+/* Quiet navigation: state, not decorative glow, carries the emphasis. */
+.sidebar-menu.mt-sidebar {
+    background: var(--mt-side-bg);
+    border-inline-end: 1px solid var(--mt-border);
+    box-shadow: none;
+}
+.mt-logo-env { min-height: var(--mt-topbar-h); padding: 18px 18px; background: none; }
+.mt-brand-emblem { width: 38px; height: 38px; flex-basis: 38px; padding: 0; background: none; border-radius: 0; box-shadow: none; }
+.mt-brand-emblem:hover { transform: none; }
+.mt-brand-name { background: none; -webkit-text-fill-color: currentColor; font-size: 19px; letter-spacing: 0; color: #FFFFFF; }
+.mt-brand-sub { color: var(--mt-side-muted); font-size: 11px; white-space: normal; }
+.mt-sidebar #main-menu { padding: 18px 12px 24px; }
+.mt-sidebar #main-menu > li > a {
+    height: 46px; gap: 10px; padding: 0 12px; margin: 3px 0;
+    font-size: 14px; font-weight: 500; border-radius: 8px;
+    color: var(--mt-side-text); border-inline-start: 3px solid transparent;
+    box-shadow: none; background: transparent;
+}
+.mt-sidebar #main-menu > li > a > i {
+    width: 24px; height: 24px; flex-basis: 24px; font-size: 16px;
+    background: none; border: 0; border-radius: 0; color: var(--mt-side-muted);
+    box-shadow: none; transform: none;
+}
+.mt-sidebar #main-menu > li > a:hover { color: #FFFFFF; background: #1B314C; }
+.mt-sidebar #main-menu > li > a:hover > i { color: #FFFFFF; background: none; box-shadow: none; transform: none; }
+.mt-sidebar #main-menu > :is(li.active, li.opened) > a {
+    background: var(--mt-side-active-bg); color: var(--mt-side-active-text);
+    border-inline-start-color: var(--mt-side-active-mark); box-shadow: none; font-weight: 600;
+}
+.mt-sidebar #main-menu > :is(li.active, li.opened) > a > i { color: var(--mt-side-active-mark); background: none; border: 0; box-shadow: none; }
+.mt-sidebar #main-menu > li > ul { background: none; border-inline-start-color: #304763; margin: 8px 26px 12px 8px; border-radius: 0; }
+.mt-sidebar #main-menu > li > ul::before { display: none; }
+.mt-sidebar #main-menu ul a { min-height: 36px; padding-block: 5px; font-size: 13px; color: var(--mt-side-text); }
+.mt-sidebar #main-menu ul ul a { font-size: 13px; min-height: 34px; }
+.mt-sidebar #main-menu ul :is(li.active, li.opened) > a { background: #1D3552; color: #FFFFFF; }
+.mt-sidebar #main-menu ul li.active > a::before { background: var(--mt-side-active-mark); box-shadow: none; }
+.mt-sidebar #main-menu .mt-menu-label { padding: 20px 12px 7px; font-size: 11px; color: var(--mt-side-muted); letter-spacing: 0; font-weight: 500; }
+.mt-sidebar #main-menu .mt-menu-label::after { background: #2A3E57; }
+.mt-menu-search form { margin-bottom: 14px; }
+.mt-menu-search .search-input { background: #192E48; border-color: #3B526F; border-radius: 8px; font-size: 13px; height: 42px; padding-right: 12px; padding-left: 38px; box-shadow: none; }
+.mt-menu-search .search-input::placeholder { color: #B4C4DA; }
+.mt-menu-search .search-input:focus { background: #1D3552; border-color: var(--mt-side-active-mark); box-shadow: none; }
+.mt-menu-search button { color: #B4C4DA; }
+.mt-nav-disclosure { width: 30px; height: 30px; top: 8px; color: var(--mt-side-text); }
+.mt-nav-disclosure span { border-color: #A8BAD2; }
+.mt-sidebar #main-menu a:has(+ ul) { padding-inline-end: 38px; }
+
+/* Context and toolbar share a single hierarchy. */
+.mt-topbar { height: var(--mt-topbar-h); padding-inline: 26px; box-shadow: none; gap: 20px; }
+.mt-topbar-right { gap: 10px; min-width: 0; }
+.mt-topbar-context { display: flex; flex-direction: column; gap: 1px; padding-inline-start: 8px; min-width: 0; }
+.mt-topbar-context small { font-size: 11px; color: var(--mt-text-muted); }
+.mt-topbar-context strong { font-size: 15px; font-weight: 650; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.mt-topbar-burger { width: 40px; height: 40px; flex: 0 0 40px; border-radius: 8px; color: var(--mt-text-muted); background: var(--mt-surface); }
+.mt-theme-toggle { box-shadow: none; border-radius: 10px; background: var(--mt-surface-2); color: var(--mt-text-muted); border-color: var(--mt-border-strong); }
+.mt-theme-toggle:hover { box-shadow: none; }
+.mt-avatar { width: 32px; height: 32px; background: var(--mt-primary-tint); color: var(--mt-primary-fg); box-shadow: none; }
+.mt-user-toggle { font-size: 13px; }
+.mt-topbar-links a { width: 40px; height: 40px; align-items: center; justify-content: center; }
+.mt-breadcrumb { background: transparent; border-bottom: 0; padding: 16px 28px 0; font-size: 12px; gap: 4px; min-height: 36px; }
+.mt-breadcrumb li + li::before { margin-inline: 6px; color: var(--mt-text-faint); }
+.neo-module-content.mt-module-content { padding: 20px 28px 24px; }
+.mt-footer { border-top: 1px solid var(--mt-border); margin-inline: 28px; padding: 16px 0 20px; font-size: 12px; }
+.mt-module-content iframe { max-width: 100%; border-radius: var(--mt-radius); }
+/* The loader is visible while slow or unavailable embedded modules settle. */
+body.mt-body .mt-page-loader { background: var(--mt-bg); }
+body.mt-body .mt-page-loader-ring { border-color: var(--mt-border-strong); border-top-color: var(--mt-primary-fg); border-inline-end-color: var(--mt-warning-fg); }
+body.mt-body .mt-page-loader-label b { color: var(--mt-primary-fg); }
+body.mt-body .mt-page-loader-label span { color: var(--mt-text-muted); }
+
+/* Baseline geometry and meaningful foreground roles, both themes. */
+body.mt-body .neo-module-content :is(h1,h2,h3,h4,h5,h6) { color: var(--mt-text); letter-spacing: 0; }
+body.mt-body .neo-module-content :is(a, .btn-link) { color: var(--mt-primary-fg); }
+body.mt-body .neo-module-content :is(.btn, .button, input[type="submit"], input[type="button"], .neo-table-toolbar-button, .neo-table-action) {
+    border-radius: var(--mt-radius-sm); min-height: 36px; font-family: var(--mt-font); font-size: 13px; text-shadow: none; box-shadow: none;
+}
+body.mt-body .neo-module-content :is(.btn-primary, .mt-fa-submit, input[type="submit"]):not(.btn-danger) {
+    background: var(--mt-primary) !important; border-color: var(--mt-primary) !important; color: #FFFFFF !important;
+}
+body.mt-body .neo-module-content .btn-success { background: var(--mt-success-fill) !important; color: #FFFFFF !important; }
+body.mt-body .neo-module-content .btn-danger { background: var(--mt-danger-fill) !important; color: #FFFFFF !important; }
+body.mt-body .neo-module-content .btn-info { background: var(--mt-info-fill) !important; color: #FFFFFF !important; }
+body.mt-body .neo-module-content .btn-warning { background: var(--mt-warning) !important; color: var(--mt-warning-on) !important; }
+body.mt-body .neo-module-content :is(.btn-default, .neo-table-toolbar-button, .neo-table-action) { background: var(--mt-surface); color: var(--mt-text); border-color: var(--mt-control-border); }
+/* The stock list emits inline action colors. Normalize those to a safe ink/fill
+   pair instead of placing pale dark-mode text on its light red/orange fills. */
+body.mt-body .neo-module-content :is(.neo-table-toolbar-button, .neo-table-action)[style*="background"] { background: var(--mt-surface) !important; color: var(--mt-text) !important; border-color: var(--mt-control-border) !important; }
+body.mt-body .neo-module-content :is(input:not([type]), input[type="text"], input[type="password"], input[type="email"], input[type="number"], input[type="tel"], input[type="search"], input[type="date"], input[type="time"], select, textarea) {
+    background: var(--mt-control-bg) !important; color: var(--mt-text) !important;
+    border: 1px solid var(--mt-control-border) !important;
+    border-radius: var(--mt-radius-sm); min-height: 38px; max-width: 100%; font-family: var(--mt-font); font-size: 13px;
+}
+body.mt-body .neo-module-content input::placeholder,
+body.mt-body .neo-module-content textarea::placeholder { color: var(--mt-text-faint); opacity: 1; }
+body.mt-body .neo-module-content :is(input, select, textarea):focus-visible { border-color: var(--mt-focus) !important; outline: 2px solid var(--mt-focus); outline-offset: 2px; box-shadow: none; }
+body.mt-body .neo-module-content :is(input, select, textarea):disabled { background: var(--mt-surface-2) !important; color: var(--mt-text-muted) !important; }
+body.mt-body .neo-module-content :is(label, .control-label) { color: var(--mt-text); font-size: 13px; }
+body.mt-body .neo-module-content :is(.help-block, .text-muted, small) { color: var(--mt-text-muted); }
+body.mt-body .mt-chip { background: var(--mt-primary-tint); color: var(--mt-primary-fg); border-color: var(--mt-border-strong); }
+body.mt-body .neo-module-content :is(.panel, .well, .tabForm, .neo-table-header-row, .neo-table-filter-controls, .mt-jalali, fieldset, .port-status) {
+    background: var(--mt-surface); border-color: var(--mt-border) !important; box-shadow: var(--mt-shadow-1); border-radius: var(--mt-radius);
+}
+body.mt-body .neo-module-content :is(.panel-heading, .panel-footer) { background: var(--mt-surface-2); color: var(--mt-text); border-color: var(--mt-border); }
+body.mt-body .neo-module-content :is(.panel-title, legend) { color: var(--mt-text); }
+body.mt-body .neo-module-content .nav-tabs > li.active > a { color: var(--mt-primary-fg); border-bottom-color: var(--mt-primary-fg); }
+body.mt-body .neo-module-content :is(.nav-tabs, .nav-tabs > li > a) { border-color: var(--mt-border); }
+body.mt-body .neo-module-content .mt-guide { background: var(--mt-info-tint); color: var(--mt-info-fg); border-color: var(--mt-border); border-inline-start-color: var(--mt-info-fg); }
+body.mt-body .neo-module-content .mt-guide b { color: var(--mt-info-fg); }
+body.mt-body .neo-module-content .alert { border: 1px solid currentColor; border-radius: 10px; line-height: 1.8; }
+body.mt-body :is(.alert-danger, .mt-alert-error) { background: var(--mt-danger-tint); color: var(--mt-danger-fg); }
+body.mt-body .alert-warning { background: var(--mt-warning-tint); color: var(--mt-warning-fg); }
+body.mt-body .alert-info { background: var(--mt-info-tint); color: var(--mt-info-fg); }
+body.mt-body .alert-success { background: var(--mt-success-tint); color: var(--mt-success-fg); }
+body.mt-body .alert a { color: inherit; text-decoration: underline; }
+body.mt-body .div_msg_errors_title b { color: var(--mt-danger-fg) !important; }
+body.mt-body .neo-module-content :is(.label-success, .label-danger, .label-info) { font-size: 12px; }
+body.mt-body .neo-module-content .label-success { color: var(--mt-success-fg); }
+body.mt-body .neo-module-content .label-danger { color: var(--mt-danger-fg); }
+body.mt-body .neo-module-content .label-info { color: var(--mt-info-fg); }
+
+/* Reports: keep all columns available in a local scroll area. */
+body.mt-body .dataTables_wrapper {
+    padding: 16px; background: var(--mt-surface); border: 1px solid var(--mt-border);
+    border-radius: var(--mt-radius); box-shadow: var(--mt-shadow-1); max-width: 100%;
+}
+body.mt-body .dataTables_wrapper :is(.dataTables_length, .dataTables_filter) { margin-bottom: 14px; color: var(--mt-text-muted); }
+body.mt-body .dataTables_wrapper .dataTables_filter input { margin-inline-start: 8px; min-width: 160px; }
+body.mt-body .dataTables_wrapper .dataTables_length select { min-width: 72px; }
+body.mt-body .dataTables_wrapper :is(.dataTables_info, .dataTables_paginate) { padding-top: 14px; color: var(--mt-text-muted); }
+body.mt-body .neo-module-content :is(table.table, table.dataTable, .issabel-standard-table) { box-shadow: none; border-color: var(--mt-border); }
+body.mt-body .neo-module-content :is(table.table, table.dataTable, .issabel-standard-table) > :is(thead,tfoot) > tr > :is(th,td) {
+    background: var(--mt-table-head) !important; background-image: none !important; color: var(--mt-text) !important;
+    border-color: var(--mt-border) !important; padding: 13px 14px; font-size: 12px; font-weight: 600;
+}
+body.mt-body .neo-module-content :is(table.table, table.dataTable, .issabel-standard-table) > tbody > tr > td {
+    color: var(--mt-text); background: var(--mt-surface) !important; border-color: var(--mt-border) !important; padding: 12px 14px;
+}
+body.mt-body .neo-module-content :is(table.table, table.dataTable, .issabel-standard-table) > tbody > tr:nth-child(even) > td { background: var(--mt-surface-2) !important; }
+body.mt-body .neo-module-content :is(table.table, table.dataTable, .issabel-standard-table) > tbody > tr:hover > td { background: var(--mt-primary-tint) !important; }
+body.mt-body .dataTables_wrapper .dataTables_paginate .paginate_button { color: var(--mt-text) !important; background: var(--mt-surface) !important; border-color: var(--mt-border-strong) !important; min-height: 34px; }
+body.mt-body .dataTables_wrapper .dataTables_paginate .paginate_button.current { background: var(--mt-primary) !important; color: #FFFFFF !important; border-color: var(--mt-primary) !important; }
+body.mt-body .dataTables_wrapper .dataTables_paginate .paginate_button.disabled { color: var(--mt-text-muted) !important; opacity: 1; }
+body.mt-body :is(.dataTables_wrapper .btn-group, .dt-buttons) { flex-wrap: wrap; gap: 3px; margin-bottom: 12px; }
+body.mt-body .dt-button { color: var(--mt-text) !important; background: var(--mt-surface-2) !important; background-image: none !important; border-color: var(--mt-border-strong) !important; border-radius: 6px !important; }
+.mt-table-scroll { max-width: 100%; overflow-x: auto; overscroll-behavior-inline: contain; border-radius: var(--mt-radius); }
+.mt-table-scroll:focus-visible { outline-offset: -3px !important; }
+/* Keep firewall table ancestry, column order and native handlers unchanged. */
+body.mt-body :is(#geoiptable, #rulestable) { display: block; width: 100%; max-width: 100%; overflow-x: auto; overscroll-behavior-inline: contain; }
+body.mt-body .mt-form-layout > tbody > tr > td[colspan] { white-space: normal; width: auto; overflow-wrap: anywhere; }
+body.mt-body .mt-form-layout .mt-form-layout { border: 0; box-shadow: none; margin: 0; background: transparent; }
+body.mt-body .mt-form-layout input[type="file"] { max-width: 100%; min-width: 0; }
+/* The filestyle plugin clips its native input but leaves a 253px absolute box
+   outside RTL toolbars. Keep it keyboard-accessible without enlarging the page. */
+body.mt-body input[type="file"].jfilestyle { width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); }
+body.mt-body .focus-jfilestyle > label { background: var(--mt-surface-2); color: var(--mt-text); border-color: var(--mt-control-border); }
+body.mt-body input.jfilestyle:focus-visible + .jfilestyle label { outline: 3px solid var(--mt-focus); outline-offset: 2px; }
+
+/* Home: operational monitors, not giant glowing cards. */
+#mt-dash { gap: 20px; }
+#mt-dash .mt-card { border: 1px solid var(--mt-border); border-radius: var(--mt-radius); box-shadow: var(--mt-shadow-1); padding: 24px; }
+#mt-dash .mt-card-title { font-size: 14px; }
+#mt-dash .mt-card-title::before { width: 3px; height: 14px; background: var(--mt-primary-fg); }
+.mt-dash-head h1 { font-size: 25px; font-weight: 750; }
+.mt-dash-sub { margin-top: 6px; font-size: 13px; }
+.mt-dash-fresh .mt-dot { animation: none; box-shadow: none; }
+.mt-fig-num { font-size: 44px; letter-spacing: 0; }
+.mt-fig-num--sm { color: var(--mt-primary-fg); font-size: 28px; }
+.mt-fig-sep { background: var(--mt-border); }
+.mt-hmeter { background: var(--mt-border); }
+.mt-disk-panel, .mt-cfig, .mt-ctraffic { background: var(--mt-surface-2); border: 1px solid var(--mt-border); border-radius: 8px; }
+.mt-cfig { min-width: 0; }
+.mt-disk-top b { color: var(--mt-primary-fg); }
+.mt-sysrow, .mt-crow { border-bottom-style: solid; padding-block: 11px; }
+.mt-home-quicklinks { gap: 16px; margin-bottom: 28px; }
+body.mt-body .mt-home-card { min-height: 84px; border: 1px solid var(--mt-border); border-radius: 12px; padding: 16px 20px; background: var(--mt-surface); color: var(--mt-text); box-shadow: none; }
+body.mt-body .mt-home-card:hover { border-color: var(--mt-primary-fg); background: var(--mt-surface); box-shadow: none; transform: none; }
+.mt-home-card__icon, .mt-home-card--desk .mt-home-card__icon, .mt-home-card--webphone .mt-home-card__icon { background: var(--mt-primary-tint); color: var(--mt-primary-fg); border-radius: 10px; box-shadow: none; }
+.mt-home-card__text b { font-size: 15px; }
+.mt-home-card__text small { font-size: 12px; }
+
+/* Legacy date/help overlays must not inherit light skins after theme load. */
+body.mt-body :is(.dropdown-menu, .subMenu, .popover, .ui-datepicker, .xdsoft_datetimepicker, .calendar, .modal-content) { background: var(--mt-surface); color: var(--mt-text); border: 1px solid var(--mt-border-strong); }
+body.mt-body .dropdown-menu li a:hover { background: var(--mt-primary-tint); color: var(--mt-primary-fg); }
+body.mt-body .popover-title { color: var(--mt-text); background: var(--mt-surface-2); }
+body.mt-body .popover-content { color: var(--mt-text); }
+html[data-mt-theme="dark"] body.mt-body :is(.tabForm td[bgcolor], .neo-module-content td[bgcolor], .neo-module-content div[style*="background-color: rgb(255, 255, 255)"]) { background: var(--mt-surface) !important; }
+html[data-mt-theme="dark"] body.mt-body :is(.ui-state-active, .ui-widget-content .ui-state-active) { color: var(--mt-primary-fg) !important; background: var(--mt-primary-tint) !important; }
+html[data-mt-theme="dark"] body.mt-body .neo-table-filter-controls { color: var(--mt-primary-fg); }
+html[data-mt-theme="dark"] body.mt-body :is(.exportBackground, .exportBorder) { color: var(--mt-primary-fg) !important; }
+body.mt-body .neo-module-content font:is([color="red" i], [color="#ff0000" i]) { color: var(--mt-danger-fg) !important; }
+body.mt-body .neo-module-content font[color="green" i] { color: var(--mt-success-fg) !important; }
+body.mt-body .neo-module-content label[style*="color: green"] { color: var(--mt-success-fg) !important; }
+body.mt-body .neo-module-content h3[style*="color"] { color: var(--mt-text) !important; }
+body.mt-body .neo-module-content #amount { color: var(--mt-warning-fg) !important; }
+body.mt-body.mt-cdr-page { --mt-cdr-ink: var(--mt-text); --mt-cdr-muted: var(--mt-text-muted); --mt-cdr-line: var(--mt-border); --mt-cdr-primary: var(--mt-primary-fg); }
+body.mt-body.mt-cdr-page #formFilter { background: var(--mt-surface); color: var(--mt-text); box-shadow: none; }
+body.mt-body .neo-module-content canvas#myChart { background-color: var(--mt-surface) !important; }
+
+/* Ember modules use their own theme attribute. Match the shared choice while
+   retaining registration/active-state borders, icons and call-control handlers. */
+body.mt-body .neo-module-content:has(#endpointConfigApplication) { background: var(--mt-bg) !important; }
+body.mt-body #endpointConfigApplication { background: var(--mt-surface) !important; color: var(--mt-text); }
+body.mt-body #endpointConfigApplication .neo-table-data-row { color: var(--mt-text) !important; }
+body.mt-body #controlPanelApplication { color: var(--mt-text); }
+body.mt-body #controlPanelApplication .containerAll { background: var(--mt-surface); border-color: var(--mt-border); box-shadow: none; border-radius: 12px; }
+body.mt-body #controlPanelApplication .pbxpanel { background: var(--mt-surface-2); border-color: var(--mt-border); color: var(--mt-text); box-shadow: none; }
+body.mt-body #controlPanelApplication .pbxelement { background-color: var(--mt-surface); color: var(--mt-text); border-color: var(--mt-border-strong); box-shadow: none; border-radius: 8px; }
+body.mt-body #controlPanelApplication .pbxelement:hover { border-color: var(--mt-primary-fg); transform: none; box-shadow: none; }
+body.mt-body #controlPanelApplication .pbxactive { background: var(--mt-warning-tint) !important; border-color: var(--mt-warning-fg) !important; }
+body.mt-body #controlPanelApplication .operator-title-container { background: var(--mt-primary-tint); color: var(--mt-primary-fg); box-shadow: none; border-radius: 8px; }
+body.mt-body #controlPanelApplication .pbxpanel > dt:not(.operator-title-container) { background: var(--mt-table-head); color: var(--mt-text); border-color: var(--mt-border); }
+body.mt-body #controlPanelApplication .paneledittitle { color: var(--mt-primary-fg) !important; }
+body.mt-body #controlPanelApplication .statusbar div { background: var(--mt-surface) !important; box-shadow: none !important; }
+body.mt-body #controlPanelApplication .statusbar .Count-Registered { color: var(--mt-success-fg) !important; }
+body.mt-body #controlPanelApplication .statusbar .Count-NotRegistered { color: var(--mt-danger-fg) !important; }
+body.mt-body .neo-module-content .mytel-footer a { background: var(--mt-surface) !important; border-color: var(--mt-border) !important; box-shadow: none !important; }
+body.mt-body .neo-module-content .mytel-footer-label { color: var(--mt-primary-fg) !important; }
+
+/* Security forms own private legacy color variables, not the shell roles. */
+body.mt-secadv-page .mt-secadv { --sa-primary: var(--mt-primary-fg); --sa-text: var(--mt-text); --sa-muted: var(--mt-text-muted); }
+body.mt-secadv-page :is(.mt-secadv__card, .mt-secadv__actions) { background: var(--mt-surface) !important; color: var(--mt-text); border-color: var(--mt-border); box-shadow: var(--mt-shadow-1); border-radius: 12px; }
+body.mt-secadv-page :is(.mt-secadv__header, .mt-secadv__group-title) { background: var(--mt-surface-2); color: var(--mt-text); border-color: var(--mt-border); }
+body.mt-secadv-page :is(.mt-secadv__title, .mt-secadv__label) { color: var(--mt-text); }
+body.mt-secadv-page :is(.mt-secadv__description, .mt-secadv__help, .mt-secadv__actions-note) { color: var(--mt-text-muted); }
+body.mt-secadv-page .mt-secadv__radio { border-color: var(--mt-control-border); background: var(--mt-surface-2); color: var(--mt-text); }
+body.mt-secadv-page .mt-secadv__radio.is-selected { background: var(--mt-primary-tint); color: var(--mt-primary-fg); border-color: var(--mt-primary-fg); }
+body.mt-secadv-page .mt-secadv__badge { background: var(--mt-primary-tint); color: var(--mt-primary-fg); }
+
+/* The installed FullCalendar is older than the optional Jalali overlay. Keep
+   its day/week/month layout usable without changing calendar data or callbacks. */
+body.mt-body .neo-module-content:has(#calendar_main) { min-width: 0; }
+body.mt-body .tabForm:has(#calendar_main) { width: 100%; table-layout: fixed; }
+body.mt-body .tabForm:has(#calendar_main) > tbody > tr > td { vertical-align: top; padding: 12px; }
+body.mt-body .tabForm:has(#calendar_main) > tbody > tr > td:has(#calendar_newevent) { width: 250px; }
+body.mt-body #calendar_main { min-width: 0; max-width: 100%; font-family: var(--mt-font); }
+body.mt-body #calendar_main :is(.fc-button, .fc-button.fc-state-default) { background: var(--mt-surface); color: var(--mt-primary-fg); background-image: none; border: 1px solid var(--mt-control-border); text-shadow: none; box-shadow: none; border-radius: 5px; font-style: normal; }
+body.mt-body #calendar_main .fc-button.fc-state-active { background: var(--mt-primary-tint); color: var(--mt-primary-fg); border-color: var(--mt-primary-fg); }
+body.mt-body #calendar_main .fc-state-disabled { color: var(--mt-text-muted); opacity: 1; }
+body.mt-body #calendar_main :is(.fc-widget-header, .fc-widget-content) { border-color: var(--mt-border); }
+body.mt-body #calendar_main :is(.fc-day-header, .fc-agenda-axis) { background: var(--mt-table-head); color: var(--mt-text-muted); font-style: normal; font-size: 12px; padding: 9px 2px; }
+body.mt-body #calendar_main :is(.fc-day, .fc-day-number) { color: var(--mt-text); background-color: var(--mt-surface); font-style: normal; }
+body.mt-body #calendar_main .fc-other-month .fc-day-number { color: var(--mt-text-muted); opacity: 1; }
+body.mt-body #calendar_main .fc-today { background: var(--mt-primary-tint); }
+body.mt-body #calendar_main .fc-header h2 { font-style: normal; font-size: 18px; }
+body.mt-body :is(#calendar_mini, #calendar_ical_links) .ui-widget { font-family: var(--mt-font); }
+body.mt-body #calendar_ical_links a { color: var(--mt-primary-fg); font-size: 13px; }
+body.mt-body #calendar_main :is(.fc-widget-header, .fc-widget-content) { border-color: var(--mt-border) !important; }
+body.mt-body #calendar_main .fc-today .fc-day-number { background: var(--mt-primary-tint); color: var(--mt-primary-fg); font-weight: 700; }
+body.mt-body #calendar_mini .ui-datepicker { width: 100%; max-width: 320px; padding: 10px; box-sizing: border-box; border-radius: 8px; }
+body.mt-body #calendar_mini .ui-datepicker-header,
+body.mt-body #calendar_ical_links .ui-widget-header { background: var(--mt-surface-2) !important; background-image: none !important; color: var(--mt-text); border: 1px solid var(--mt-border); border-radius: 6px; }
+body.mt-body #calendar_mini .ui-datepicker-title { display: flex; gap: 6px; margin: 0 26px; }
+body.mt-body #calendar_mini .ui-datepicker-title select { width: auto; min-width: 0; flex: 1; font-size: 12px; }
+body.mt-body #calendar_mini table.ui-datepicker-calendar { width: 100%; table-layout: fixed; border-collapse: collapse; }
+body.mt-body #calendar_mini .ui-datepicker-calendar :is(th, td) { width: auto !important; padding: 2px !important; font-size: 12px; white-space: nowrap; }
+body.mt-body #calendar_mini .ui-datepicker-calendar .ui-state-default { display: flex; align-items: center; justify-content: center; padding: 3px; min-height: 30px; background: var(--mt-surface); color: var(--mt-text); border: 0; border-radius: 4px; white-space: nowrap; }
+body.mt-body #calendar_mini .ui-datepicker-calendar .ui-state-highlight { background: var(--mt-primary-tint); color: var(--mt-primary-fg); font-weight: 700; }
+body.mt-body #calendar_mini .ui-datepicker-calendar a:hover { background: var(--mt-surface-2); color: var(--mt-primary-fg); }
+body.mt-body #calendar_ical_links .ui-widget-content { background: var(--mt-surface); color: var(--mt-text); border-color: var(--mt-border); background-image: none; }
+
+/* The delayed Jalali month and mini-calendar use the same semantic roles as
+   the shell. Contain the wide grid locally, never at the document root. */
+body.mt-body #calendar_main .mt-jmonth {
+    --mt-cal-primary: var(--mt-primary-fg);
+    --mt-cal-ink: var(--mt-text);
+    --mt-cal-muted: var(--mt-text-muted);
+    --mt-cal-line: var(--mt-border);
+    --mt-cal-surface: var(--mt-surface);
+    --mt-cal-soft: var(--mt-surface-2);
+    --mt-cal-danger: var(--mt-danger-fg);
+    border-radius: var(--mt-radius); box-shadow: none;
+}
+body.mt-body #calendar_main .mt-jmonth-header { background: var(--mt-surface-2); }
+body.mt-body #calendar_main .mt-jmonth-title { color: var(--mt-primary-fg); font-size: 25px; }
+body.mt-body #calendar_main .mt-jmonth-scroll { position: relative; contain: inline-size; max-width: 100%; scrollbar-color: var(--mt-border-strong) var(--mt-surface-2); }
+body.mt-body #calendar_main .mt-jweekday-letter { position: relative; }
+body.mt-body #calendar_main .mt-jmonth-table :is(.mt-jweekday, .mt-jcell) { background: var(--mt-surface); color: var(--mt-text); }
+body.mt-body #calendar_main .mt-jmonth-table .mt-jweekday { background: var(--mt-table-head); color: var(--mt-text-muted); }
+body.mt-body #calendar_main .mt-jmonth-table :is(.mt-jfriday, .mt-jholiday) { background: var(--mt-danger-tint); }
+body.mt-body #calendar_main .mt-jmonth-table .mt-jweekday.mt-jfriday { color: var(--mt-danger-fg); }
+body.mt-body #calendar_main .mt-jmonth-table .mt-joutside { background: var(--mt-surface-2); }
+body.mt-body #calendar_main .mt-joutside :is(.mt-jday-open, .mt-jgregorian) { color: var(--mt-text-muted); }
+body.mt-body #calendar_main .mt-joutside .mt-jholiday-label { color: var(--mt-danger-fg); }
+body.mt-body #calendar_main .mt-jmonth-table .mt-jtoday { background: var(--mt-primary-tint); }
+body.mt-body #calendar_main .mt-jmonth-table .mt-jcell:hover { background: var(--mt-surface-2); }
+body.mt-body #calendar_main .mt-jnav { background: var(--mt-surface); color: var(--mt-primary-fg); border-color: var(--mt-control-border); box-shadow: none; }
+body.mt-body #calendar_main :is(.mt-jnav-today, .mt-jtoday .mt-jday-open) { background: var(--mt-primary); color: #FFFFFF; border-color: var(--mt-primary); box-shadow: none; }
+body.mt-body #calendar_main :is(.mt-jnav-today, .mt-jtoday .mt-jday-open):hover { background: var(--mt-primary-strong); }
+body.mt-body #calendar_main .mt-jday-open:hover { background: var(--mt-primary-tint); }
+body.mt-body #calendar_main .mt-jtoday .mt-jday-open:hover { background: var(--mt-primary-strong); }
+body.mt-body #calendar_main .mt-jmonth-status { background: var(--mt-warning-tint); color: var(--mt-warning-fg); border-color: var(--mt-border); }
+body.mt-body #calendar_main .mt-jevent { --mt-event-ink: var(--mt-primary-fg); --mt-event-bg: var(--mt-primary-tint); }
+body.mt-body #calendar_main .mt-jevent-v1 { --mt-event-ink: var(--mt-warning-fg); --mt-event-bg: var(--mt-warning-tint); }
+body.mt-body #calendar_main .mt-jevent-v2 { --mt-event-ink: var(--mt-success-fg); --mt-event-bg: var(--mt-success-tint); }
+body.mt-body .mt-calside { border-color: var(--mt-border); border-radius: var(--mt-radius); box-shadow: none; }
+body.mt-body .mt-calside-week span:first-child { color: var(--mt-text-muted); }
+body.mt-body .mt-calside-week span:last-child,
+body.mt-body .mt-mini:is(.fri, .hol) { color: var(--mt-danger-fg); }
+body.mt-body .mt-mini:hover { background: var(--mt-primary-tint); color: var(--mt-primary-fg); }
+body.mt-body :is(.mt-calside-grid, .mt-calside-week) { grid-template-columns: repeat(7, minmax(0, 1fr)); }
+body.mt-body .mt-mini { min-width: 0; width: 100%; padding: 0; }
+body.mt-body .mt-calside-today { background: var(--mt-primary-tint); color: var(--mt-primary-fg); }
+body.mt-body .mt-calside-today:hover { background: var(--mt-primary-tint-2); }
+
+/* Same-origin webmail, only when embedded in the panel. No email/account logic. */
+body.mt-mail-embed { background: var(--mt-bg); color: var(--mt-text); font: 14px/1.7 var(--mt-font); }
+body.mt-mail-embed :is(#layout, #layout-content, #login-form, .boxcontent) { background: var(--mt-bg) !important; color: var(--mt-text); }
+body.mt-mail-embed :is(input[type="text"], input[type="password"], input[type="email"], select, textarea) { background: var(--mt-control-bg) !important; color: var(--mt-text) !important; border-color: var(--mt-control-border) !important; border-radius: 8px; font-family: var(--mt-font); }
+body.mt-mail-embed input::placeholder { color: var(--mt-text-faint) !important; opacity: 1; }
+body.mt-mail-embed #rcmloginsubmit { background: var(--mt-primary) !important; border-color: var(--mt-primary) !important; color: #FFFFFF !important; border-radius: 8px; font-family: var(--mt-font); min-height: 44px; }
+body.mt-mail-embed a { color: var(--mt-primary-fg); }
+body.mt-mail-embed #login-footer { color: var(--mt-text-muted); }
+body.mt-mail-embed :focus-visible { outline: 3px solid var(--mt-focus); outline-offset: 2px; }
+
+/* Login belongs to the same product. A static signal motif, no ambient motion. */
+.mt-login-stage { min-height: 100vh; min-height: 100dvh; }
+.mt-login-brandpane { flex-basis: 44%; background: var(--mt-side-bg); border-inline-start: 1px solid #304763; }
+.mt-login-brandpane-inner { max-width: 530px; text-align: right; padding: 56px; }
+.mt-login-emblem { width: 64px; height: 64px; filter: none; }
+.mt-login-brandname { font-size: 44px; font-weight: 750; margin-top: 30px; }
+.mt-login-tagline { color: #CBD8E9; font-size: 19px; line-height: 1.9; }
+.mt-login-description { color: #AFC2DC; font-size: 14px; line-height: 2; margin-top: 20px; max-width: 32ch; }
+.mt-login-waves { justify-content: flex-start; height: 52px; margin-top: 42px; gap: 8px; }
+.mt-login-waves span { animation: none; background: #78AAEF; opacity: .8; width: 4px; }
+.mt-login-waves span:nth-child(5n) { background: #FFAD63; }
+.mt-login-panel { flex-basis: 56%; background: var(--mt-bg); padding: 80px 32px; }
+.mt-login-card { max-width: 420px; padding: 36px; border: 1px solid var(--mt-border); border-radius: 16px; box-shadow: var(--mt-shadow-2); }
+.mt-login-cardhead { text-align: right; margin-bottom: 28px; }
+.mt-login-cardhead h2 { font-size: 24px; }
+.mt-login-cardhead p { font-size: 13px; color: var(--mt-text-muted); margin: 8px 0 0; line-height: 1.9; }
+.mt-login-emblem-sm { display: none; }
+.mt-field { margin-bottom: 20px; }
+.mt-field label { color: var(--mt-text); font-size: 13px; }
+.mt-input { height: 48px; border-color: var(--mt-control-border); background: var(--mt-control-bg); border-radius: 8px; direction: ltr; text-align: right; }
+.mt-input:focus { border-color: var(--mt-focus); box-shadow: none; outline: 2px solid var(--mt-focus); outline-offset: 2px; }
+.mt-login-btn { background: var(--mt-primary); border-radius: 8px; height: 48px; font-size: 14px; }
+.mt-webphone-link { background: var(--mt-surface); color: var(--mt-text); border-color: var(--mt-border-strong); font-size: 13px; padding: 12px; }
+.mt-webphone-link::after { display: none; }
+.mt-webphone-link:hover { background: var(--mt-surface-2); color: var(--mt-text); box-shadow: none; transform: none; }
+.mt-webphone-link > i:first-child { color: var(--mt-primary-fg); background: var(--mt-primary-tint); }
+.mt-webphone-link small { color: var(--mt-text-muted); }
+.mt-webphone-link .mt-arrow { color: var(--mt-text-muted); }
+.mt-login-foot { margin-top: 28px; line-height: 1.8; }
+.mt-login-theme-toggle { box-shadow: none; }
+.mt-login-error { line-height: 1.9; }
+.mt-popup-body { margin: 0; padding: 24px; background: var(--mt-bg); color: var(--mt-text); font: 14px/1.8 var(--mt-font); }
+
+@media (min-width: 992px) {
+    .sidebar-menu.mt-sidebar { position: sticky; top: 0; height: 100vh; height: 100dvh; }
+    .mt-sidebar #main-menu { min-height: 0; }
+}
+@media (max-width: 1100px) {
+    .mt-topbar { padding-inline: 20px; }
+    .neo-module-content.mt-module-content { padding-inline: 20px; }
+    .mt-breadcrumb { padding-inline: 20px; }
+}
+@media (max-width: 991px) {
+    body.mt-drawer-open { overflow: hidden; }
+    .mt-topbar { gap: 8px; padding-inline: 16px; height: 66px; }
+    .mt-topbar-context { padding-inline-start: 2px; }
+    .mt-topbar-context strong { max-width: 32vw; font-size: 14px; }
+    .mt-topbar-context small { font-size: 10px; }
+    .mt-topbar-burger { width: 44px; height: 44px; }
+    #mt-sidebar .mt-drawer-theme-slot { background: var(--mt-side-bg); border-bottom-color: #304763; }
+    .mt-sidebar #main-menu { overflow-y: visible; }
+    .mt-backdrop { backdrop-filter: none !important; }
+    .mt-footer { margin-inline: 16px; }
+    .neo-module-content.mt-module-content { min-width: 0; }
+    .mt-module-content > form, .mt-module-content > .mt-table-scroll { max-width: 100%; }
+}
+@media (max-width: 900px) {
+    body.mt-body .tabForm:has(#calendar_main),
+    body.mt-body .tabForm:has(#calendar_main) > tbody,
+    body.mt-body .tabForm:has(#calendar_main) > tbody > tr,
+    body.mt-body .tabForm:has(#calendar_main) > tbody > tr > td { display: block; width: 100% !important; min-width: 0; max-width: 100%; }
+    body.mt-body #calendar_main { width: 100% !important; overflow-x: auto; overscroll-behavior-inline: contain; }
+    body.mt-body #calendar_main.mt-jalali { padding: 12px; }
+    body.mt-body :is(#calendar_mini, #calendar_ical_links) { max-width: 100%; }
+    body.mt-body #calendar_main .fc-header td { padding: 4px !important; }
+    body.mt-body #calendar_main .fc-header h2 { font-size: 15px; white-space: normal; }
+    .mt-login-brandpane { display: none; }
+    .mt-login-panel { padding: 86px 20px 36px; background: var(--mt-bg); }
+    .mt-login-card { box-shadow: var(--mt-shadow-1); }
+    .mt-login-emblem-sm { display: block; width: 42px; height: 42px; margin-bottom: 22px; }
+}
+@media (max-width: 575px) {
+    .neo-module-content.mt-module-content { padding: 20px 14px !important; }
+    .mt-breadcrumb { padding-inline: 16px; }
+    .mt-topbar-left { gap: 0; }
+    .mt-topbar-links a { width: 36px; }
+    .mt-topbar-context strong { max-width: 32vw; }
+    .mt-home-quicklinks { gap: 10px; margin-bottom: 24px; }
+    body.mt-body .mt-home-card { padding: 14px 16px; min-height: 80px; }
+    .mt-dash-head { align-items: flex-start; flex-direction: column; gap: 10px; }
+    .mt-dash-head h1 { font-size: 22px; }
+    #mt-dash .mt-card { padding: 18px 16px; }
+    .mt-sysrow { flex-direction: column; gap: 4px; }
+    .mt-sysval { text-align: start; }
+    .mt-cfigs { gap: 6px; }
+    .mt-card-title-row { align-items: flex-start; flex-wrap: wrap; gap: 8px; }
+    body.mt-body .dataTables_wrapper { padding: 12px; }
+    body.mt-body :is(.dataTables_filter, .dataTables_length) { float: none !important; text-align: start !important; }
+    .mt-login-card { padding: 28px 24px; }
+    body.mt-body .mt-noti-menu { max-width: calc(100vw - 24px); }
+    .mt-footer { flex-wrap: wrap; gap: 6px; }
+    .neo-table-header-row-navigation { flex-wrap: wrap; margin-inline-start: 0; }
+}
+@media (max-width: 700px) {
+    /* The report skin's 700px table minimum otherwise clips LTR select text
+       after its cells are stacked. Keep the controls inside the mobile form. */
+    body.mt-body.mt-cdr-page #formFilter table { min-width: 0; }
+    body.mt-body .mt-form-layout,
+    body.mt-body .mt-form-layout > :is(tbody, thead, tfoot),
+    body.mt-body .mt-form-layout > :is(tbody, thead, tfoot) > tr,
+    body.mt-body .mt-form-layout > :is(tbody, thead, tfoot) > tr > :is(td, th) {
+        display: block; width: 100% !important; max-width: 100%; min-width: 0; box-sizing: border-box; white-space: normal !important; overflow-wrap: anywhere;
+    }
+    body.mt-body .mt-form-layout { padding: 12px; }
+    body.mt-body .mt-form-layout .mt-form-layout { padding: 0; }
+    body.mt-body .mt-form-layout > tbody > tr > td { padding: 6px 0; }
+    body.mt-body .mt-form-layout :is(input:not([type="checkbox"]):not([type="radio"]):not([type="submit"]):not([type="button"]):not([type="hidden"]), select, textarea) { width: 100%; box-sizing: border-box; }
+    body.mt-body .mt-form-layout :is(fieldset, .port-status) { width: 100%; max-width: 100%; box-sizing: border-box; }
+    body.mt-body #controlPanelApplication :is(.left-container, .right-container) { float: none; min-width: 0; width: 100%; }
+    body.mt-body #controlPanelApplication .pbxpanel { width: 100% !important; max-width: 100%; box-sizing: border-box; }
+    body.mt-body .tabForm:has(#calendar_main) > tbody > tr { display: flex; flex-direction: column; }
+    body.mt-body .tabForm:has(#calendar_main) > tbody > tr > td:has(#calendar_main) { order: -1; }
+    body.mt-body #calendar_main .fc-header,
+    body.mt-body #calendar_main .fc-header > tbody { display: block; width: 100%; }
+    body.mt-body #calendar_main .fc-header > tbody > tr { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 8px; }
+    body.mt-body #calendar_main .fc-header td { display: block; width: auto !important; }
+    body.mt-body #calendar_main .fc-header td.fc-header-center { order: -1; width: 100% !important; text-align: center; }
+    body.mt-body #calendar_main .fc-header h2 { white-space: nowrap; font-size: 18px; }
+}
+@media (pointer: coarse) {
+    body.mt-body .neo-module-content :is(.btn, input[type="submit"], .neo-table-toolbar-button) { min-height: 44px; }
+    .mt-sidebar #main-menu ul a { min-height: 42px; }
+}
+@media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after { scroll-behavior: auto !important; animation-duration: .001ms !important; animation-iteration-count: 1 !important; transition-duration: .001ms !important; }
+}

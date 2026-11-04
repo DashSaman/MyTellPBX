@@ -4,3 +4,9 @@ study/
 *.tgz
 *.log
 .mimosa/
+__pycache__/
+*.pyc
+*.bak-mt
+ui-evidence/
+.ui-build/
+.serena/

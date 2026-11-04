@@ -1,125 +1,144 @@
 #!/usr/bin/env python3
-"""MyTellPBX v7.3.0 — dark/light theme for the IssabelPBX admin frame.
+"""Refresh owned UI blocks without restoring over unrelated live PHP edits.
 
-Applies three idempotent server-side changes on 192.168.8.171:
- 1) views/header.php: pre-paint <script> right after <head> is emitted,
-    resolving localStorage 'mt-theme' (shared with the panel shell —
-    same origin) before the first paint. Embedded frames therefore load
-    in the shell's theme; the standalone console keeps its own choice.
- 2) views/footer.php: before </body>, injects a standalone-only toggle
-    (sun/moon) into the navbar right side (window.top === window.self)
-    plus a storage listener so other tabs stay in sync.
- 3) assets/mytel/skin.css: appends the mt-admin-dark.css block (marked)
-    — <html data-mt-theme="dark"> remaps the skin tokens and the bulma /
-    framework surfaces the skin does not own.
-
-Usage (root):  python3 patch-admin-theme.py
-Idempotent (marker-scoped); one-time .bak-mt backups; nonzero exit on
-missing anchors.
+Python 3.6 compatible. All anchors are validated before the first write.
+Existing .bak-mt files are never restored or overwritten by this patcher.
 """
+import argparse
+import os
 import pathlib
+import re
 import shutil
-import sys
+import tempfile
 
-ADMIN = pathlib.Path("/var/www/html/admin")
-HEADER = ADMIN / "views/header.php"
-FOOTER = ADMIN / "views/footer.php"
-SKIN = ADMIN / "assets/mytel/skin.css"
-DARK_CSS = pathlib.Path(__file__).with_name("mt-admin-dark.css")
-
-HEAD_ANCHOR = "$html .= '<head>';"
-HEAD_MARK = "<!-- MyTellPBX theme pre-paint"
-HEAD_INJECT = """$html .= '<!-- MyTellPBX theme pre-paint (marker) -->';
-$html .= '<script>'
-. "(function(){try{var t=localStorage.getItem('mt-theme');"
-. "if(t!=='dark'&&t!=='light')t='light';"
-. "document.documentElement.setAttribute('data-mt-theme',t);"
-. "document.documentElement.style.colorScheme=t;}catch(e){"
-. "document.documentElement.setAttribute('data-mt-theme','light');}})();"
-. '</script>';
-"""
-
-FOOT_ANCHOR = "</body>"
-FOOT_MARK = "/* MyTellPBX standalone theme toggle"
-FOOT_INJECT = """<script>/* MyTellPBX standalone theme toggle (embedded frames take it from the shell) */
-(function () {
-    if (window.top !== window.self) return;
-    var nav = document.querySelector('.navbar-end') || document.querySelector('.navbar') || document.body;
-    var btn = document.createElement('button');
-    btn.type = 'button';
-    btn.className = 'mt-admin-theme-toggle navbar-item';
-    btn.style.cssText = 'margin-inline-start:10px;align-self:center';
-    function paint(t) {
-        var dark = t === 'dark';
-        btn.setAttribute('aria-pressed', dark ? 'true' : 'false');
-        btn.title = dark ? 'تغییر به حالت روشن' : 'تغییر به حالت تاریک';
-        btn.innerHTML = dark ? '<i class="fa fa-sun" aria-hidden="true"></i>' : '<i class="fa fa-moon" aria-hidden="true"></i>';
-    }
-    btn.addEventListener('click', function () {
-        var next = document.documentElement.getAttribute('data-mt-theme') === 'dark' ? 'light' : 'dark';
-        document.documentElement.setAttribute('data-mt-theme', next);
-        document.documentElement.style.colorScheme = next;
-        try { localStorage.setItem('mt-theme', next); } catch (e) {}
-        paint(next);
-    });
-    window.addEventListener('storage', function (ev) {
-        if (ev.key === 'mt-theme' && (ev.newValue === 'dark' || ev.newValue === 'light')) {
-            document.documentElement.setAttribute('data-mt-theme', ev.newValue);
-            document.documentElement.style.colorScheme = ev.newValue;
-            paint(ev.newValue);
-        }
-    });
-    paint(document.documentElement.getAttribute('data-mt-theme'));
-    nav.appendChild(btn);
-})();
-</script>
-"""
-
+SOURCE = pathlib.Path(__file__).resolve().parent
 SKIN_MARK = "/* ==== MyTellPBX v7.3.0 admin dark theme (marker) ==== */"
+SKIN_START = "/* MyTellPBX legacy coverage v740 BEGIN */"
+SKIN_END = "/* MyTellPBX legacy coverage v740 END */"
+START = "/* MyTellPBX workspace v740 BEGIN */"
+END = "/* MyTellPBX workspace v740 END */"
+HEAD = """/* MyTellPBX workspace v740 BEGIN */
+$html .= '<script src="assets/mytel/workspace.js?v=740"></script>';
+/* MyTellPBX workspace v740 END */
+"""
+STYLE = """/* MyTellPBX workspace v740 BEGIN */
+$html .= '<link rel="stylesheet" href="assets/mytel/workspace.css?v=740">';
+/* MyTellPBX workspace v740 END */
+"""
 
 
-def patch_between(path, anchor, mark, inject, before_anchor):
-    text = path.read_text(encoding="utf-8")
-    if mark in text:
-        print("ALREADY", path.name)
-        return
-    if anchor not in text:
-        raise SystemExit("ANCHOR-MISS %s" % path)
-    bak = path.with_suffix(path.suffix + ".bak-mt")
-    if not bak.exists():
-        shutil.copy2(path, bak)
-        print("BACKUP", bak.name)
-    i = text.index(anchor)
-    injected = text[:i] + inject + text[i:] if before_anchor else text[: i + len(anchor)] + inject + text[i + len(anchor):]
-    path.write_text(injected, encoding="utf-8")
-    print("PATCHED", path.name)
+def remove_current(text):
+    text = text.replace("\n" + HEAD, "").replace(STYLE, "")
+    if START in text or END in text:
+        raise ValueError("Workspace PHP marker changed; refusing to discard edits")
+    return text
+
+
+def strip_legacy_header(text):
+    mark = "$html .= '<!-- MyTellPBX theme pre-paint (marker) -->';"
+    if mark not in text:
+        return text
+    start = text.index(mark)
+    cursor = start + len(mark)
+    count = 0
+    # v7.3.0 adds one statement; v7.3.2 adds two. Consume only those exact
+    # PHP concatenation statements, never the space up to some later anchor.
+    statement = re.compile(r"\s*\$html \.= '<script>'\r?\n(?:\.[^\n]*\r?\n)*?\. '</script>';\r?\n?")
+    while count < 2:
+        match = statement.match(text, cursor)
+        if not match:
+            break
+        if count and "mt-admin-theme-toggle" not in match.group(0):
+            break  # An adjacent owner script is not a theme injection.
+        cursor = match.end()
+        count += 1
+    if not count:
+        raise ValueError("Unrecognized legacy theme injection; refusing to replace PHP")
+    return text[:start] + text[cursor:]
+
+
+def transform_header(text):
+    text = strip_legacy_header(remove_current(text))
+    for anchor in ("$html .= '<head>';", "$html .= '</head>'; "):
+        if anchor.rstrip() not in text:
+            raise ValueError("Missing header anchor: " + anchor.rstrip())
+    text = text.replace("$html .= '<head>';", "$html .= '<head>';\n" + HEAD, 1)
+    text = text.replace("$html .= '</head>';", STYLE + "$html .= '</head>';", 1)
+    # Local icon font is already shipped by Issabel. No CDN is required.
+    text = text.replace("https://maxcdn.bootstrapcdn.com/font-awesome/4.7.0/css/font-awesome.min.css", "/libs/font-icons/font-awesome/css/font-awesome.min.css")
+    return text
+
+
+def transform_footer(text):
+    # v7.3.0 footer script only. Preserve all other footer content verbatim.
+    pattern = r"<script>/\* MyTellPBX standalone theme toggle[^*]*\*/.*?</script>\r?\n?"
+    return re.sub(pattern, "", text, flags=re.DOTALL)
+
+
+def plan(admin):
+    header = admin / "views/header.php"
+    footer = admin / "views/footer.php"
+    skin = admin / "assets/mytel/skin.css"
+    for path in (header, footer, skin):
+        if not path.is_file():
+            raise ValueError("Missing required path: " + str(path))
+    header_text = header.read_text(encoding="utf-8")
+    footer_text = footer.read_text(encoding="utf-8")
+    skin_text = skin.read_text(encoding="utf-8")
+    dark_css = (SOURCE / "mt-admin-dark.css").read_text(encoding="utf-8").rstrip("\n")
+    if SKIN_START in skin_text or SKIN_END in skin_text:
+        if skin_text.count(SKIN_START) != 1 or skin_text.count(SKIN_END) != 1:
+            raise ValueError("Ambiguous skin coverage markers")
+        before, rest = skin_text.split(SKIN_START, 1)
+        _, after = rest.split(SKIN_END, 1)
+        skin_text = before + SKIN_START + "\n" + dark_css + "\n" + SKIN_END + after
+    elif dark_css not in skin_text:
+        # Older releases treated their marker as terminal. Never discard an
+        # owner's appended CSS; retain it and add our bounded coverage block.
+        skin_text = skin_text.rstrip("\n") + "\n\n" + SKIN_START + "\n" + dark_css + "\n" + SKIN_END + "\n"
+    return {
+        header: transform_header(header_text),
+        footer: transform_footer(footer_text),
+        skin: skin_text,
+        admin / "assets/mytel/workspace.css": (SOURCE / "workspace.css").read_text(encoding="utf-8"),
+        admin / "assets/mytel/workspace.js": (SOURCE / "workspace.js").read_text(encoding="utf-8"),
+    }
+
+
+def write_atomic(path, text):
+    old = path.read_text(encoding="utf-8") if path.exists() else None
+    if old == text:
+        return False
+    previous = path.stat() if path.exists() else path.parent.stat()
+    if path.exists():
+        backup = path.with_name(path.name + ".v740.bak-mt")
+        if not backup.exists():
+            shutil.copy2(str(path), str(backup))
+    fd, temporary = tempfile.mkstemp(prefix=".mt-ui-", dir=str(path.parent))
+    try:
+        with os.fdopen(fd, "w", encoding="utf-8", newline="\n") as stream:
+            stream.write(text)
+        os.chmod(temporary, (previous.st_mode & 0o777) if old is not None else 0o644)
+        if hasattr(os, "chown"):
+            os.chown(temporary, previous.st_uid, previous.st_gid)
+        os.replace(temporary, str(path))
+    finally:
+        if os.path.exists(temporary):
+            os.unlink(temporary)
+    return True
 
 
 def main():
-    for p in (HEADER, FOOTER, SKIN):
-        if not p.exists():
-            raise SystemExit("MISSING %s" % p)
-
-    # 1) pre-paint: immediately AFTER the <head> open is emitted
-    patch_between(HEADER, HEAD_ANCHOR, HEAD_MARK, HEAD_INJECT, before_anchor=False)
-
-    # 2) standalone toggle: just BEFORE </body>
-    patch_between(FOOTER, FOOT_ANCHOR, FOOT_MARK, FOOT_INJECT, before_anchor=True)
-
-    # 3) skin.css: (re)apply the dark block — the marker block is terminal,
-    #    so refresh = drop old block, append the current source. Idempotent.
-    skin = SKIN.read_text(encoding="utf-8")
-    bak = SKIN.with_suffix(SKIN.suffix + ".bak-mt")
-    if not bak.exists():
-        shutil.copy2(SKIN, bak)
-        print("BACKUP", bak.name)
-    if SKIN_MARK in skin:
-        skin = skin[: skin.index(SKIN_MARK)].rstrip("\n")
-    dark = DARK_CSS.read_text(encoding="utf-8")
-    SKIN.write_text(skin + "\n\n" + SKIN_MARK + "\n" + dark, encoding="utf-8")
-    print("APPLIED skin.css dark block")
-
-    sys.exit(0)
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument("--admin-root", type=pathlib.Path, default=pathlib.Path("/var/www/html/admin"))
+    parser.add_argument("--check", action="store_true", help="Validate anchors without writing")
+    args = parser.parse_args()
+    changes = plan(args.admin_root)
+    for path, text in changes.items():
+        changed = not path.exists() or path.read_text(encoding="utf-8") != text
+        if changed and not args.check:
+            write_atomic(path, text)
+        print(("WOULD UPDATE " if args.check and changed else "UPDATED " if changed else "UNCHANGED ") + str(path))
 
 
 if __name__ == "__main__":

@@ -19,10 +19,11 @@
 	</script>
 	<link rel="shortcut icon" href="{$WEBPATH}themes/{$THEMENAME}/images/favicon.png" />
 	<link rel="stylesheet" href="{$WEBPATH}themes/{$THEMENAME}/css/fonts.css?v=120">
-	<link rel="stylesheet" href="{$WEBPATH}themes/{$THEMENAME}/css/tokens.css?v=120">
+	<link rel="stylesheet" href="{$WEBPATH}themes/{$THEMENAME}/css/tokens.css?v=740">
 	<link rel="stylesheet" href="{$WEBPATH}themes/{$THEMENAME}/css/login.css?v=731">
 	<link rel="stylesheet" href="{$WEBPATH}themes/{$THEMENAME}/css/theme-toggle.css?v=732">
 	{$HEADER_LIBS_JQUERY}
+	<link rel="stylesheet" href="{$WEBPATH}themes/{$THEMENAME}/css/workspace.css?v=740">
 </head>
 <body class="mt-login-body">
 
@@ -38,6 +39,7 @@
 			<img class="mt-login-emblem" src="{$WEBPATH}themes/{$THEMENAME}/images/mytel-emblem.svg" alt="MyTel" />
 			<h1 class="mt-login-brandname">مای‌تل</h1>
 			<p class="mt-login-tagline">سامانه مدیریت مرکز تماس</p>
+			<p class="mt-login-description">مدیریت تلفن، گزارش‌ها و میز اپراتور در یک فضای کاری.</p>
 			<div class="mt-login-waves" aria-hidden="true">
 				<span></span><span></span><span></span><span></span><span></span>
 				<span></span><span></span><span></span><span></span><span></span>
@@ -51,6 +53,7 @@
 			<div class="mt-login-cardhead">
 				<img class="mt-login-emblem-sm" src="{$WEBPATH}themes/{$THEMENAME}/images/mytel-emblem.svg" alt="" />
 				<h2>{$PAGE_NAME}</h2>
+				<p>برای مدیریت مرکز تماس وارد حساب خود شوید.</p>
 			</div>
 
 {if !empty({$LOGIN_INCORRECT})}
@@ -63,7 +66,7 @@
 					<label for="input_user">{$USERNAME}</label>
 					<div class="mt-inputwrap">
 						<i class="fa fa-user"></i>
-						<input type="text" class="mt-input" name="input_user" id="input_user" placeholder="{$USERNAME}" autocomplete="off" autofocus />
+						<input type="text" class="mt-input" name="input_user" id="input_user" placeholder="{$USERNAME}" autocomplete="username" required autofocus />
 					</div>
 				</div>
 
@@ -71,7 +74,7 @@
 					<label for="input_pass">{$PASSWORD}</label>
 					<div class="mt-inputwrap">
 						<i class="fa fa-key"></i>
-						<input type="password" class="mt-input" name="input_pass" id="input_pass" placeholder="{$PASSWORD}" autocomplete="off" />
+						<input type="password" class="mt-input" name="input_pass" id="input_pass" placeholder="{$PASSWORD}" autocomplete="current-password" required />
 					</div>
 				</div>
 
@@ -91,7 +94,7 @@
 			<div class="mt-login-foot">
 				<a href="https://mytel.one" target="_blank" rel="noopener" class="mt-foot-link">مای‌تل</a>
 				<span class="mt-dot">&bull;</span>
-				<span dir="rtl">&copy; ۲۰۰۵–۲۰۲۷</span>
+				<span dir="rtl">سامانه ارتباطات مای‌تل</span>
 			</div>
 
 		</div>
@@ -108,6 +111,7 @@
 			var dark = t === 'dark';
 			b.setAttribute('aria-pressed', dark ? 'true' : 'false');
 			b.title = dark ? 'تغییر به حالت روشن' : 'تغییر به حالت تاریک';
+			b.setAttribute('aria-label', b.title);
 			/* v7.3.2: inline SVG swap — loaded FA subset lacks sun/moon glyphs */
 			b.innerHTML = dark
 				? '<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="4.4"/><path d="M12 2.5v2.2M12 19.3v2.2M4.3 4.3l1.6 1.6M18.1 18.1l1.6 1.6M2.5 12h2.2M19.3 12h2.2M4.3 19.7l1.6-1.6M18.1 5.9l1.6-1.6"/></svg>'
