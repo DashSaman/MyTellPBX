@@ -25,7 +25,7 @@ PANEL_FILES = (
 )
 DEFAULT_ROOTS = {
     "panel": "/var/www/html/themes/mytel", "admin": "/var/www/html/admin",
-    "desk": "/opt/opdesk/frontend", "phone": "/var/www/html/Phone",
+    "desk": "/opt/opdesk/frontend", "phone": "/var/www/html/Phone", "legacy": "/var/www/html",
 }
 
 
@@ -67,7 +67,7 @@ def prepare(work, roots, source_id, node="node", php="php"):
     policy = load("ui_rollout_policy", "scripts/ui/rollout.py")
     policy.outside_served(work, roots)
     if set(roots) != set(DEFAULT_ROOTS) or any(not root.is_dir() for root in roots.values()):
-        raise ValueError("All four installed UI roots are required")
+        raise ValueError("All installed UI roots are required")
     if not re.fullmatch(r"[0-9a-f]{40}|[0-9a-f]{64}", source_id):
         raise ValueError("An exact Git tree ID is required")
     if work.exists():
@@ -171,6 +171,14 @@ def prepare(work, roots, source_id, node="node", php="php"):
             check("php-" + file.stem, [php, "-l", str(output)], work)
     for file, text in phone_patch.plan(roots["phone"]).items():
         add("phone", file.name, text.encode("utf-8"), 30 if file.name == "index.html" else 10)
+    legacy_patch = load("legacy_presentation_build", "scripts/ui/legacy.py")
+    for (root, relative), text in legacy_patch.plan(roots).items():
+        add(root, relative, text.encode("utf-8"), 30 if relative.endswith(".tpl") else 10)
+        if relative.endswith(".js"):
+            output = candidate / root / relative
+            output.parent.mkdir(parents=True, exist_ok=True)
+            output.write_text(text, encoding="utf-8")
+            check("js-colresize", [node, "--check", str(output)], work)
     for file in desk_changes:
         add("desk", file.relative_to(frontend).as_posix(), file.read_bytes(), 20)
     for file in sorted((frontend / "dist").rglob("*")):

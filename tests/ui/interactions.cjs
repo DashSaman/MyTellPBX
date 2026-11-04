@@ -8,12 +8,13 @@ const { chromium } = require(process.env.MT_PLAYWRIGHT_MODULE || 'playwright-cor
 const { installRoutes, inspectDOM, settle, deskAuth, artifactManifestSha256 } = require('./audit.cjs');
 const ORIGIN = new URL(process.env.MT_BASE_URL).origin;
 const output = path.resolve(process.env.MT_EVIDENCE_DIR || 'ui-evidence');
+const include = process.env.MT_INTERACTION_INCLUDE;
 
 async function main() {
   fs.mkdirSync(output, { recursive: true, mode: 0o700 });
   const browser = await chromium.launch({ executablePath: process.env.MT_CHROMIUM_PATH || undefined,
     args: process.env.MT_CHROMIUM_NO_SANDBOX === '1' ? ['--no-sandbox', '--disable-dev-shm-usage'] : [] });
-  const report = { artifactManifestSha256, harnessSha256: crypto.createHash('sha256').update(fs.readFileSync(__filename)).digest('hex'), checks: [], blockedWrites: [], blockedWebSockets: [], finished: null };
+  const report = { artifactManifestSha256, harnessSha256: crypto.createHash('sha256').update(fs.readFileSync(__filename)).digest('hex'), selection: include || null, checks: [], blockedWrites: [], blockedWebSockets: [], routeErrors: [], finished: null };
   try {
     const authContext = await browser.newContext({ ignoreHTTPSErrors: process.env.MT_SELF_SIGNED === '1' });
     const auth = await deskAuth(authContext);
@@ -35,6 +36,7 @@ async function main() {
       page.on('response', response => { if (response.status() >= 400) resources.push({ status: response.status(), path: new URL(response.url()).pathname }); });
       page.on('requestfailed', request => { if (request.resourceType() === 'document') resources.push('Document load failed'); });
       const check = async (name, fn) => {
+        if (include && name !== include) return;
         pageErrors.length = resources.length = 0;
         let behaviorPassed = false;
         try {
@@ -146,6 +148,7 @@ async function main() {
         await themeCheck('.mt-phone-theme-toggle', 'data-mt-theme');
       });
       report.blockedWrites.push(...events.blocked);
+      report.routeErrors.push(...(events.routeErrors || []));
       report.blockedWebSockets.push(...(events.webSockets || []));
       await context.close();
     }
@@ -155,6 +158,6 @@ async function main() {
     await browser.close();
   }
   console.log(JSON.stringify({ checks: report.checks.length, failures: report.checks.filter(c => !c.passed), blockedWrites: report.blockedWrites.length, blockedWebSockets: report.blockedWebSockets.length }, null, 2));
-  if (report.checks.some(c => !c.passed) || report.blockedWrites.length) process.exitCode = 1;
+  if (!report.checks.length || report.checks.some(c => !c.passed) || report.blockedWrites.length || report.routeErrors.length) process.exitCode = 1;
 }
 main().catch(error => { console.error(error.message); process.exitCode = 1; });

@@ -24,6 +24,7 @@ def load(name, relative):
 
 ROLLOUT = load("ui_rollout_test", "scripts/ui/rollout.py")
 PREPARE = load("ui_prepare_test", "scripts/ui/prepare.py")
+LEGACY = load("ui_legacy_test", "scripts/ui/legacy.py")
 
 
 def write(path, data):
@@ -83,6 +84,12 @@ class RolloutTests(unittest.TestCase):
         ROLLOUT.validate(self.artifact, self.manifest, self.roots)
         self.assertEqual(fingerprint(self.roots), self.original)
         self.assertFalse(self.backup.exists())
+
+    def test_legacy_root_cannot_write_backend_or_call_control_paths(self):
+        for path in ("index.php", "modules/sec_geoip_map/index.php", "etc/asterisk/sip.conf", "libs/js/owner.js"):
+            self.assertFalse(ROLLOUT.allowed({"root": "legacy", "path": path}))
+        for path in ROLLOUT.ALLOW["legacy"]:
+            self.assertTrue(ROLLOUT.allowed({"root": "legacy", "path": path}))
 
     def test_apply_and_rollback_restore_bytes_and_remove_only_new_files(self):
         unrelated = self.roots["panel"] / "owner.txt"
@@ -345,12 +352,17 @@ class PrepareTests(unittest.TestCase):
         write(self.roots["admin"] / "views/header.php", "<?php\n$html = '';\n$html .= '<head>';\n$html .= '</head>';\necho $html;\n")
         write(self.roots["admin"] / "views/footer.php", "<?php echo 'owner footer'; ?>\n</body>")
         write(self.roots["admin"] / "assets/mytel/skin.css", "/* installed skin */")
+        write(self.roots["admin"] / "modules/asternic_cdr/asternic_cdr.css", LEGACY.ASTERNIC_OLD)
+        write(self.roots["legacy"] / "libs/js/jquery/jquery-upl-colResizable-1.5.min.js", LEGACY.COLRESIZE_OLD + "}}")
+        fallback = "homePolygon   = polygonSeries.getPolygonById(home);\nhomeLatitude  = homePolygon.visualLatitude;\nhomeLongitude = homePolygon.visualLongitude;\n"
+        write(self.roots["legacy"] / "modules/sec_geoip_map/themes/default/map.tpl", fallback * 2)
         write(self.roots["phone"] / "index.html", '<html dir="ltr"><head></head><body><section id="loginCard"></section><script src="phone.js"></script></body></html>')
         desk = self.roots["desk"]
         write(desk / "src/main.tsx", "import './styles/utilities.css'\n")
         self.login_prefix = "// owner authentication prefix\nfunction Login() {\n  const handleSubmit = async () => {};\n"
         write(desk / "src/components/Login.tsx", self.login_prefix + '  return (\n    <div className="login-page">old view</div>\n  );\n}\n')
         write(desk / "src/styles/variables.css", "/* owner tokens */")
+        write(desk / "src/hooks/useWebPhone.ts", "\n".join("new Audio('/sounds/" + name + ".wav');" for name in ("ringtone", "dialing", "dialing", "hangup")))
         write(desk / "src/owner.ts", "// owner backend boundary")
         for language in ("fa", "en"):
             write(desk / ("src/i18n/locales/" + language + "/translation.json"), '{"owner":"keep","login":{}}')

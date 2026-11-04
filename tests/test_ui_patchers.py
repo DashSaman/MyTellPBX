@@ -22,6 +22,7 @@ def load(name, path):
 ADMIN = load("admin_workspace", "admin-theme/patch-admin-theme.py")
 DESK = load("desk_workspace", "modules/mytellpbxopdesk/patches/patch-workspace.py")
 PHONE = load("phone_workspace", "webphone/patch-webphone.py")
+LEGACY_UI = load("legacy_presentation", "scripts/ui/legacy.py")
 HEADER = "<?php\n$html = '';\n$html .= '<head>';\n// Owner customization must survive\n$html .= '<title>PBX</title>';\n$html .= '</head>';\necho $html;\n"
 LEGACY = """$html .= '<!-- MyTellPBX theme pre-paint (marker) -->';
 $html .= '<script>'
@@ -119,6 +120,7 @@ class DeskPatcherTests(unittest.TestCase):
         write(root / "src/main.tsx", "import './styles/utilities.css'\n// owner root\n")
         write(root / "src/components/Login.tsx", LOGIN_PREFIX + LOGIN_VIEW)
         write(root / "src/styles/variables.css", "/* owner tokens */")
+        write(root / "src/hooks/useWebPhone.ts", "\n".join("new Audio('/sounds/" + name + ".wav');" for name in ("ringtone", "dialing", "dialing", "hangup")))
         for language in ("fa", "en"):
             write(root / f"src/i18n/locales/{language}/translation.json", json.dumps({"owner": "preserved", "login": {"sourcePanel": "existing"}}))
 
@@ -153,6 +155,60 @@ class DeskPatcherTests(unittest.TestCase):
                 DESK.apply(root)
             self.assertEqual((root / "src/components/Login.tsx").read_text(), LOGIN_PREFIX + LOGIN_VIEW)
             self.assertFalse(list(root.rglob("*.bak-mt")))
+
+    def test_dynamic_sound_paths_respect_the_vite_base_without_call_changes(self):
+        old = "\n".join("new Audio('/sounds/" + name + ".wav');" for name in ("ringtone", "dialing", "dialing", "hangup"))
+        new = DESK.sound_paths(old)
+        self.assertEqual(new, DESK.sound_paths(new))
+        self.assertNotIn("new Audio('/sounds/", new)
+        self.assertEqual(new.replace("import.meta.env.BASE_URL + 'sounds/", "'/sounds/"), old)
+        with self.assertRaisesRegex(ValueError, "anchors changed"):
+            DESK.sound_paths(old.replace("hangup.wav", "unknown.wav"))
+
+
+class LegacyPresentationTests(unittest.TestCase):
+    def test_colresize_ignores_inherited_ember_array_methods_but_resizes_own_tables(self):
+        old = LEGACY_UI.COLRESIZE_OLD + 't.removeClass("JColResizer");}}'
+        new = LEGACY_UI.colresize(old)
+        self.assertEqual(new, LEGACY_UI.colresize(new))
+        script = """const assert = require('node:assert/strict');
+const vm = require('node:vm');
+const run = code => { const tables = []; let visits = 0;
+  Object.setPrototypeOf(tables, { emberMethod: () => {} });
+  tables.real = { removeClass: () => visits++ };
+  const state = { tables }; vm.runInNewContext(code, state); state.onResize();
+  assert.equal(visits, 1); };
+assert.throws(() => run(OLD), /removeClass/); run(NEW);
+""".replace("OLD", json.dumps(old)).replace("NEW", json.dumps(new))
+        result = subprocess.run(["node", "-e", script], stdout=subprocess.PIPE, stderr=subprocess.PIPE,  # noqa: UP022
+                                universal_newlines=True, check=False, timeout=30)  # noqa: UP021
+        self.assertEqual(result.returncode, 0, result.stderr)
+
+    def test_geoip_missing_polygon_returns_without_fabricating_coordinates(self):
+        block = "    homePolygon   = polygonSeries.getPolygonById(home);\n    homeLatitude  = homePolygon.visualLatitude;\n    homeLongitude = homePolygon.visualLongitude;\n"
+        old = "function fallback() {\n" + block + "}\nfunction fallback2() {\n" + block + "}\n"
+        new = LEGACY_UI.geoip(old)
+        self.assertEqual(new, LEGACY_UI.geoip(new))
+        script = """const assert = require('node:assert/strict'); const vm = require('node:vm');
+const state = { polygonSeries: {getPolygonById: () => undefined}, home: 'unknown' };
+vm.runInNewContext(SOURCE, state); state.fallback(); state.fallback2();
+assert.equal(state.homeLatitude, undefined);
+state.polygonSeries.getPolygonById = () => ({visualLatitude: 35, visualLongitude: 51});
+state.fallback(); assert.equal(state.homeLatitude, 35); assert.equal(state.homeLongitude, 51);
+""".replace("SOURCE", json.dumps(new))
+        result = subprocess.run(["node", "-e", script], stdout=subprocess.PIPE, stderr=subprocess.PIPE,  # noqa: UP022
+                                universal_newlines=True, check=False, timeout=30)  # noqa: UP021
+        self.assertEqual(result.returncode, 0, result.stderr)
+
+    def test_asternic_sheet_resolves_from_the_handler_url_and_is_idempotent(self):
+        new = LEGACY_UI.asternic(LEGACY_UI.ASTERNIC_OLD + "\n")
+        self.assertEqual(new, LEGACY_UI.asternic(new))
+        self.assertIn('url("/admin/modules/asternic_cdr/', new)
+
+    def test_unknown_legacy_assets_fail_closed(self):
+        for transform in (LEGACY_UI.colresize, LEGACY_UI.geoip, LEGACY_UI.asternic):
+            with self.subTest(transform=transform.__name__), self.assertRaises(ValueError):
+                transform("owner-modified asset")
 
 
 class PhonePatcherTests(unittest.TestCase):
@@ -229,7 +285,7 @@ const path = require('node:path');
 const crypto = require('node:crypto');
 const vm = require('node:vm');
 const source = fs.readFileSync('tests/ui/audit.cjs', 'utf8');
-function audit(env = {}, documents = []) {
+function audit(env = {}, documents = [], inputs = []) {
   const files = new Map();
   const records = documents.map(([root, name, text]) => {
     const data = Buffer.from(text);
@@ -237,7 +293,7 @@ function audit(env = {}, documents = []) {
     files.set(path.resolve('/artifact', payload), data);
     return { root, path: name, payload, size: data.length, after: crypto.createHash('sha256').update(data).digest('hex') };
   });
-  files.set(path.resolve('/artifact', 'manifest.json'), Buffer.from(JSON.stringify({ files: records })));
+  files.set(path.resolve('/artifact', 'manifest.json'), Buffer.from(JSON.stringify({ files: records, inputs })));
   const sandbox = {
     require: name => name === 'playwright-core' ? { chromium: {} } : name === 'node:fs' ? {
       mkdirSync() {},
@@ -261,7 +317,7 @@ async function routes(api, documentHTML) {
       request: () => ({ url: () => new URL(url, 'https://audit.invalid').href, method: () => method,
         isNavigationRequest: () => navigation, resourceType: () => navigation ? 'document' : 'fetch' }),
       fulfill: options => ({ kind: 'fulfill', ...options }),
-      continue: () => ({ kind: 'continue' }), abort: () => ({ kind: 'abort' }),
+      continue: () => ({ kind: 'continue' }), async abort() { return { kind: 'abort' }; },
       fetch: () => {
         if (documentHTML === undefined) throw new Error('Unexpected live document fetch');
         return { status: () => 200, headers: () => ({ 'content-type': 'text/html' }), text: async () => documentHTML };
@@ -317,6 +373,49 @@ assert.ok(response.body.includes('tabindex="-1"'));
 const r = await routes(audit({ MT_ARTIFACT_ROOT: '/artifact' }));
 await assert.rejects(() => r.request('/Phone/'), /Missing artifact phone document/);
 await assert.rejects(() => r.request('/MytellDesk/dashboard'), /Missing artifact desk document/);
+""")
+
+    def test_incremental_artifacts_use_guarded_live_documents_without_duplicate_shell(self):
+        self.run_audit("""
+const html = '<html><head></head><body class="mt-body"><a class="mt-skip-link">skip</a></body></html>';
+const r = await routes(audit({ MT_ARTIFACT_ROOT: '/artifact' }, [], [
+  { root: 'phone', path: 'index.html' }, { root: 'desk', path: 'dist/index.html' },
+]), html);
+assert.equal((await r.request('/Phone/')).kind, 'continue');
+assert.equal((await r.request('/MytellDesk/dashboard')).kind, 'continue');
+assert.equal((await r.request('/index.php?menu=dashboard')).body, html);
+""")
+
+    def test_geoip_preview_copies_the_actual_artifact_guards(self):
+        self.run_audit("""
+const old = 'homePolygon   = polygonSeries.getPolygonById(home);\\n    homeLatitude  = homePolygon.visualLatitude;\\n    homeLongitude = homePolygon.visualLongitude;';
+const patched = old.replace('homeLatitude', 'if (!homePolygon) return;\\n    homeLatitude');
+const tpl = patched + '\\n' + patched;
+const r = await routes(audit({ MT_ARTIFACT_ROOT: '/artifact' }, [
+  ['legacy', 'modules/sec_geoip_map/themes/default/map.tpl', tpl],
+]), old + '\\n' + old);
+assert.equal((await r.request('/index.php?menu=sec_geoip_map')).body, tpl);
+assert.throws(() => audit().previewGeoipHome('changed', tpl), /anchors changed/);
+""")
+
+    def test_preview_timeout_is_recorded_as_failure_without_unhandled_rejection(self):
+        self.run_audit("""
+const r = await routes(audit({ MT_ARTIFACT_ROOT: '/artifact' }));
+await r.request('/index.php?menu=sec_fb_banned');
+assert.equal(r.events.routeErrors.length, 1);
+assert.equal(r.events.routeErrors[0].error, 'Document fetch failed');
+""")
+
+    def test_asternic_handler_serves_the_exact_artifact_stylesheet(self):
+        self.run_audit("""
+const css = '@import url("/admin/modules/asternic_cdr/themes/default/css/mytel.css?v=mytel-1");';
+const r = await routes(audit({ MT_ARTIFACT_ROOT: '/artifact' }, [
+  ['admin', 'modules/asternic_cdr/asternic_cdr.css', css],
+]));
+const result = await r.request('/admin/config.php?handler=file&module=asternic_cdr&file=asternic_cdr.css', 'GET', false);
+assert.equal(result.body.toString(), css);
+assert.equal(result.contentType, 'text/css');
+assert.equal((await r.request('/admin/config.php?handler=file&module=owner&file=owner.css', 'GET', false)).kind, 'continue');
 """)
 
     def test_non_get_actions_remain_blocked_in_live_and_artifact_modes(self):

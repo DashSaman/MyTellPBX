@@ -19,15 +19,17 @@ import socket
 import tempfile
 
 ROOTS = {"panel": "/var/www/html/themes/mytel", "admin": "/var/www/html/admin",
-         "desk": "/opt/opdesk/frontend", "phone": "/var/www/html/Phone"}
+         "desk": "/opt/opdesk/frontend", "phone": "/var/www/html/Phone",
+         "legacy": "/var/www/html"}
 PANEL = {"_common/index.tpl", "_common/_menu.tpl", "_common/_shortcut.tpl", "_common/_list.tpl",
          "_common/login.tpl", "_common/popup.tpl", "_common/help.tpl", "css/tokens.css", "css/workspace.css",
          "js/theme.js", "js/mytel-charts.js", "js/workspace.js", "js/appearance.js", "help.css", "styles.css"}
 ALLOW = {
     "panel": PANEL,
-    "admin": {"views/header.php", "views/footer.php", "assets/mytel/skin.css", "assets/mytel/workspace.css", "assets/mytel/workspace.js"},
+    "admin": {"views/header.php", "views/footer.php", "assets/mytel/skin.css", "assets/mytel/workspace.css", "assets/mytel/workspace.js", "modules/asternic_cdr/asternic_cdr.css"},
     "phone": {"index.html", "theme.js", "workspace.css"},
-    "desk": {"src/main.tsx", "src/components/Login.tsx", "src/styles/mytell-workspace.css", "src/i18n/locales/fa/translation.json", "src/i18n/locales/en/translation.json", "dist/index.html"},
+    "desk": {"src/main.tsx", "src/components/Login.tsx", "src/hooks/useWebPhone.ts", "src/styles/mytell-workspace.css", "src/i18n/locales/fa/translation.json", "src/i18n/locales/en/translation.json", "dist/index.html"},
+    "legacy": {"libs/js/jquery/jquery-upl-colResizable-1.5.min.js", "modules/sec_geoip_map/themes/default/map.tpl"},
 }
 HASH = re.compile(r"[0-9a-f]{64}\Z")
 REQUIRED_CHECKS = {"typecheck", "eslint-login", "stylelint-workspace", "vite", "php-header", "php-footer"}
@@ -94,7 +96,7 @@ def valid_hash(value, nullable=False):
 def validate(artifact, manifest, roots, expected="before"):
     outside_served(artifact, roots)
     if set(roots) != set(ROOTS) or any(not root.is_dir() for root in roots.values()):
-        raise ValueError("All four installed UI roots are required")
+        raise ValueError("All installed UI roots are required")
     if expected not in ("before", "after"):
         raise ValueError("Unknown validation phase")
     if manifest.get("schema") != 1 or manifest.get("base") != "/MytellDesk/" or not isinstance(manifest.get("files"), list) or not manifest["files"]:
