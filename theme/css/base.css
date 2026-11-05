@@ -439,6 +439,14 @@ a:hover { color: var(--mt-primary-soft); }
 }
 .mt-footer-brand { font-weight: 700; color: var(--mt-text-muted); }
 .mt-footer-year { margin-right: auto; }
+.mt-footer-brand-link {
+    display: inline-flex; align-items: center; gap: 6px;
+    color: var(--mt-text-muted); text-decoration: none;
+    transition: color var(--mt-speed) var(--mt-ease);
+}
+.mt-footer-brand-link:hover { color: var(--mt-primary); text-decoration: none; }
+.mt-footer-brand-link:hover .mt-footer-brand { color: var(--mt-primary); }
+.mt-footer-logo { width: 18px; height: 18px; border-radius: 50%; display: block; }
 
 /* ------------------------------------------------------------
    Error banner (mb_message)

@@ -165,7 +165,6 @@
                     var dark = t === 'dark';
                     btn.setAttribute('aria-pressed', dark ? 'true' : 'false');
                     btn.title = dark ? 'تغییر به حالت روشن' : 'تغییر به حالت تاریک';
-                    btn.setAttribute('aria-label', btn.title);
                     btn.innerHTML = dark ? SUN : MOON;
                 }
                 /* live-sync same-origin frames (the admin iframe has its own
@@ -179,7 +178,6 @@
                         }
                     } catch (e) { /* cross-origin frame: ignore */ }
                 });
-                window.dispatchEvent(new CustomEvent('mt-themechange', { detail: { theme: t } }));
             };
             if (btn) {
                 btn.addEventListener('click', function () {
@@ -1203,8 +1201,7 @@
             a.innerHTML =
                 '<span class="mt-home-card__icon" aria-hidden="true">' +
                     (desk
-                        ? '<img src="/themes/mytel/images/mytel-emblem.svg"' +
-                          ' alt="" width="28" height="28">'
+                        ? '<svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 13v-2a8 8 0 0 1 16 0v2"/><rect x="2.5" y="13" width="4" height="6.5" rx="2"/><rect x="17.5" y="13" width="4" height="6.5" rx="2"/><path d="M19.5 19.5c0 1.5-2 2.5-5 2.5" opacity=".6"/><path d="M12 5.5V3M8.5 6.5 7 5M15.5 6.5 17 5" opacity=".4"/></svg>'
                         : '<i class="fa fa-phone"></i>') +
                 '</span>' +
                 '<span class="mt-home-card__text">' +

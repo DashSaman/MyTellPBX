@@ -23,8 +23,8 @@
 
     <link rel="stylesheet" href="{$WEBPATH}themes/{$THEMENAME}/css/fonts.css?v=122">
     <link rel="stylesheet" href="{$WEBPATH}themes/{$THEMENAME}/css/glyphicons.css?v=122">
-    <link rel="stylesheet" href="{$WEBPATH}themes/{$THEMENAME}/css/tokens.css?v=740">
-    <link rel="stylesheet" href="{$WEBPATH}themes/{$THEMENAME}/css/base.css?v=122">
+    <link rel="stylesheet" href="{$WEBPATH}themes/{$THEMENAME}/css/tokens.css?v=122">
+    <link rel="stylesheet" href="{$WEBPATH}themes/{$THEMENAME}/css/base.css?v=734">
     <link rel="stylesheet" href="{$WEBPATH}themes/{$THEMENAME}/css/components.css?v=122">
     <link rel="stylesheet" href="{$WEBPATH}themes/{$THEMENAME}/css/applet.css?v=122">
     <link rel="stylesheet" href="{$WEBPATH}themes/{$THEMENAME}/css/mt-calendar.css?v=122">
@@ -94,10 +94,8 @@
 
     {$HEADER}
     {$HEADER_MODULES}
-    <link rel="stylesheet" href="{$WEBPATH}themes/{$THEMENAME}/css/workspace.css?v=740">
     </head>
     <body leftmargin="0" topmargin="0" marginwidth="0" marginheight="0" class="mt-body page-body" {$BODYPARAMS}{if $MT_CAN_ENTER_DESK} data-mt-desk="1"{/if}>
-    <a href="#neo-contentbox-maincolumn" class="mt-skip-link">رفتن به محتوای صفحه</a>
     <div class="page-container mt-shell">
 
         {$MENU}
@@ -111,10 +109,7 @@
                            class="mt-home-card mt-home-card--desk"
                            href="/modules/mytellpbxopdesk/index.php">
                             <span class="mt-home-card__icon" aria-hidden="true">
-                                <img src="{$WEBPATH}themes/{$THEMENAME}/images/mytel-emblem.svg"
-                                     alt=""
-                                     width="28"
-                                     height="28">
+                                <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 13v-2a8 8 0 0 1 16 0v2"/><rect x="2.5" y="13" width="4" height="6.5" rx="2"/><rect x="17.5" y="13" width="4" height="6.5" rx="2"/><path d="M19.5 19.5c0 1.5-2 2.5-5 2.5" opacity=".6"/><path d="M12 5.5V3M8.5 6.5 7 5M15.5 6.5 17 5" opacity=".4"/></svg>
                             </span>
                             <span class="mt-home-card__text">
                                 <b>مای‌تل دسک</b>
@@ -161,7 +156,10 @@
 
         <!-- Footer -->
         <footer class="mt-footer">
-            <span class="mt-footer-brand">{$BRAND_NAME}</span>
+            <a href="https://mytel.one" target="_blank" rel="noopener" class="mt-footer-brand-link">
+                <img src="{$WEBPATH}themes/{$THEMENAME}/images/mytel-logo.png" alt="{$BRAND_NAME}" width="18" height="18" class="mt-footer-logo" />
+                <span class="mt-footer-brand">{$BRAND_NAME}</span>
+            </a>
             <span class="mt-footer-sep">&bull;</span>
             <span>{$BRAND_TAGLINE}</span>
             <span class="mt-footer-year">&copy; {$currentyear}</span>
@@ -242,13 +240,12 @@ $(document).ready(function(e) {
         <script src="{$WEBPATH}themes/{$THEMENAME}/js/mytel-loader.js?v=122"></script>
         <script src="{$WEBPATH}themes/{$THEMENAME}/js/neon-custom.js"></script>
         <script src="{$WEBPATH}themes/{$THEMENAME}/vendor/echarts/echarts.min.js"></script>
-        <script src="{$WEBPATH}themes/{$THEMENAME}/js/mytel-charts.js?v=740"></script>
-        <script src="{$WEBPATH}themes/{$THEMENAME}/js/theme.js?v=740"></script>
+        <script src="{$WEBPATH}themes/{$THEMENAME}/js/mytel-charts.js?v=100"></script>
+        <script src="{$WEBPATH}themes/{$THEMENAME}/js/theme.js?v=734"></script>
         <script src="{$WEBPATH}themes/{$THEMENAME}/js/mt-calendar.js?v=122"></script>
         <script src="{$WEBPATH}themes/{$THEMENAME}/js/mt-date-icons.js?v=122"></script>
         <script src="{$WEBPATH}themes/{$THEMENAME}/js/mt-cdr-filters.js?v=122"></script>
         <script src="{$WEBPATH}themes/{$THEMENAME}/js/mt-secadv.js?v=122"></script>
-        <script src="{$WEBPATH}themes/{$THEMENAME}/js/workspace.js?v=740"></script>
     </div>
 </body>
 </html>

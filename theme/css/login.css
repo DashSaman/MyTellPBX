@@ -25,16 +25,52 @@ body.mt-login-body {
     position: relative;
     overflow: hidden;
 }
-.mt-login-brandpane-inner { text-align: center; padding: 40px; position: relative; z-index: 2; }
-.mt-login-emblem { width: 96px; height: 96px; filter: drop-shadow(0 10px 26px rgba(30,136,229,.35)); }
+.mt-login-brandpane-inner { text-align: center; padding: 40px; position: relative; z-index: 2; display: flex; flex-direction: column; align-items: center; gap: 4px; }
+.mt-login-logo {
+    width: 96px; height: 96px;
+    border-radius: 50%;
+    box-shadow: 0 10px 32px rgba(30,136,229,.30), 0 0 0 4px rgba(255,255,255,.08);
+}
 .mt-login-brandname {
     color: #fff;
     font-size: 34px;
     font-weight: 700;
-    margin: 18px 0 4px;
+    margin: 14px 0 4px;
     letter-spacing: .3px;
 }
 .mt-login-tagline { color: var(--mt-side-text); font-size: var(--mt-fs-lg); margin: 0; font-weight: 400; }
+.mt-login-brand-statement {
+    color: rgba(200, 206, 242, .55);
+    font-size: 13px;
+    margin: 10px 0 0;
+    font-weight: 400;
+    line-height: 1.7;
+}
+.mt-login-site-link {
+    display: inline-flex;
+    align-items: center;
+    gap: 7px;
+    padding: 9px 24px;
+    border-radius: 999px;
+    background: rgba(255, 255, 255, .08);
+    border: 1px solid rgba(255, 255, 255, .18);
+    color: #E8EDF8;
+    font-size: 14px;
+    font-weight: 600;
+    text-decoration: none;
+    margin-top: 22px;
+    transition: background .15s ease, border-color .15s ease, color .15s ease;
+}
+.mt-login-site-link:hover {
+    background: rgba(255, 138, 0, .16);
+    border-color: rgba(255, 138, 0, .5);
+    color: #FFB84D;
+}
+.mt-login-site-link:focus-visible { outline: 2px solid #FF8A00; outline-offset: 2px; }
+html[data-mt-theme="dark"] .mt-login-site-link {
+    background: rgba(255, 255, 255, .06);
+    border-color: rgba(255, 255, 255, .14);
+}
 
 /* animated signal bars */
 .mt-login-waves { display: flex; align-items: center; justify-content: center; gap: 7px; height: 44px; margin-top: 34px; }
@@ -207,10 +243,22 @@ body.mt-login-body {
     font-weight: 700;
     color: var(--mt-text-muted);
     transition: color var(--mt-speed) var(--mt-ease);
+    display: inline-flex; align-items: center; gap: 6px;
+    text-decoration: none;
 }
-.mt-login-foot .mt-foot-link:hover { color: var(--mt-primary); }
+.mt-login-foot .mt-foot-link:hover { color: var(--mt-primary); text-decoration: none; }
+.mt-foot-logo { width: 18px; height: 18px; border-radius: 50%; display: inline-block; }
 
 @media (max-width: 900px) {
     .mt-login-brandpane { display: none; }
     .mt-login-panel { background: linear-gradient(160deg, var(--mt-navy-800), var(--mt-navy-950)); }
+    /* compact brand header on mobile (pane hidden) */
+    .mt-login-card::before {
+        content: '';
+        display: block;
+        width: 56px; height: 56px;
+        margin: 0 auto 8px;
+        border-radius: 50%;
+        background: url('../images/mytel-logo.png') center/contain no-repeat;
+    }
 }
