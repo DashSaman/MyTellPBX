@@ -787,6 +787,98 @@
             });
         })();
 
+        /* ---- debrand: replace any remaining Issabel references in panel
+           module content (owner order 2026-11-05): text nodes, links, title.
+           Presentation text only: script/style/textarea/noscript/code/pre are
+           skipped (functional identifiers and config samples stay verbatim);
+           only external http(s) issabel domains are rewritten, internal
+           fragment/relative anchors like #issabel-panels keep working.
+           Dashboard applets (news feed) load async -> MutationObserver. ---- */
+        (function panelDebrand() {
+            if (window.__mtPanelDebrandDone) return;
+            window.__mtPanelDebrandDone = true;
+            var SKIP_TAGS = { SCRIPT: 1, STYLE: 1, TEXTAREA: 1, NOSCRIPT: 1, CODE: 1, PRE: 1 };
+            var fixText = function (txt) {
+                return txt.replace(/issabelpbx/gi, 'MyTellPBX').replace(/issabel/gi, 'MyTellPBX');
+            };
+            /* reject text nodes inside skipped containers at ANY depth:
+               <pre><span>config path</span></pre> must stay verbatim too */
+            var inSkipped = function (el) {
+                while (el) {
+                    if (SKIP_TAGS[el.tagName]) return true;
+                    el = el.parentElement;
+                }
+                return false;
+            };
+            var acceptNode = function (node) {
+                return inSkipped(node.parentElement) ? NodeFilter.FILTER_REJECT : NodeFilter.FILTER_ACCEPT;
+            };
+            var debrandNode = function (root) {
+                var walker = document.createTreeWalker(root, NodeFilter.SHOW_TEXT, { acceptNode: acceptNode }, false);
+                var node;
+                while ((node = walker.nextNode())) {
+                    var txt = node.nodeValue;
+                    if (!txt) continue;
+                    var fixed = fixText(txt);
+                    if (fixed !== txt) node.nodeValue = fixed;
+                }
+            };
+            var debrandLinks = function (root) {
+                var links = root.querySelectorAll ? root.querySelectorAll('a[href]') : [];
+                Array.prototype.forEach.call(links, function (a) {
+                    var href = a.getAttribute('href') || '';
+                    /* only the URL's HOSTNAME may carry the brand name;
+                       query strings and fragments are not part of the host */
+                    if (/^https?:\/\/[^\/?#]*issabel/i.test(href)) {
+                        a.setAttribute('href', 'https://mytel.one');
+                    }
+                });
+            };
+            var run = function () {
+                debrandNode(document.body);
+                debrandLinks(document.body);
+                if (/issabel/i.test(document.title)) document.title = fixText(document.title);
+            };
+            run();
+            $(document).ajaxComplete(function () { setTimeout(run, 150); });
+            if (window.MutationObserver) {
+                var pending = null;
+                var obs = new MutationObserver(function () {
+                    if (pending) return;
+                    pending = setTimeout(function () { pending = null; run(); }, 250);
+                });
+                obs.observe(document.body, { childList: true, subtree: true });
+            }
+        })();
+
+        /* ---- asternic menu subtitle: «گزارش پیشرفته» under the item label
+           (owner order 2026-11-05) — two-line label, works in the sidebar
+           submenu and inside any drawer clones ------------------------- */
+        (function asternicSubtitle() {
+            function apply() {
+                document.querySelectorAll('.mt-sidebar #main-menu a[href*="menu=asternic_cdr"]').forEach(function (a) {
+                    var label = a.querySelector('span:not(.mt-menu-sub):not(.mt-menu-t1)');
+                    if (!label || label.classList.contains('mt-menu-two')) return;
+                    var txt = label.textContent.trim();
+                    if (!txt) return;
+                    label.textContent = '';
+                    label.classList.add('mt-menu-two');
+                    var t1 = document.createElement('span');
+                    t1.className = 'mt-menu-t1';
+                    t1.textContent = txt;
+                    var sub = document.createElement('span');
+                    sub.className = 'mt-menu-sub';
+                    sub.textContent = 'گزارش پیشرفته';
+                    label.appendChild(t1);
+                    label.appendChild(sub);
+                    a.classList.add('mt-has-twoline');
+                });
+            }
+            apply();
+            /* re-apply when menu is re-rendered (ajax navigation) */
+            $(document).ajaxComplete(function () { setTimeout(apply, 250); });
+        })();
+
         /* ---- 2d) menu navigation/disclosure controller --------------------
            The inherited Neon sidebar script attaches preventDefault() to the
            anchor of EVERY li that owns a submenu (21 mid-tier destinations

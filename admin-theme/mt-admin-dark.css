@@ -236,7 +236,7 @@
     color: #FFFFFF !important;
 }
 :root[data-mt-theme="dark"] .navbar-dropdown .navbar-item small,
-:root[data-mt-theme="dark"] .navbar-dropdown .navbar-item .mt-sub { color: var(--mt-muted) !important; }
+:root[data-mt-theme="dark"] .navbar-dropdown .navbar-item .mt-sub { color: var(--mt-accent-fg) !important; }
 :root[data-mt-theme="dark"] .navbar-divider { background: var(--mt-border) !important; }
 
 /* chosen selects (advanced settings and everywhere) */

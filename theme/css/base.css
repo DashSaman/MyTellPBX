@@ -286,6 +286,26 @@ a:hover { color: var(--mt-primary-soft); }
     flex: 0 0 5px;
     transition: background var(--mt-speed) var(--mt-ease), box-shadow var(--mt-speed) var(--mt-ease);
 }
+/* two-line submenu label: item name + descriptive subtitle (asternic) */
+.mt-sidebar #main-menu ul a .mt-menu-two {
+    display: flex;
+    flex-direction: column;
+    gap: 1px;
+    min-width: 0;
+    overflow: hidden;
+    line-height: 1.25;
+}
+.mt-sidebar #main-menu ul a .mt-menu-two .mt-menu-t1 { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.mt-sidebar #main-menu ul a .mt-menu-two .mt-menu-sub {
+    font-size: 10px;
+    font-weight: 600;
+    color: var(--mt-accent);
+    letter-spacing: .02em;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+.mt-sidebar #main-menu ul a.mt-has-twoline { padding-top: 4px; padding-bottom: 4px; }
 .mt-sidebar #main-menu ul a:hover { background: rgba(255, 255, 255, .08); color: #fff; }
 .mt-sidebar #main-menu ul a:hover::before { background: var(--mt-accent); }
 .mt-sidebar #main-menu ul li.active > a,
