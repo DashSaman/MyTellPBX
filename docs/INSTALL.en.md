@@ -8,7 +8,7 @@ script straight into bash without review:
 
 ```
 curl -fsSL -o install-mytellpbx.sh \
-  https://github.com/DashSaman/MyTellPBX/releases/download/v7.5.0/install-mytellpbx.sh
+  https://github.com/DashSaman/MyTellPBX/releases/download/v7.5.1/install-mytellpbx.sh
 ```
 
 ```
@@ -103,7 +103,7 @@ firewalld **stays enabled**; only these ports are opened.
   stages are skipped.
 - **"existing PBX packages detected"**: the server is not fresh; see
   Removal below.
-- **"bundle checksum mismatch"**: delete `/tmp/mytelpbx-bundle-7.5.0.tgz`
+- **"bundle checksum mismatch"**: delete `/tmp/mytelpbx-bundle-7.5.1.tgz`
   and run again.
 - **Panel not loading**: check `systemctl status httpd mariadb asterisk`.
 - **Login fails**: `cat /root/mytelpbx-credentials.txt`.

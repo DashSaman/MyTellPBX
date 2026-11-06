@@ -7,14 +7,14 @@
 یک فرمان نصب می‌شود:
 
 ```
-curl -fsSL -o install-mytellpbx.sh https://github.com/DashSaman/MyTellPBX/releases/download/v7.5.0/install-mytellpbx.sh && bash install-mytellpbx.sh
+curl -fsSL -o install-mytellpbx.sh https://github.com/DashSaman/MyTellPBX/releases/download/v7.5.1/install-mytellpbx.sh && bash install-mytellpbx.sh
 ```
 
 ## اجزای نصب‌ساز
 
 - `install-mytellpbx.sh` — نصب‌ساز اصلی: پیش‌نیازها، مخازن، بسته‌ها،
   راه‌اندازی چارچوب، رمزهای تصادفی، نصب قالب و برندسازی، راستی‌آزمایی
-- `mytelpbx-bundle-7.5.0.tgz` — بستهٔ قالب/برند/زبان با مانیفست و
+- `mytelpbx-bundle-7.5.1.tgz` — بستهٔ قالب/برند/زبان با مانیفست و
   کنترل مجموع‌آزاد (SHA-256 داخل نصب‌ساز تعبیه شده؛ ناهماهوانی = توقف
   پیش از هر تغییری روی سیستم)
 - `scripts/build-installer-bundle.sh` — سازندهٔ بسته با فهرست سفید
@@ -50,3 +50,12 @@ curl -fsSL -o install-mytellpbx.sh https://github.com/DashSaman/MyTellPBX/releas
 - پی‌اچ‌پی ۷٫۴ پایان پشتیبانی بالادستی دارد (الزام چارچوب)
 - سلبینوکس غیرفعال می‌شود
 - میز کار اپراتور (MytellDesk) جزء نصب‌ساز پایه نیست
+
+## تعمیرهای قطعی این نگارش نسبت به ۷٫۵٫۰
+
+- اجرای «به‌روزرسانی ماریا‌دی‌بی» پیش از هر عمل کاربر/رمز: جدول‌های سیستمی
+  نوخاستهٔ بسته، بدون این گام، ساخت کاربر دیتابیس را بی‌صدا بی‌اثر می‌کند
+- حلقهٔ نصب چارچوب با راستی‌آزمایی واقعی ماژول‌ها: اگر نصب‌کنندهٔ بالادستی با
+  جدول ماژول خالی «موفق» گزارش کرد، نیمه‌نصب پاک و تا سه بار تلاش می‌شود
+- حذف پروندهٔ کهنهٔ «issabelpbx.conf» در هر تلاش: نگه‌داشتن رمز دیتابیس کهنه
+  باعث شکست اتصال ابزارهای چارچوب می‌شد

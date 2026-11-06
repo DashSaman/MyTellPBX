@@ -15,7 +15,7 @@
 
 ```bash
 curl -fsSL -o install-mytellpbx.sh \
-  https://github.com/DashSaman/MyTellPBX/releases/download/v7.5.0/install-mytellpbx.sh
+  https://github.com/DashSaman/MyTellPBX/releases/download/v7.5.1/install-mytellpbx.sh
 bash install-mytellpbx.sh
 ```
 

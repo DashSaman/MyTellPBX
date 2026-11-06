@@ -38,12 +38,12 @@
 set -u
 set -o pipefail
 
-MYTELLPBX_VERSION="7.5.0"
-MYTELLPBX_BUNDLE="mytelpbx-bundle-7.5.0.tgz"
+MYTELLPBX_VERSION="7.5.1"
+MYTELLPBX_BUNDLE="mytelpbx-bundle-7.5.1.tgz"
 # Expected SHA-256 of the bundle asset (filled in by the release builder).
-MYTELLPBX_BUNDLE_SHA256="1c6d81c591f1a66774ca3ecbc0ec84d6aa1bb36b61ee9bfdc41a96590bf84193"
+MYTELLPBX_BUNDLE_SHA256="9ce31339bd7ca9f0eb69998d5237b5e6861e5039760173ae9dbca214e8a9eb35"
 MYTELLPBX_GITHUB="https://github.com/DashSaman/MyTellPBX"
-MYTELLPBX_RELEASE_TAG="v7.5.0"
+MYTELLPBX_RELEASE_TAG="v7.5.1"
 MYTELLPBX_BUNDLE_URL="${MYTELL_BUNDLE_URL:-${MYTELLPBX_GITHUB}/releases/download/${MYTELLPBX_RELEASE_TAG}/${MYTELLPBX_BUNDLE}}"
 
 LOG="/var/log/mytelpbx-install.log"
@@ -348,6 +348,12 @@ stage_post_base() {
 
     systemctl enable mariadb.service >>"$LOG" 2>&1 || die "mariadb enable failed"
     systemctl start  mariadb           >>"$LOG" 2>&1 || die "mariadb start failed"
+    # The RPM-initialized system tables can predate the running server
+    # version; until mysql_upgrade runs, CREATE USER/GRANT can silently
+    # fail to take effect (users created without working passwords),
+    # which breaks the framework installer's DB user mid-run.
+    run_logged mysql_upgrade --force \
+        || die "mysql_upgrade failed (system tables unusable)"
     systemctl enable httpd             >>"$LOG" 2>&1 || die "httpd enable failed"
 
     # SELinux: the telephony framework requires it disabled (documented).
@@ -497,16 +503,29 @@ stage_framework_init() {
                 -e "SET PASSWORD FOR 'root'@'localhost' = PASSWORD('')" >>"$LOG" 2>&1 \
                 || die "cannot normalize mariadb root access"
         fi
-        rm -f /installamp
-        run_logged /usr/src/issabelPBX/framework/install_amp \
-            --dbuser=root --installdb --scripted --language="${LANG_SEL}" \
-            || die "framework install_amp failed (see ${LOG})"
-        [ -f /etc/amportal.conf ] || die "install_amp produced no /etc/amportal.conf"
+        # Upstream flake: install_amp can exit 0 with an EMPTY modules table
+        # (internal "DB Error: connect failed" flood), and a re-run over the
+        # leftover half-state then skips module registration entirely. Fix:
+        # verify modules after each attempt; on failure drop the partial DBs
+        # and retry from a clean slate (bounded attempts).
+        local amp_attempt=0 amp_ok=0
+        for amp_attempt in 1 2 3; do
+            if [ "${amp_attempt}" -gt 1 ]; then
+                warn "framework ناقص (ماژول=${mod_count:-0}) — پاک‌سازی نیمه‌نصب و تلاش ${amp_attempt}/3"
+                mysql -N -e "DROP DATABASE IF EXISTS asterisk; DROP DATABASE IF EXISTS asteriskcdrdb;" >>"$LOG" 2>&1
+            fi
+            rm -f /installamp /etc/amportal.conf /etc/issabelpbx.conf
+            run_logged /usr/src/issabelPBX/framework/install_amp \
+                --dbuser=root --installdb --scripted --language="${LANG_SEL}" || true
+            mod_count=$(mysql_any -N -e "SELECT COUNT(*) FROM asterisk.modules" 2>/dev/null | tr -d '[:space:]')
+            if [ -n "${mod_count}" ] && [ "${mod_count}" -gt 5 ] && [ -f /etc/amportal.conf ]; then
+                amp_ok=1; break
+            fi
+        done
+        [ "${amp_ok}" = "1" ] \
+            || die "framework install_amp left modules table empty after 3 attempts (see ${LOG})"
         mysql_any -N -e "SHOW TABLES FROM asterisk LIKE 'ampusers'" 2>>"$LOG" | grep -q ampusers \
             || die "framework database missing ampusers after install_amp"
-        mod_count=$(mysql_any -N -e "SELECT COUNT(*) FROM asterisk.modules" 2>/dev/null | tr -d '[:space:]')
-        { [ -n "${mod_count}" ] && [ "${mod_count}" -gt 5 ]; } \
-            || die "framework modules table empty after install_amp (upstream tool misreported success)"
         # generate device/dialplan configs from the freshly registered modules
         run_logged /var/lib/asterisk/bin/retrieve_conf \
             || die "retrieve_conf failed after framework install"
