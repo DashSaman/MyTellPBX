@@ -241,7 +241,7 @@ $(document).ready(function(e) {
         <script src="{$WEBPATH}themes/{$THEMENAME}/js/neon-custom.js"></script>
         <script src="{$WEBPATH}themes/{$THEMENAME}/vendor/echarts/echarts.min.js"></script>
         <script src="{$WEBPATH}themes/{$THEMENAME}/js/mytel-charts.js?v=100"></script>
-        <script src="{$WEBPATH}themes/{$THEMENAME}/js/theme.js?v=737"></script>
+        <script src="{$WEBPATH}themes/{$THEMENAME}/js/theme.js?v=738"></script>
         <script src="{$WEBPATH}themes/{$THEMENAME}/js/mt-calendar.js?v=122"></script>
         <script src="{$WEBPATH}themes/{$THEMENAME}/js/mt-date-icons.js?v=122"></script>
         <script src="{$WEBPATH}themes/{$THEMENAME}/js/mt-cdr-filters.js?v=122"></script>

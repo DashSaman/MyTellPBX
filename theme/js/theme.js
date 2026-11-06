@@ -787,6 +787,31 @@
             });
         })();
 
+        /* ---- remove the legacy News applet entirely (owner order
+           2026-11-06): the dashboard's hidden data-source grid keeps
+           loading Issabel's RSS feed with its twitter-share links; the
+           MyTel control-room dashboard does not use this widget at all.
+           Purge early, on ajax, and via observer (applet refresh) ------ */
+        (function removeNewsApplet() {
+            if (window.__mtNewsGone) return;
+            window.__mtNewsGone = true;
+            var purge = function () {
+                document.querySelectorAll('#portlet-Applet_News, #Applet_News').forEach(function (el) {
+                    if (el.parentNode) el.parentNode.removeChild(el);
+                });
+            };
+            purge();
+            $(document).ajaxComplete(function () { setTimeout(purge, 50); });
+            if (window.MutationObserver) {
+                var pending = null;
+                var obs = new MutationObserver(function () {
+                    if (pending) return;
+                    pending = setTimeout(function () { pending = null; purge(); }, 250);
+                });
+                obs.observe(document.body, { childList: true, subtree: true });
+            }
+        })();
+
         /* ---- debrand: replace any remaining Issabel references in panel
            module content (owner order 2026-11-05): text nodes, links, title.
            Presentation text only: script/style/textarea/noscript/code/pre are
