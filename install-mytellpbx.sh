@@ -38,12 +38,12 @@
 set -u
 set -o pipefail
 
-MYTELLPBX_VERSION="7.4.0"
-MYTELLPBX_BUNDLE="mytelpbx-bundle-7.4.0.tgz"
+MYTELLPBX_VERSION="7.5.0"
+MYTELLPBX_BUNDLE="mytelpbx-bundle-7.5.0.tgz"
 # Expected SHA-256 of the bundle asset (filled in by the release builder).
-MYTELLPBX_BUNDLE_SHA256="c74a7fcc86e958eadf9d66970520fb80cde961c49d3d27b5fa7a08d77d5e546a"
+MYTELLPBX_BUNDLE_SHA256="1c6d81c591f1a66774ca3ecbc0ec84d6aa1bb36b61ee9bfdc41a96590bf84193"
 MYTELLPBX_GITHUB="https://github.com/DashSaman/MyTellPBX"
-MYTELLPBX_RELEASE_TAG="v7.4.0"
+MYTELLPBX_RELEASE_TAG="v7.5.0"
 MYTELLPBX_BUNDLE_URL="${MYTELL_BUNDLE_URL:-${MYTELLPBX_GITHUB}/releases/download/${MYTELLPBX_RELEASE_TAG}/${MYTELLPBX_BUNDLE}}"
 
 LOG="/var/log/mytelpbx-install.log"

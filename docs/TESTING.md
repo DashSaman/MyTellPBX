@@ -1,4 +1,4 @@
-# MyTellPBX installer — verification record for v7.4.0
+# MyTellPBX installer — verification record for v7.5.0
 
 This document records how the installer was verified before publication.
 Test target: fresh Rocky Linux 8.10 x86_64 VM (192.168.1.162, Hyper-V,

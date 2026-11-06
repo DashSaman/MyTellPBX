@@ -7,7 +7,7 @@
 
 ```
 curl -fsSL -o install-mytellpbx.sh \
-  https://github.com/DashSaman/MyTellPBX/releases/download/v7.4.0/install-mytellpbx.sh
+  https://github.com/DashSaman/MyTellPBX/releases/download/v7.5.0/install-mytellpbx.sh
 ```
 
 ```
@@ -96,7 +96,7 @@ MYTELL_ADMIN_PASS='رمز-دلخواه' MYTELL_MYSQL_ROOT_PASS='رمز-دلخو�
 - **خطای «existing PBX packages detected»**: سرور تازه نیست؛ مطابق بخش
   «حذف و بازگردانی» عمل کنید.
 - **خطای «bundle checksum mismatch»**: فایل بسته خراب یا نسخهٔ ناهماهوان؛
-  فایل `/tmp/mytelpbx-bundle-7.4.0.tgz` را حذف و دوباره اجرا کنید.
+  فایل `/tmp/mytelpbx-bundle-7.5.0.tgz` را حذف و دوباره اجرا کنید.
 - **پنل باز نمی‌شود**: وضعیت سرویس‌ها را ببینید:
   `systemctl status httpd mariadb asterisk`
 - **ورود کار نمی‌کند**: فایل رمز را ببینید: `cat /root/mytelpbx-credentials.txt`
