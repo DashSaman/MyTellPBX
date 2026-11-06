@@ -1,144 +1,127 @@
 #!/usr/bin/env python3
-"""Refresh owned UI blocks without restoring over unrelated live PHP edits.
+"""MyTellPBX v7.3.2 — admin frame theme patch (refresh-safe + upgrade-safe).
 
-Python 3.6 compatible. All anchors are validated before the first write.
-Existing .bak-mt files are never restored or overwritten by this patcher.
+Strategy: always restore header.php and footer.php from their .bak-mt
+pristine backups, then apply fresh. This makes upgrades from any prior
+version (7.3.0/7.3.1) clean — no stale injections, no double toggles,
+no PHP corruption. First run creates the .bak-mt; subsequent runs reset.
+
+- header.php: pre-paint script + toggle button creation (DOMContentLoaded)
+- footer.php: restored pristine (no injection needed — toggle is in header)
+- skin.css: dark block (marker-scoped, refreshed each run)
+
+Usage (root):  python3 patch-admin-theme.py
 """
-import argparse
-import os
 import pathlib
-import re
 import shutil
-import tempfile
+import sys
 
-SOURCE = pathlib.Path(__file__).resolve().parent
+ADMIN = pathlib.Path("/var/www/html/admin")
+HEADER = ADMIN / "views/header.php"
+FOOTER = ADMIN / "views/footer.php"
+SKIN = ADMIN / "assets/mytel/skin.css"
+DARK_CSS = pathlib.Path(__file__).with_name("mt-admin-dark.css")
+
+HEAD_ANCHOR = "$html .= '<head>';"
+HEAD_MARK = "<!-- MyTellPBX theme pre-paint"
+
+HEAD_INJECT = """$html .= '<!-- MyTellPBX theme pre-paint (marker) -->';
+$html .= '<script>'
+. "(function(){try{var t=localStorage.getItem('mt-theme');"
+. "if(t!=='dark'&&t!=='light')t='light';"
+. "document.documentElement.setAttribute('data-mt-theme',t);"
+. "document.documentElement.style.colorScheme=t;}catch(e){"
+. "document.documentElement.setAttribute('data-mt-theme','light');}})();"
+. '</script>';
+$html .= '<script>'
+. "(function(){"
+. "var btn=null;"
+. "var SUN='<svg viewBox=\\\"0 0 24 24\\\" width=\\\"20\\\" height=\\\"20\\\" fill=\\\"none\\\" stroke=\\\"currentColor\\\" stroke-width=\\\"2\\\" stroke-linecap=\\\"round\\\" stroke-linejoin=\\\"round\\\" aria-hidden=\\\"true\\\"><circle cx=\\\"12\\\" cy=\\\"12\\\" r=\\\"4.4\\\"/><path d=\\\"M12 2.5v2.2M12 19.3v2.2M4.3 4.3l1.6 1.6M18.1 18.1l1.6 1.6M2.5 12h2.2M19.3 12h2.2M4.3 19.7l1.6-1.6M18.1 5.9l1.6-1.6\\\"/></svg>';"
+. "var MOON='<svg viewBox=\\\"0 0 24 24\\\" width=\\\"20\\\" height=\\\"20\\\" fill=\\\"none\\\" stroke=\\\"currentColor\\\" stroke-width=\\\"2\\\" stroke-linecap=\\\"round\\\" stroke-linejoin=\\\"round\\\" aria-hidden=\\\"true\\\"><path d=\\\"M20.6 13.2A8.6 8.6 0 0 1 10.8 3.4a8.6 8.6 0 1 0 9.8 9.8Z\\\"/></svg>';"
+. "function paint(t){if(!btn)return;var dark=t==='dark';"
+. "btn.setAttribute('aria-pressed',dark?'true':'false');"
+. "btn.title=dark?'تغییر به حالت روشن':'تغییر به حالت تاریک';"
+. "btn.innerHTML=dark?SUN:MOON;}"
+. "function init(){"
+. "btn=document.createElement('button');btn.type='button';"
+. "btn.className='mt-admin-theme-toggle navbar-item';"
+. "btn.style.cssText='margin-inline-start:10px;align-self:center;display:inline-flex;"
+. "align-items:center;justify-content:center;width:40px;height:40px;border-radius:9px;"
+. "cursor:pointer;background:transparent;border:1px solid rgba(255,255,255,.25);"
+. "color:rgba(255,255,255,.75);font-size:0;transition:color .12s,border-color .12s';"
+. "btn.addEventListener('click',function(){"
+. "var next=document.documentElement.getAttribute('data-mt-theme')==='dark'?'light':'dark';"
+. "document.documentElement.setAttribute('data-mt-theme',next);"
+. "document.documentElement.style.colorScheme=next;"
+. "try{localStorage.setItem('mt-theme',next);}catch(e){}"
+. "paint(next);"
+. "try{var fr=document.querySelectorAll('iframe');"
+. "for(var i=0;i<fr.length;i++){try{fr[i].contentDocument.documentElement.setAttribute('data-mt-theme',next);}catch(e){}}}catch(e){}"
+. "});"
+. "window.addEventListener('storage',function(ev){"
+. "if(ev.key==='mt-theme'&&(ev.newValue==='dark'||ev.newValue==='light')){"
+. "document.documentElement.setAttribute('data-mt-theme',ev.newValue);"
+. "document.documentElement.style.colorScheme=ev.newValue;paint(ev.newValue);}});"
+. "paint(document.documentElement.getAttribute('data-mt-theme'));"
+. "var nav=document.querySelector('.navbar-end')||document.querySelector('.navbar')||document.body;"
+. "nav.appendChild(btn);"
+. "}"
+. "if(document.readyState==='loading'){document.addEventListener('DOMContentLoaded',init);}"
+. "else{init();}"
+. "})();"
+. '</script>';
+"""
+
 SKIN_MARK = "/* ==== MyTellPBX v7.3.0 admin dark theme (marker) ==== */"
-SKIN_START = "/* MyTellPBX legacy coverage v740 BEGIN */"
-SKIN_END = "/* MyTellPBX legacy coverage v740 END */"
-START = "/* MyTellPBX workspace v740 BEGIN */"
-END = "/* MyTellPBX workspace v740 END */"
-HEAD = """/* MyTellPBX workspace v740 BEGIN */
-$html .= '<script src="assets/mytel/workspace.js?v=740"></script>';
-/* MyTellPBX workspace v740 END */
-"""
-STYLE = """/* MyTellPBX workspace v740 BEGIN */
-$html .= '<link rel="stylesheet" href="assets/mytel/workspace.css?v=740">';
-/* MyTellPBX workspace v740 END */
-"""
 
 
-def remove_current(text):
-    text = text.replace("\n" + HEAD, "").replace(STYLE, "")
-    if START in text or END in text:
-        raise ValueError("Workspace PHP marker changed; refusing to discard edits")
-    return text
+def restore_backup(path):
+    """Restore from .bak-mt if it exists (upgrade path). Returns True if restored."""
+    bak = path.with_suffix(path.suffix + ".bak-mt")
+    if bak.exists():
+        shutil.copy2(bak, path)
+        return True
+    return False
 
 
-def strip_legacy_header(text):
-    mark = "$html .= '<!-- MyTellPBX theme pre-paint (marker) -->';"
-    if mark not in text:
-        return text
-    start = text.index(mark)
-    cursor = start + len(mark)
-    count = 0
-    # v7.3.0 adds one statement; v7.3.2 adds two. Consume only those exact
-    # PHP concatenation statements, never the space up to some later anchor.
-    statement = re.compile(r"\s*\$html \.= '<script>'\r?\n(?:\.[^\n]*\r?\n)*?\. '</script>';\r?\n?")
-    while count < 2:
-        match = statement.match(text, cursor)
-        if not match:
-            break
-        if count and "mt-admin-theme-toggle" not in match.group(0):
-            break  # An adjacent owner script is not a theme injection.
-        cursor = match.end()
-        count += 1
-    if not count:
-        raise ValueError("Unrecognized legacy theme injection; refusing to replace PHP")
-    return text[:start] + text[cursor:]
-
-
-def transform_header(text):
-    text = strip_legacy_header(remove_current(text))
-    for anchor in ("$html .= '<head>';", "$html .= '</head>'; "):
-        if anchor.rstrip() not in text:
-            raise ValueError("Missing header anchor: " + anchor.rstrip())
-    text = text.replace("$html .= '<head>';", "$html .= '<head>';\n" + HEAD, 1)
-    text = text.replace("$html .= '</head>';", STYLE + "$html .= '</head>';", 1)
-    # Local icon font is already shipped by Issabel. No CDN is required.
-    text = text.replace("https://maxcdn.bootstrapcdn.com/font-awesome/4.7.0/css/font-awesome.min.css", "/libs/font-icons/font-awesome/css/font-awesome.min.css")
-    return text
-
-
-def transform_footer(text):
-    # v7.3.0 footer script only. Preserve all other footer content verbatim.
-    pattern = r"<script>/\* MyTellPBX standalone theme toggle[^*]*\*/.*?</script>\r?\n?"
-    return re.sub(pattern, "", text, flags=re.DOTALL)
-
-
-def plan(admin):
-    header = admin / "views/header.php"
-    footer = admin / "views/footer.php"
-    skin = admin / "assets/mytel/skin.css"
-    for path in (header, footer, skin):
-        if not path.is_file():
-            raise ValueError("Missing required path: " + str(path))
-    header_text = header.read_text(encoding="utf-8")
-    footer_text = footer.read_text(encoding="utf-8")
-    skin_text = skin.read_text(encoding="utf-8")
-    dark_css = (SOURCE / "mt-admin-dark.css").read_text(encoding="utf-8").rstrip("\n")
-    if SKIN_START in skin_text or SKIN_END in skin_text:
-        if skin_text.count(SKIN_START) != 1 or skin_text.count(SKIN_END) != 1:
-            raise ValueError("Ambiguous skin coverage markers")
-        before, rest = skin_text.split(SKIN_START, 1)
-        _, after = rest.split(SKIN_END, 1)
-        skin_text = before + SKIN_START + "\n" + dark_css + "\n" + SKIN_END + after
-    elif dark_css not in skin_text:
-        # Older releases treated their marker as terminal. Never discard an
-        # owner's appended CSS; retain it and add our bounded coverage block.
-        skin_text = skin_text.rstrip("\n") + "\n\n" + SKIN_START + "\n" + dark_css + "\n" + SKIN_END + "\n"
-    return {
-        header: transform_header(header_text),
-        footer: transform_footer(footer_text),
-        skin: skin_text,
-        admin / "assets/mytel/workspace.css": (SOURCE / "workspace.css").read_text(encoding="utf-8"),
-        admin / "assets/mytel/workspace.js": (SOURCE / "workspace.js").read_text(encoding="utf-8"),
-    }
-
-
-def write_atomic(path, text):
-    old = path.read_text(encoding="utf-8") if path.exists() else None
-    if old == text:
-        return False
-    previous = path.stat() if path.exists() else path.parent.stat()
-    if path.exists():
-        backup = path.with_name(path.name + ".v740.bak-mt")
-        if not backup.exists():
-            shutil.copy2(str(path), str(backup))
-    fd, temporary = tempfile.mkstemp(prefix=".mt-ui-", dir=str(path.parent))
-    try:
-        with os.fdopen(fd, "w", encoding="utf-8", newline="\n") as stream:
-            stream.write(text)
-        os.chmod(temporary, (previous.st_mode & 0o777) if old is not None else 0o644)
-        if hasattr(os, "chown"):
-            os.chown(temporary, previous.st_uid, previous.st_gid)
-        os.replace(temporary, str(path))
-    finally:
-        if os.path.exists(temporary):
-            os.unlink(temporary)
-    return True
+def create_backup(path):
+    bak = path.with_suffix(path.suffix + ".bak-mt")
+    if not bak.exists():
+        shutil.copy2(path, bak)
+        print("BACKUP", bak.name)
 
 
 def main():
-    parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--admin-root", type=pathlib.Path, default=pathlib.Path("/var/www/html/admin"))
-    parser.add_argument("--check", action="store_true", help="Validate anchors without writing")
-    args = parser.parse_args()
-    changes = plan(args.admin_root)
-    for path, text in changes.items():
-        changed = not path.exists() or path.read_text(encoding="utf-8") != text
-        if changed and not args.check:
-            write_atomic(path, text)
-        print(("WOULD UPDATE " if args.check and changed else "UPDATED " if changed else "UNCHANGED ") + str(path))
+    for p in (HEADER, FOOTER, SKIN):
+        if not p.exists():
+            raise SystemExit("MISSING %s" % p)
+
+    # 1) Restore pristine files (upgrade-safe: strips ALL prior injections)
+    for p in (HEADER, FOOTER):
+        if restore_backup(p):
+            print("RESTORED", p.name, "from backup")
+        else:
+            create_backup(p)
+
+    # 2) Apply header patch fresh (pre-paint + toggle)
+    header = HEADER.read_text(encoding="utf-8")
+    if HEAD_ANCHOR not in header:
+        raise SystemExit("ANCHOR-MISS header.php")
+    i = header.index(HEAD_ANCHOR) + len(HEAD_ANCHOR)
+    header = header[:i] + "\n" + HEAD_INJECT + "\n" + header[i:]
+    HEADER.write_text(header, encoding="utf-8")
+    print("PATCHED header.php (pre-paint + toggle)")
+
+    # 3) Apply skin.css dark block (refresh-safe)
+    skin = SKIN.read_text(encoding="utf-8")
+    create_backup(SKIN)
+    if SKIN_MARK in skin:
+        skin = skin[: skin.index(SKIN_MARK)].rstrip("\n")
+    dark = DARK_CSS.read_text(encoding="utf-8")
+    SKIN.write_text(skin + "\n\n" + SKIN_MARK + "\n" + dark, encoding="utf-8")
+    print("APPLIED skin.css dark block")
+
+    sys.exit(0)
 
 
 if __name__ == "__main__":

@@ -1,98 +1,81 @@
-# MyTellPBX
+<div dir="rtl">
 
-MyTellPBX is a complete visual rebranding of **Issabel 5** built on the
-official **Tabler** design system (v1.6.1). It ships as a standard Issabel
-theme plus a net-install script, so a fresh server becomes "Issabel with our
-theme and our brand" in one run.
+# MyTellPBX — سامانهٔ کامل مرکز تماس با برند مای‌تل
 
-The telephony stack (Asterisk, FreePBX-style issabelPBX modules, databases,
-backend APIs) is untouched: this project is **theme, layout, CSS, UI
-components and branding only**.
+نصب یک‌خطی کل مرکز تماس روی **راکیمی لینوکس ۸٫۱۰**: موتور تلفنی استریسک ۲۰،
+چارچوب ماژول‌ها (داخلی، صف، ضبط تماس، گزارش‌ها، فکس، …) و لایهٔ کامل
+قالب و برند مای‌تل — پنل فارسی راست‌چین با حالت روشن و تاریک، برند کامل
+کنسول مدیریتی، زبان فارسی و بدون هیچ نام برند بالادستی در رابط کاربری.
 
-## Features
+## نصب با یک خط
 
-- Tabler 1.6.1 vertical-navigation shell (sidebar + page header + breadcrumb)
-- All Issabel menus rendered dynamically from the real menu DB with ACL
-  filtering intact (administrator vs restricted users)
-- MyTellPBX branding on login page, shell title, footer, user menu and the
-  About dialog (static logo instead of the legacy animation)
-- Redesigned dashboard: Tabler cards, blue gauge/line charts, legacy news
-  widgets removed
-- Report pages (CDR, Channels Usage, Billing suite, Asterisk Logs, Graphic
-  Report, Summary, Missed Calls, Recordings) restyled: blue action buttons,
-  fixed search fields, date pickers, export menus and pagination
-- Tabler icons webfont (no emoji), Inter variable font, Bootstrap 3 glyphicon
-  font bundled for legacy DataTables buttons — all assets local, no CDN
-- Dark/light shell toggle (content area stays light for maximum legacy
-  module compatibility)
-- Compatibility layer that restyles legacy Bootstrap 3 module markup and
-  keeps Bootstrap 3 JS (modals, tooltips, dropdowns, tabs) fully working
-  alongside Tabler CSS
-- The embedded issabelPBX (FreePBX fork) UI is rebranded through the
-  official `BRAND_*` settings plus a custom stylesheet: dark navbar,
-  blue accents, MyTellPBX logo, wordmark and footer
-- Mobile-friendly collapsed navigation, desktop-first information density
+روی سرور تازهٔ راکی ۸٫۱۰ با دسترسی ریشه:
 
-## Install on an existing Issabel 5 server
-
-Copy or download the `theme/` directory to the server, then:
+</div>
 
 ```bash
-bash install-theme.sh
+curl -fsSL -o install-mytellpbx.sh \
+  https://github.com/DashSaman/MyTellPBX/releases/download/v7.4.0/install-mytellpbx.sh
+bash install-mytellpbx.sh
 ```
 
-`install-theme.sh` copies the theme to `/var/www/html/themes/mytellpbx`,
-fixes ownership/permissions, activates it in the framework settings DB and
-reloads Apache. Hard-refresh the browser (Ctrl+Shift+R) afterwards.
+<div dir="rtl">
 
-## Fresh server net-install
+پس از پایان نصب، نشانی پنل و مسیر فایل رمزها (`/root/mytelpbx-credentials.txt`)
+نمایش داده می‌شود. راهنمای کامل فارسی: [docs/INSTALL.fa.md](docs/INSTALL.fa.md)
 
-```bash
-curl -fsSL https://raw.githubusercontent.com/DashSaman/MyTellPBX/main/mytellpbx-netinstall.sh -o mytellpbx-netinstall.sh
-bash mytellpbx-netinstall.sh
-```
+## قابلیت‌ها
 
-The script performs the standard Issabel 5 net install (same repos and
-packages as upstream, interactive Asterisk 16/18 selection) and then
-downloads and activates the MyTellPBX theme from the GitHub release. If the
-theme download fails, the server still ends up as a stock Issabel 5.
+- نصب مرحله‌ای تکرارپذیر؛ ادامهٔ خودکار پس از قطعی و بدون دست‌زدن به رمزها
+- رمزهای تصادفی یکتا برای پنل و پایگاه‌داده در فایل فقط‌روت
+- قالب پنل: فارسی راست‌چین، فونت وزیرمتن، حالت روشن/تاریک، داشبورد اتاق کنترل
+- کنسول مدیریتی: پوستهٔ کامل + برند + زیرنویس «گزارش پیشرفته» + دی‌برند کامل
+- رفع مشکل «اعمال پیکربندی» (Apply Config)
+- فایروال روشن می‌ماند؛ فقط پورت‌های لازم باز می‌شوند
+- مستندات کامل دو زبانه + شفافیت کامل نرم‌افزارهای پایه (THIRD_PARTY_NOTICES.md)
 
-## Rollback
+## مستندات
 
-The theme is additive; nothing upstream is removed. On a server configured
-by this project the pre-install backup and rollback script live in
-`/root/issabel-before-tabler-*` and `/root/rollback-issabel-tabler.sh`
-(created by the deployment; see `docs/ISSABEL-TABLER-THEME.md`).
+- راهنمای نصب فارسی: [docs/INSTALL.fa.md](docs/INSTALL.fa.md)
+- Installation guide (English): [docs/INSTALL.en.md](docs/INSTALL.en.md)
+- سند تست: [docs/TESTING.md](docs/TESTING.md)
+- یادداشت انتشار نسخه: [RELEASE_NOTES_V7_4_0_FA.md](RELEASE_NOTES_V7_4_0_FA.md)
 
-## Repository layout
+## هشدارهای امنیتی مهم
 
-```
-theme/                   the Issabel theme (installable as-is)
-  _common/               Smarty templates (index, menu, login, popup, ...)
-  css/                   Tabler 1.6.1 + fonts + shell + compatibility layer
-  icons/                 Tabler Icons webfont 3.48.0
-  fonts/                 Inter variable font + Bootstrap 3 glyphicons
-  images/                MyTellPBX logo, wordmark, favicon
-  js/shell.js            vanilla-JS shell interactivity (no new JS deps)
-  extras/                optional static module fixes (missing DataTables
-                         language files), installed without overwriting
-  themesetup.php         menu icons + labels
-  install-theme.sh       installer/activator
-mytellpbx-netinstall.sh  Issabel 5 base + theme net installer
-docs/                    screenshots and technical notes
-```
+سلبینوکس غیرفعال می‌شود و پی‌اچ‌پی ۷٫۴ (الزام چارچوب) پایان پشتیبانی
+بالادستی دارد — جزئیات و توصیه‌ها در راهنمای نصب.
 
-## Known limitations
+</div>
 
-- A few deep issabelPBX (FreePBX fork) pages may still show legacy purple
-  accents; the main navbar, headers, buttons and footer are rebranded.
-- The two-factor authentication page is hardcoded by the framework to load
-  the `tenant` theme's CSS, so it keeps the original look.
-- Dark mode applies to the navigation shell; legacy module content stays on
-  a light background by design.
+---
 
-## Licenses
+# MyTellPBX (English)
 
-MyTellPBX theme code: GPLv2 (same as Issabel, adapted from the `tenant`
-theme structure). Bundled third-party assets: Tabler (MIT), Tabler Icons
-(MIT), Inter (SIL OFL 1.1) — see `theme/THIRD-PARTY-LICENSES.txt`.
+A complete MyTel-branded contact-center platform for **Rocky Linux 8.10**,
+installed with one command: the Asterisk 20 telephony engine and framework
+modules, plus the full Persian RTL MyTel theme layer — light/dark panel,
+branded admin console, Persian language and complete debranding of the
+upstream UI.
+
+## What's inside
+
+- `install-mytellpbx.sh` — the staged, resumable one-line installer with
+  generated credentials and self-checks
+- `theme/` — the Persian RTL panel theme (source of truth)
+- `admin-theme/` — admin-console skin, dark layer and debrand patchers
+- `installer/` — package lists, repository template and golden payload
+- `scripts/` — bundle builder and lab helpers
+- `docs/` — bilingual install guides and the verification record
+
+## Install
+
+See the quick start above, or the full guide:
+[docs/INSTALL.en.md](docs/INSTALL.en.md).
+
+## Security disclosures
+
+SELinux is disabled (framework requirement) and PHP 7.4 is past upstream
+EOL (framework requirement) — read the install guide before exposing the
+panel. Third-party components are listed in
+[THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md).
