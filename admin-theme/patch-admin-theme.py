@@ -73,7 +73,11 @@ def transform_header(text):
     apply_head = "/* MyTellPBX Apply v753 BEGIN */\n$html .= '<link id=\"mt-apply-style\" rel=\"stylesheet\" href=\"assets/mytel/apply.css?v=753\">';\n$html .= '<script src=\"assets/mytel/feedback.js?v=753\"></script>';\n$html .= '<script defer src=\"assets/mytel/apply.js?v=753\"></script>';\n$html .= '<script defer src=\"assets/mytel/save.js?v=753\"></script>';\n/* MyTellPBX Apply v753 END */\n"
     old_apply_head = apply_head.replace('v753', 'v752').replace('?v=753', '?v=752')
     old_apply_head = old_apply_head.replace("$html .= '<script src=\"assets/mytel/feedback.js?v=752\"></script>';\n", '').replace("$html .= '<script defer src=\"assets/mytel/save.js?v=752\"></script>';\n", '')
+    if text.count(old_apply_head) + text.count(apply_head) > 1:
+        raise ValueError('Duplicate Apply UI blocks; refusing ambiguous replacement')
     text = text.replace(old_apply_head, '').replace(apply_head, '')
+    if re.search(r'MyTellPBX Apply v\d+ (?:BEGIN|END)', text):
+        raise ValueError('Apply UI block drift; refusing duplicate controllers')
     text = text.replace("$html .= '</head>';", apply_head + "$html .= '</head>';", 1)
     return text
 

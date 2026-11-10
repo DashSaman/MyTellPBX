@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Prepare only the six Submit/Apply lifecycle paths from current snapshots."""
+"""Prepare only the eight Submit/Apply/SIP-save paths from current snapshots."""
 import argparse
 import hashlib
 import importlib.util
@@ -41,9 +41,9 @@ def prepare(output, roots, source_id, checks):
         dest = output/payload; dest.parent.mkdir(parents=True, exist_ok=True); dest.write_bytes(data)
         item = {'root':'admin','path':relative,'payload':payload,'before':before,'after':after,'size':len(data)}
         item['order'] = policy.priority(item); manifest['files'].append(item)
-    for relative in ('assets/js/pbxlib.js','assets/js/unpoly.min.js','libraries/ampuser.class.php',
+    for relative in ('assets/js/pbxlib.js','assets/js/unpoly.min.js','libraries/ampuser.class.php','functions.inc.php',
                      'libraries/mytell-apply.php','libraries/view.functions.php',
-                     'modules/sipsettings/functions.inc.php','modules/sipsettings/assets/js/sipsettings.js'):
+                     'modules/sipsettings/assets/js/sipsettings.js'):
         digest = policy.digest(admin/relative)
         if digest is None: raise ValueError('Missing installed dependency: '+relative)
         manifest['inputs'].append({'root':'admin','path':relative,'sha256':digest})

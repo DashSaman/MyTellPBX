@@ -37,8 +37,9 @@ SCOPED_PROFILE = 'panel-apply-calendar-v752'
 SCOPED_CHECKS = {'offline-tests', 'js-syntax', 'php-syntax', 'apply-browser', 'reload-result', 'reload-guard', 'calendar-tests'}
 SUBMIT_PROFILE = 'panel-submit-apply-v753'
 SUBMIT_PATHS = {'views/header.php', 'assets/mytel/apply.js', 'assets/mytel/apply.css',
-                'assets/mytel/feedback.js', 'assets/mytel/save.js', 'modules/sipsettings/page.sipsettings.php'}
-SUBMIT_CHECKS = SCOPED_CHECKS | {'save-browser', 'toast-lifecycle'}
+                'assets/mytel/feedback.js', 'assets/mytel/save.js', 'modules/sipsettings/page.sipsettings.php',
+                'modules/sipsettings/functions.inc.php', 'libraries/mytell-sip-save.php'}
+SUBMIT_CHECKS = SCOPED_CHECKS | {'save-browser', 'toast-lifecycle', 'sip-save-transaction'}
 APPLY_PATHS = {'functions.inc.php', 'libraries/view.functions.php', 'libraries/mytell-apply.php'}
 CALENDAR_PATHS = {'modules/calendar/index.php', 'modules/calendar/themes/default/calendar_gui.tpl',
                   'modules/calendar/themes/default/js/javascript.js', 'modules/calendar/scenarios/rest/CalendarEvent.class.php'}

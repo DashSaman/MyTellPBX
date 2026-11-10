@@ -38,3 +38,4 @@ jobs:
           php -l admin-fixes/reload-guard.php
           php tests/ui/reload-guard.php admin-fixes/reload-guard.php
           php tests/ui/save-result.php admin-fixes/patch-submit.py
+          php tests/ui/sip-save-transaction.php admin-fixes/sip-save-transaction.php

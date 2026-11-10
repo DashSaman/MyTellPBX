@@ -84,7 +84,10 @@
                 frame.addEventListener('load', settled);
                 win.setTimeout(settled, 10000);
             }
-            try { win.sessionStorage.removeItem('mt-pbx-save-pending-v1'); } catch (e) {}
+            try {
+                var stored = JSON.parse(win.sessionStorage.getItem('mt-pbx-save-pending-v1'));
+                if (stored && stored.id === attempt.id) win.sessionStorage.removeItem('mt-pbx-save-pending-v1');
+            } catch (e) {}
         }
         function loaded() {
             try {
