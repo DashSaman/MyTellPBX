@@ -26,7 +26,7 @@ PANEL = {"_common/index.tpl", "_common/_menu.tpl", "_common/_shortcut.tpl", "_co
          "js/theme.js", "js/mytel-charts.js", "js/workspace.js", "js/appearance.js", "js/mt-calendar.js", "js/calendar-core.js", "js/calendar-editor.js", "css/mt-calendar.css", "css/mt-secadv.css", "help.css", "styles.css"}
 ALLOW = {
     "panel": PANEL,
-    "admin": {"views/header.php", "views/footer.php", "assets/mytel/skin.css", "assets/mytel/workspace.css", "assets/mytel/workspace.js", "assets/mytel/apply.css", "assets/mytel/apply.js", "assets/mytel/sub.js", "modules/asternic_cdr/asternic_cdr.css"},
+    "admin": {"views/header.php", "views/footer.php", "assets/mytel/skin.css", "assets/mytel/workspace.css", "assets/mytel/workspace.js", "assets/mytel/apply.css", "assets/mytel/apply.js", "assets/mytel/feedback.js", "assets/mytel/save.js", "assets/mytel/sub.js", "modules/asternic_cdr/asternic_cdr.css"},
     "phone": {"index.html", "theme.js", "workspace.css"},
     "desk": {"src/main.tsx", "src/components/Login.tsx", "src/hooks/useWebPhone.ts", "src/styles/mytell-workspace.css", "src/i18n/locales/fa/translation.json", "src/i18n/locales/en/translation.json", "dist/index.html"},
     "legacy": {"libs/js/jquery/jquery-upl-colResizable-1.5.min.js", "modules/sec_geoip_map/themes/default/map.tpl"},
@@ -35,6 +35,10 @@ HASH = re.compile(r"[0-9a-f]{64}\Z")
 REQUIRED_CHECKS = {"typecheck", "eslint-login", "stylelint-workspace", "vite", "php-header", "php-footer"}
 SCOPED_PROFILE = 'panel-apply-calendar-v752'
 SCOPED_CHECKS = {'offline-tests', 'js-syntax', 'php-syntax', 'apply-browser', 'reload-result', 'reload-guard', 'calendar-tests'}
+SUBMIT_PROFILE = 'panel-submit-apply-v753'
+SUBMIT_PATHS = {'views/header.php', 'assets/mytel/apply.js', 'assets/mytel/apply.css',
+                'assets/mytel/feedback.js', 'assets/mytel/save.js', 'modules/sipsettings/page.sipsettings.php'}
+SUBMIT_CHECKS = SCOPED_CHECKS | {'save-browser', 'toast-lifecycle'}
 APPLY_PATHS = {'functions.inc.php', 'libraries/view.functions.php', 'libraries/mytell-apply.php'}
 CALENDAR_PATHS = {'modules/calendar/index.php', 'modules/calendar/themes/default/calendar_gui.tpl',
                   'modules/calendar/themes/default/js/javascript.js', 'modules/calendar/scenarios/rest/CalendarEvent.class.php'}
@@ -79,6 +83,8 @@ def allowed(item, profile=None):
     root, relative = item["root"], item["path"]
     if root not in ALLOW:
         return False
+    if profile == SUBMIT_PROFILE:
+        return root == 'admin' and relative in SUBMIT_PATHS
     if profile == SCOPED_PROFILE:
         return ((root == 'admin' and relative in ALLOW['admin'] | APPLY_PATHS) or
                 (root == 'panel' and relative in PANEL) or
@@ -115,7 +121,7 @@ def validate(artifact, manifest, roots, expected="before"):
     if not re.fullmatch(r"[0-9a-f]{40}|[0-9a-f]{64}", manifest.get("source_id", "")):
         raise ValueError("An exact Git tree ID is required")
     profile = manifest.get('profile')
-    if profile not in (None, SCOPED_PROFILE):
+    if profile not in (None, SCOPED_PROFILE, SUBMIT_PROFILE):
         raise ValueError('Unknown release profile')
     records = manifest.get("checks", [])
     if not isinstance(records, list) or any(not isinstance(item, dict) or not isinstance(item.get("check"), str) or type(item.get("rc")) is not int for item in records):
@@ -123,7 +129,7 @@ def validate(artifact, manifest, roots, expected="before"):
     checks = {item["check"]: item["rc"] for item in records}
     if len(checks) != len(records):
         raise ValueError("Duplicate build checks")
-    required = SCOPED_CHECKS if profile == SCOPED_PROFILE else REQUIRED_CHECKS
+    required = SUBMIT_CHECKS if profile == SUBMIT_PROFILE else SCOPED_CHECKS if profile == SCOPED_PROFILE else REQUIRED_CHECKS
     if not required.issubset(checks) or any(item["rc"] != 0 for item in records):
         raise ValueError("Required build checks did not pass")
     targets, plan = set(), []

@@ -70,8 +70,10 @@ def transform_header(text):
     text = text.replace("https://maxcdn.bootstrapcdn.com/font-awesome/4.7.0/css/font-awesome.min.css", "/libs/font-icons/font-awesome/css/font-awesome.min.css")
     # Render-blocking external fonts delayed the containing frame's load event.
     text = re.sub(r'<link[^>]+href="https://fonts\.(?:googleapis|gstatic)\.com[^"\n]*"[^>]*>\n?', '', text)
-    apply_head = "/* MyTellPBX Apply v752 BEGIN */\n$html .= '<link id=\"mt-apply-style\" rel=\"stylesheet\" href=\"assets/mytel/apply.css?v=752\">';\n$html .= '<script defer src=\"assets/mytel/apply.js?v=752\"></script>';\n/* MyTellPBX Apply v752 END */\n"
-    text = text.replace(apply_head, '')
+    apply_head = "/* MyTellPBX Apply v753 BEGIN */\n$html .= '<link id=\"mt-apply-style\" rel=\"stylesheet\" href=\"assets/mytel/apply.css?v=753\">';\n$html .= '<script src=\"assets/mytel/feedback.js?v=753\"></script>';\n$html .= '<script defer src=\"assets/mytel/apply.js?v=753\"></script>';\n$html .= '<script defer src=\"assets/mytel/save.js?v=753\"></script>';\n/* MyTellPBX Apply v753 END */\n"
+    old_apply_head = apply_head.replace('v753', 'v752').replace('?v=753', '?v=752')
+    old_apply_head = old_apply_head.replace("$html .= '<script src=\"assets/mytel/feedback.js?v=752\"></script>';\n", '').replace("$html .= '<script defer src=\"assets/mytel/save.js?v=752\"></script>';\n", '')
+    text = text.replace(old_apply_head, '').replace(apply_head, '')
     text = text.replace("$html .= '</head>';", apply_head + "$html .= '</head>';", 1)
     return text
 
@@ -112,6 +114,8 @@ def plan(admin):
         skin: skin_text,
         admin / "assets/mytel/workspace.css": (SOURCE / "workspace.css").read_text(encoding="utf-8"),
         admin / "assets/mytel/workspace.js": (SOURCE / "workspace.js").read_text(encoding="utf-8"),
+        admin / "assets/mytel/feedback.js": (SOURCE / "feedback.js").read_text(encoding="utf-8"),
+        admin / "assets/mytel/save.js": (SOURCE / "save.js").read_text(encoding="utf-8"),
         admin / "assets/mytel/apply.js": (SOURCE / "apply.js").read_text(encoding="utf-8"),
         admin / "assets/mytel/apply.css": (SOURCE / "apply.css").read_text(encoding="utf-8"),
     }

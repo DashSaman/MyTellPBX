@@ -33,6 +33,7 @@ def main():
     changes = load('apply_patcher', SOURCE / 'patch-apply-backend.py').plan(root / 'admin')
     changes.update(load('calendar_patcher', SOURCE / 'patch-calendar.py').plan(
         root / 'modules/calendar', root / 'modules/calendar/scenarios/rest/CalendarEvent.class.php'))
+    changes.update(load('submit_patcher', SOURCE / 'patch-submit.py').plan(root / 'admin'))
     # Clean up the old installer global toast after its compatibility patch.
     sub = root / 'admin/assets/mytel/sub.js'
     changes[sub] = theme.transform_subtitle(sub.read_text(encoding='utf-8'))
