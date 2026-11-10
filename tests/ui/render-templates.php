@@ -28,6 +28,7 @@ foreach ($files as $file) {
 $sample = array('Type' => 'module', 'Name' => 'Sample page', 'Link' => '#', 'children' => array());
 $fixture = array(
     'LANG' => 'fa', 'THEME_DIR' => 'rtl', 'THEMENAME' => 'mytel', 'WEBPATH' => '/',
+    'HEADER_MODULES' => '<script src="modules/calendar/themes/default/js/javascript.js"></script>',
     'BRAND_NAME' => 'MyTellPBX', 'BRAND_TAGLINE' => 'Synthetic UI fixture',
     'PAGE_NAME' => 'Sign in', 'USERNAME' => 'Username', 'PASSWORD' => 'Password',
     'SUBMIT' => 'Sign in', 'titulo' => 'Help', 'id_nodo' => 'sample', 'name_nodo' => 'sample',
@@ -72,6 +73,9 @@ foreach (array('empty', 'populated') as $mode) {
         if ($file === '_list.tpl' && (substr_count($html, 'class="mt-table-scroll"') !== 1 ||
                 strpos($html, 'form.issabel-standard-formgrid>.mt-table-scroll>table.issabel-standard-table') === false)) {
             throw new RuntimeException('List scroll/resize contract missing');
+        }
+        if ($file === 'index.tpl' && strpos($html, 'modules/calendar/themes/default/js/javascript.js?v=752') === false) {
+            throw new RuntimeException('Native calendar cache-busting missing');
         }
         $report['renders'][] = array('template' => $file, 'fixture' => $mode, 'bytes' => strlen($html));
     }

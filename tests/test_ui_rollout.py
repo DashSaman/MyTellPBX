@@ -105,6 +105,33 @@ class RolloutTests(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, 'profile'):
             ROLLOUT.validate(self.artifact, self.manifest, self.roots)
 
+    def test_scoped_calendar_and_apply_files_roundtrip_through_private_journal(self):
+        self.manifest['profile'] = ROLLOUT.SCOPED_PROFILE
+        self.manifest['files'] = [item for item in self.manifest['files'] if item['root'] == 'panel']
+        self.manifest['checks'] = [{'check': name, 'rc': 0} for name in ROLLOUT.SCOPED_CHECKS]
+        for root, relative in [('admin', 'libraries/mytell-apply.php'), ('legacy', 'modules/calendar/scenarios/rest/CalendarEvent.class.php')]:
+            item = {'root': root, 'path': relative, 'payload': 'payload/' + root + '/' + relative,
+                    'before': None, 'after': hashlib.sha256(b'fixture').hexdigest(), 'size': 7, 'order': 30}
+            self.assertFalse(ROLLOUT.allowed(item))
+            self.assertTrue(ROLLOUT.allowed(item, ROLLOUT.SCOPED_PROFILE))
+            (self.roots[root] / relative).parent.mkdir(parents=True, exist_ok=True)
+            write(self.artifact / item['payload'], b'fixture')
+            self.manifest['files'].append(item)
+        self.save()
+        self.apply()
+        ROLLOUT.rollback(self.backup, self.roots)
+        self.assertEqual(fingerprint(self.roots), self.original)
+
+    def test_scoped_profile_cannot_bypass_desk_and_phone_build_checks(self):
+        for root, relative in [('desk', 'dist/index.html'), ('desk', 'src/main.tsx'),
+                               ('phone', 'workspace.css'), ('legacy', 'libs/js/jquery/jquery-upl-colResizable-1.5.min.js')]:
+            self.assertFalse(ROLLOUT.allowed({'root':root,'path':relative}, ROLLOUT.SCOPED_PROFILE))
+        self.manifest['profile'] = ROLLOUT.SCOPED_PROFILE
+        self.manifest['checks'] = [{'check':name,'rc':0} for name in ROLLOUT.SCOPED_CHECKS]
+        self.save()
+        with self.assertRaisesRegex(ValueError,'allowlist'):
+            ROLLOUT.validate(self.artifact,self.manifest,self.roots)
+
     def test_apply_and_rollback_restore_bytes_and_remove_only_new_files(self):
         unrelated = self.roots["panel"] / "owner.txt"
         write(unrelated, "keep owner work")

@@ -1,0 +1,63 @@
+{
+  "contract": "Quiet operations workspace with explicit selected controls and request-owned Apply feedback; genuine Jalali civil dates preserve existing event IDs and server wall times.",
+  "targetViewports": [
+    "1440x1000",
+    "390x844"
+  ],
+  "accessibility": {
+    "status": "pass",
+    "evidence": "Checked radio contrast 6.15:1 light and 9.29:1 dark, checkmark and keyboard focus; calendar view buttons expose selected state; calendar error and Apply outcome have live status text."
+  },
+  "responsive": {
+    "status": "pass",
+    "evidence": "Calendar fixtures assert document width and dialog/save-button bounds in both themes at 1440x1000 and 390x844; native control preview verifies adjacent boolean choices."
+  },
+  "contentStates": {
+    "loading": {
+      "status": "pass",
+      "evidence": "apply-browser.json visible request state and elapsed feedback; pending calendar Save blocks repeats and close."
+    },
+    "empty": {
+      "status": "pass",
+      "evidence": "Empty fixture dates render an honest no-event agenda; no generated sample records reach the server."
+    },
+    "error": {
+      "status": "pass",
+      "evidence": "calendar-browser.json covers HTTP500 and malformed login HTML with explicit retry; apply-browser.json preserves pending changes on failure."
+    },
+    "partial": {
+      "status": "pass",
+      "evidence": "apply-browser.json asserts warning outcome separately from clean success."
+    },
+    "success": {
+      "status": "pass",
+      "evidence": "apply-browser.json clears pending only after boolean success; calendar-browser.json accepts the mutation status contract."
+    },
+    "permission": {
+      "status": "pass",
+      "evidence": "Both fixture suites keep expired-login responses distinct from success."
+    }
+  },
+  "renderedEvidence": [
+    {
+      "viewport": "1440x1000",
+      "artifact": "calendar-light-1440.png",
+      "observation": "Saturday-first Jalali month, explicit active Month control and full grid."
+    },
+    {
+      "viewport": "1440x1000",
+      "artifact": "calendar-dark-1440.png",
+      "observation": "Shared dark surfaces and readable selected/current-day treatments."
+    },
+    {
+      "viewport": "390x844",
+      "artifact": "calendar-light-390.png",
+      "observation": "Seven calendar columns fit the phone viewport without page overflow."
+    },
+    {
+      "viewport": "390x844",
+      "artifact": "calendar-editor-dark-390.png",
+      "observation": "Jalali date/time editor scrolls within the dialog; save controls remain in viewport."
+    }
+  ]
+}

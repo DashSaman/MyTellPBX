@@ -48,3 +48,7 @@ test('Month range crosses Gregorian and Jalali year boundaries',()=>{
 test('Valid year boundary remains reversible',()=>{
   for(const d of ['1404/12/29','1405/01/01','1405/06/31','1405/07/01']) assert.equal(core.toJalali(core.fromJalali(d,'12:00')).date,d);
 });
+test('Civil arithmetic crosses midnight and browser DST independently',()=>{
+ assert.equal(core.addMinutes('2026-12-31 23:30',60),'2027-01-01 00:30');
+ assert.equal(core.addMinutes('2027-03-14 01:30',60),'2027-03-14 02:30');
+});

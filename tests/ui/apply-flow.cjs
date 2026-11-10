@@ -17,10 +17,14 @@ if (!base || !process.env.MT_TEST_PASSWORD) throw new Error('Set MT_TEST_URL and
   await login.locator('[name="input_user"]').fill(process.env.MT_TEST_USER || 'admin');
   await login.locator('[name="input_pass"]').fill(process.env.MT_TEST_PASSWORD);
   await Promise.all([login.waitForNavigation(), login.locator('[name="submit_login"]').click()]);
+  // Initialize Issabel's PBX authorization bridge before isolated test pages.
+  await login.goto(base+'/index.php?menu=pbxadmin', {waitUntil:'domcontentloaded'});
+  await login.frameLocator('#myframe').locator('#page').waitFor();
   await login.close();
 
   async function run(name, body, response = {status:true, num_errors:0}) {
     const page = await context.newPage();
+    page.setDefaultTimeout(3000);
     const pending=[];
     await page.route('**/*', async route => {
       const req=route.request(), url=new URL(req.url());
@@ -88,6 +92,21 @@ if (!base || !process.env.MT_TEST_PASSWORD) throw new Error('Set MT_TEST_URL and
     await page.evaluate(()=>fetch('/themes/mytel/css/fonts.css'));
     await page.waitForTimeout(700);
     assert.equal(await page.locator('#mt-apply-status[data-state="applying"]').isVisible(),true);
+  });
+  await run('autosave controls freeze, including dynamic fragments, and restore prior state',async({page,finish})=>{
+    await page.evaluate(()=>{
+      var control=document.createElement('input');control.id='fixture-auto';document.body.appendChild(control);
+      var disabled=document.createElement('input');disabled.id='fixture-disabled';disabled.disabled=true;document.body.appendChild(disabled);
+      ipbx_reload();
+      var added=document.createElement('select');added.id='fixture-late';document.body.appendChild(added);
+    });
+    await page.waitForTimeout(100);
+    assert.equal(await page.locator('#fixture-auto').isDisabled(),true);
+    assert.equal(await page.locator('#fixture-late').isDisabled(),true);
+    await finish();
+    assert.equal(await page.locator('#fixture-auto').isDisabled(),false);
+    assert.equal(await page.locator('#fixture-late').isDisabled(),false);
+    assert.equal(await page.locator('#fixture-disabled').isDisabled(),true);
   });
   await run('server error retains pending changes and restores controls',async({page,finish})=>{
     await page.evaluate(()=>ipbx_reload());await finish({status:false,message:'Configuration rejected',num_errors:1});

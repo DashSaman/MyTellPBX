@@ -26,10 +26,14 @@ jobs:
       - name: Patcher, rollback and presentation contracts
         run: python3 -m unittest discover -s tests -v
       - name: Chart runtime regressions
-        run: node --test tests/ui/charts.test.cjs
+        run: node --test tests/ui/charts.test.cjs tests/ui/calendar-core.test.cjs
       - name: JavaScript syntax
         shell: bash
         run: |
-          for file in theme/js/theme.js theme/js/mytel-charts.js theme/js/workspace.js theme/js/appearance.js admin-theme/workspace.js webphone/theme.js tests/ui/audit.cjs tests/ui/interactions.cjs; do
+          for file in theme/js/theme.js theme/js/mytel-charts.js theme/js/workspace.js theme/js/appearance.js theme/js/mt-calendar.js theme/js/calendar-core.js theme/js/calendar-editor.js admin-theme/workspace.js admin-theme/apply.js webphone/theme.js tests/ui/audit.cjs tests/ui/interactions.cjs tests/ui/apply-flow.cjs tests/ui/calendar-flow.cjs tests/ui/security-switch.cjs; do
             node --check "$file"
           done
+      - name: Isolated Apply guard and PHP syntax
+        run: |
+          php -l admin-fixes/reload-guard.php
+          php tests/ui/reload-guard.php admin-fixes/reload-guard.php

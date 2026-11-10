@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Hash-checked, journaled UI files only; no service/configuration changes.
+"""Hash-checked, journaled UI rollout with a narrow opt-in Apply/calendar profile.
 
 Default operation is a read-only preflight. Apply requires an independent READY
 line bound to the exact manifest plus an explicit expected server hostname.
@@ -23,16 +23,21 @@ ROOTS = {"panel": "/var/www/html/themes/mytel", "admin": "/var/www/html/admin",
          "legacy": "/var/www/html"}
 PANEL = {"_common/index.tpl", "_common/_menu.tpl", "_common/_shortcut.tpl", "_common/_list.tpl",
          "_common/login.tpl", "_common/popup.tpl", "_common/help.tpl", "css/tokens.css", "css/workspace.css",
-         "js/theme.js", "js/mytel-charts.js", "js/workspace.js", "js/appearance.js", "help.css", "styles.css"}
+         "js/theme.js", "js/mytel-charts.js", "js/workspace.js", "js/appearance.js", "js/mt-calendar.js", "js/calendar-core.js", "js/calendar-editor.js", "css/mt-calendar.css", "css/mt-secadv.css", "help.css", "styles.css"}
 ALLOW = {
     "panel": PANEL,
-    "admin": {"views/header.php", "views/footer.php", "assets/mytel/skin.css", "assets/mytel/workspace.css", "assets/mytel/workspace.js", "modules/asternic_cdr/asternic_cdr.css"},
+    "admin": {"views/header.php", "views/footer.php", "assets/mytel/skin.css", "assets/mytel/workspace.css", "assets/mytel/workspace.js", "assets/mytel/apply.css", "assets/mytel/apply.js", "assets/mytel/sub.js", "modules/asternic_cdr/asternic_cdr.css"},
     "phone": {"index.html", "theme.js", "workspace.css"},
     "desk": {"src/main.tsx", "src/components/Login.tsx", "src/hooks/useWebPhone.ts", "src/styles/mytell-workspace.css", "src/i18n/locales/fa/translation.json", "src/i18n/locales/en/translation.json", "dist/index.html"},
     "legacy": {"libs/js/jquery/jquery-upl-colResizable-1.5.min.js", "modules/sec_geoip_map/themes/default/map.tpl"},
 }
 HASH = re.compile(r"[0-9a-f]{64}\Z")
 REQUIRED_CHECKS = {"typecheck", "eslint-login", "stylelint-workspace", "vite", "php-header", "php-footer"}
+SCOPED_PROFILE = 'panel-apply-calendar-v752'
+SCOPED_CHECKS = {'offline-tests', 'js-syntax', 'php-syntax', 'apply-browser', 'reload-result', 'reload-guard', 'calendar-tests'}
+APPLY_PATHS = {'functions.inc.php', 'libraries/view.functions.php', 'libraries/mytell-apply.php'}
+CALENDAR_PATHS = {'modules/calendar/index.php', 'modules/calendar/themes/default/calendar_gui.tpl',
+                  'modules/calendar/themes/default/js/javascript.js', 'modules/calendar/scenarios/rest/CalendarEvent.class.php'}
 
 
 def digest(path):
@@ -68,11 +73,17 @@ def within(root, relative):
     return target
 
 
-def allowed(item):
+def allowed(item, profile=None):
     if not isinstance(item, dict) or not isinstance(item.get("path"), str) or not isinstance(item.get("root"), str):
         return False
     root, relative = item["root"], item["path"]
     if root not in ALLOW:
+        return False
+    if profile == SCOPED_PROFILE:
+        return ((root == 'admin' and relative in ALLOW['admin'] | APPLY_PATHS) or
+                (root == 'panel' and relative in PANEL) or
+                (root == 'legacy' and relative in CALENDAR_PATHS))
+    if profile is not None:
         return False
     return relative in ALLOW[root] or (root == "desk" and re.fullmatch(r"dist/assets/[A-Za-z0-9_.-]+\.(js|css|woff2?|svg|png)", relative) is not None)
 
@@ -103,17 +114,21 @@ def validate(artifact, manifest, roots, expected="before"):
         raise ValueError("Unsupported or empty UI manifest")
     if not re.fullmatch(r"[0-9a-f]{40}|[0-9a-f]{64}", manifest.get("source_id", "")):
         raise ValueError("An exact Git tree ID is required")
+    profile = manifest.get('profile')
+    if profile not in (None, SCOPED_PROFILE):
+        raise ValueError('Unknown release profile')
     records = manifest.get("checks", [])
     if not isinstance(records, list) or any(not isinstance(item, dict) or not isinstance(item.get("check"), str) or type(item.get("rc")) is not int for item in records):
         raise ValueError("Malformed build checks")
     checks = {item["check"]: item["rc"] for item in records}
     if len(checks) != len(records):
         raise ValueError("Duplicate build checks")
-    if not REQUIRED_CHECKS.issubset(checks) or any(item["rc"] != 0 for item in records):
+    required = SCOPED_CHECKS if profile == SCOPED_PROFILE else REQUIRED_CHECKS
+    if not required.issubset(checks) or any(item["rc"] != 0 for item in records):
         raise ValueError("Required build checks did not pass")
     targets, plan = set(), []
     for item in manifest["files"]:
-        if not allowed(item):
+        if not allowed(item, profile):
             raise ValueError("Destination is outside the UI allowlist")
         if not valid_hash(item.get("before"), nullable=True) or not valid_hash(item.get("after")) or item.get("order") != priority(item) or type(item.get("size")) is not int or item["size"] < 0:
             raise ValueError("Malformed UI file record")
@@ -207,7 +222,7 @@ def rollback(backup, roots):
     # owner's edit is a blocker, never an excuse to overwrite their work.
     targets, restore = set(), []
     for item in journal["files"]:
-        if not allowed(item) or not valid_hash(item.get("before"), nullable=True) or not valid_hash(item.get("after")):
+        if not allowed(item, journal.get('profile')) or not valid_hash(item.get("before"), nullable=True) or not valid_hash(item.get("after")):
             raise ValueError("Invalid rollback destination")
         if item.get("backup") != "original/" + item["root"] + "/" + item["path"] + ".bak-mt":
             raise ValueError("Invalid rollback backup path")
@@ -256,7 +271,7 @@ def apply(artifact, roots, backup, review):
     if artifact.resolve() in backup.resolve().parents or backup.resolve() in artifact.resolve().parents:
         raise ValueError("Backup and publishable artifact must not overlap")
     backup.mkdir(parents=True, mode=0o700)
-    journal = {"schema": 1, "state": "PREPARED", "manifest_sha256": manifest_hash,
+    journal = {"schema": 1, "profile": manifest.get('profile'), "state": "PREPARED", "manifest_sha256": manifest_hash,
                "source_id": manifest["source_id"], "roots": {key: str(value.resolve()) for key, value in roots.items()}, "files": []}
     for item, target, _ in plan:
         item = dict(item)

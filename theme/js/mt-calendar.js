@@ -1,7 +1,7 @@
 (function (window, document) {
     'use strict';
 
-    var VERSION = '1.0.0';
+    var VERSION = '1.1.0';
 
     if (window.MTCalendar && window.MTCalendar.version === VERSION) {
         window.MTCalendar.start();
@@ -25,6 +25,7 @@
     var lastObserved = '';
     var lastRender = '';
     var applying = false;
+    var feed = {key:'', events:[], status:'idle', request:null, generation:0};
 
     var APPLY_MS = 1500;
     var POLL_MS = 125;
@@ -70,6 +71,10 @@
      */
     function parts(value) {
         if (!value) return null;
+        if (typeof value === 'string' && window.MTCalendarCore) {
+            var p = window.MTCalendarCore.parts(value);
+            return p ? {y:p.y,m:p.m-1,d:p.d,h:p.h,min:p.min,s:p.s,ms:0} : null;
+        }
 
         if (typeof value.year === 'function' &&
             typeof value.month === 'function' &&
@@ -286,13 +291,7 @@
     }
 
     function eventsForMonth(win) {
-        var cached;
-
-        try {
-            cached = call('clientEvents') || [];
-        } catch (error) {
-            cached = [];
-        }
+        var cached = feed.status === 'ready' ? feed.events : [];
 
         var result = [];
 
@@ -307,10 +306,12 @@
                 ? eventStamp(event.end)
                 : start + defaultDuration(allDay);
 
-            if (!Number.isFinite(end) || end <= start) return;
+            if (!Number.isFinite(end) || end < start) return;
+            // Historic zero-length records remain visible and editable.
+            if (end === start) end = start + defaultDuration(allDay);
 
             // FullCalendar ends are exclusive.
-            if (start >= win.endStamp || end <= win.startStamp) return;
+            if (start >= dayStamp(addDays(win.gridStart, win.count)) || end <= dayStamp(win.gridStart)) return;
 
             var title = String(event.title || 'بدون عنوان');
             var identity = String(
@@ -339,6 +340,7 @@
                 startDate: dateKey(startDate),
                 key: identity + '|' + start + '|' + end + '|' + index,
                 variant: hash(identity) % 3,
+                url: /^\/rest\.php\/calendar\/CalendarEvent\/\d+$/.test(event.url || '') ? event.url : '',
                 tooltip: title + ' — ' + startLabel + '، ' +
                     (allDay ? 'تمام روز' : time)
             });
@@ -408,7 +410,7 @@
             );
             th.scope = 'col';
 
-            var fullName = mt().JDAYS[weekday];
+            var fullName = mt().JDAYS[(weekday + 1) % 7];
             th.append(
                 node('span', 'mt-jweekday-letter', weekdayLetters[index]),
                 node('span', 'mt-jsr-only', fullName)
@@ -455,7 +457,7 @@
     function render(ctx) {
         var win = monthWindow();
         var events = eventsForMonth(win);
-        var todayKey = dateKey(new Date());
+        var todayKey = dateKey(window.MTCalendarCore.now());
 
         var signature = JSON.stringify([
             state.jy,
@@ -512,7 +514,7 @@
             dayButton.dataset.focusKey = 'day:' + key;
             dayButton.setAttribute(
                 'aria-label',
-                mt().JDAYS[date.getDay()] + ' ' + fa(j.jd) + ' ' +
+                mt().JDAYS[(date.getDay() + 1) % 7] + ' ' + fa(j.jd) + ' ' +
                 mt().JMONTHS[j.jm - 1] + ' ' + fa(j.jy) +
                 (holiday ? '، ' + holiday : '') +
                 '؛ باز کردن نمای روز'
@@ -556,6 +558,7 @@
                 );
 
                 chip.dataset.eventStart = event.startDate;
+                chip.dataset.eventUrl = event.url;
                 chip.dataset.focusKey = 'event:' + key + ':' + event.key;
                 chip.title = event.tooltip;
                 chip.setAttribute('aria-label', event.tooltip);
@@ -625,7 +628,7 @@
     }
 
     function handleClick(event) {
-        if (!binding || !binding.root.contains(event.target)) return;
+        if (!binding || (!binding.root.contains(event.target) && !binding.agenda.contains(event.target))) return;
 
         var action = event.target.closest('[data-action]');
         var chip = event.target.closest('.mt-jevent');
@@ -637,8 +640,16 @@
         event.stopPropagation();
 
         if (action) {
-            if (action.dataset.action === 'today') {
-                call('gotoDate', civilDate(new Date()));
+            if (action.dataset.action === 'new') {
+                document.getElementById('calendar_newevent').click();
+                var start=action.dataset.date+' '+window.MTCalendarCore.nowText().slice(11,16);
+                document.querySelector('#calendar_eventdialog [name="date"]').value=start;
+                document.querySelector('#calendar_eventdialog [name="to"]').value=window.MTCalendarCore.addMinutes(start,60);
+                window.MTCalendarNative.sync();
+            } else if (action.dataset.action === 'retry') {
+                feed.key = ''; apply();
+            } else if (action.dataset.action === 'today') {
+                call('gotoDate', civilDate(window.MTCalendarCore.now()));
             } else {
                 navigate(action.dataset.action === 'prev' ? -1 : 1);
             }
@@ -646,7 +657,8 @@
         }
 
         if (chip) {
-            openDay(chip.dataset.eventStart);
+            if (chip.dataset.eventUrl && window.MTCalendarNative) window.MTCalendarNative.open(chip.dataset.eventUrl);
+            else openDay(chip.dataset.eventStart);
             return;
         }
 
@@ -715,14 +727,38 @@
             range: ui.range,
             status: ui.status,
             tbody: ui.tbody,
+            agenda: node('section','mt-jagenda'),
             originalGotoDate: instance.gotoDate,
             originalChangeView: instance.changeView,
+            originalRefetch: instance.refetchEvents,
             wrappedGotoDate: null,
             wrappedChangeView: null,
             monthActive: false
         };
 
         var attached = binding;
+        attached.agenda.setAttribute('aria-label','برنامه رویدادها به تاریخ شمسی');
+        attached.agenda.addEventListener('click',handleClick);
+        attached.nativeToday = function(event) {
+            if (event.target.closest('.fc-button-today')) {
+                event.preventDefault();event.stopImmediatePropagation();
+                call('gotoDate',window.MTCalendarCore.now());apply();
+            }
+        };
+        attached.nativeKeyboard = function(event) {
+            if ((event.key==='Enter'||event.key===' ') && event.target.matches('span.fc-button')) {
+                event.preventDefault();event.target.click();
+            }
+        };
+        el.addEventListener('click',attached.nativeToday,true);
+        el.addEventListener('keydown',attached.nativeKeyboard);
+        attached.wrappedRefetch = function () {
+            feed.key = '';
+            var result = attached.originalRefetch.apply(this, arguments);
+            apply();
+            return result;
+        };
+        instance.refetchEvents = attached.wrappedRefetch;
 
         if (typeof attached.originalGotoDate === 'function') {
             attached.wrappedGotoDate = function () {
@@ -768,6 +804,7 @@
         }
 
         el.appendChild(ui.root);
+        el.appendChild(attached.agenda);
         lastObserved = '';
         lastRender = '';
     }
@@ -778,6 +815,8 @@
 
         var old = binding;
         binding = null;
+        old.el.removeEventListener('click',old.nativeToday,true);
+        old.el.removeEventListener('keydown',old.nativeKeyboard);
 
         if (old.instance.gotoDate === old.wrappedGotoDate) {
             old.instance.gotoDate = old.originalGotoDate;
@@ -786,9 +825,15 @@
         if (old.instance.changeView === old.wrappedChangeView) {
             old.instance.changeView = old.originalChangeView;
         }
+        if (old.instance.refetchEvents === old.wrappedRefetch) old.instance.refetchEvents = old.originalRefetch;
+        feed.generation++;
+        if (feed.request) feed.request.abort();
+        feed = {key:'',events:[],status:'idle',request:null,generation:feed.generation};
 
         old.el.classList.remove('mt-jmonth-active');
+        old.el.classList.remove('mt-jagenda-active');
         old.root.remove();
+        old.agenda.remove();
         lastObserved = '';
         lastRender = '';
     }
@@ -822,6 +867,7 @@
             el.appendChild(binding.root);
             lastRender = '';
         }
+        if (!binding.agenda.isConnected) el.appendChild(binding.agenda);
 
         return true;
     }
@@ -857,11 +903,18 @@
             if (!ctx) return;
 
             var month = isMonth(ctx.view);
+            binding.el.querySelectorAll('span.fc-button').forEach(function(button){
+                button.setAttribute('role','button');button.tabIndex=0;
+                button.setAttribute('aria-disabled',String(button.matches('.fc-state-disabled,.ui-state-disabled')));
+                button.setAttribute('aria-pressed',String(button.matches('.fc-state-active,.ui-state-active')));
+            });
             var wasMonth = binding.monthActive;
 
             binding.monthActive = month;
             binding.el.classList.toggle('mt-jmonth-active', month);
+            binding.el.classList.toggle('mt-jagenda-active', !month);
             binding.root.hidden = !month;
+            binding.agenda.hidden = month;
 
             /*
              * Stock week/day may have rendered while its container was
@@ -884,6 +937,9 @@
                 binding.status.textContent = '';
                 binding.root.setAttribute('aria-busy', 'false');
                 runSideSync();
+                localizeAgenda(ctx);
+                fetchRange({start:dateKey(ctx.view.start),end:dateKey(ctx.view.end)});
+                renderAgenda(ctx);
                 return;
             }
 
@@ -900,8 +956,9 @@
             var j = mt().toJalali(ctx.date);
             state.jy = j.jy;
             state.jm = j.jm;
-
+            fetchMonth();
             render(ctx);
+            renderFeedStatus();
             runSideSync();
 
             /*
@@ -912,6 +969,85 @@
         } finally {
             applying = false;
         }
+    }
+
+    function fetchMonth() {
+        var range = window.MTCalendarCore.monthRange(state.jy,state.jm);
+        fetchRange(range);
+    }
+    function fetchRange(range) {
+        var key = range.start+'|'+range.end;
+        if (feed.key === key) return;
+        var generation = ++feed.generation;
+        if (feed.request) feed.request.abort();
+        feed.key=key;feed.events=[];feed.status='loading';lastRender='';
+        feed.request=window.jQuery.ajax({url:'/rest.php/calendar/CalendarEvent',data:{format:'fullcalendar',startdate:range.start,enddate:range.end},dataType:'json',timeout:20000})
+            .done(function(events){
+                if(generation!==feed.generation)return;
+                feed.status=Array.isArray(events)?'ready':'error';feed.events=Array.isArray(events)?events:[];
+                if(feed.status==='ready'){var stale=document.getElementById('mt-calendar-feed-error');if(stale)stale.remove();}
+                lastRender='';apply();
+            }).fail(function(xhr,status){
+                if(generation!==feed.generation||status==='abort')return;
+                feed.status='error';feed.events=[];lastRender='';apply();
+            });
+    }
+    function renderAgenda(ctx) {
+        var start=civilDate(ctx.view.start),end=civilDate(ctx.view.end);
+        var count=Math.round((dayStamp(end)-dayStamp(start))/86400000);
+        if(count<1||count>7)return;
+        var events=eventsForMonth({gridStart:start,count:count});
+        var signature=JSON.stringify([ctx.start,ctx.end,feed.status,events]);
+        if(binding.agenda.dataset.signature===signature)return;
+        binding.agenda.dataset.signature=signature;
+        var focused=document.activeElement&&document.activeElement.dataset.agendaFocus;
+        binding.agenda.replaceChildren();binding.agenda.setAttribute('aria-busy',String(feed.status==='loading'));
+        if(feed.status!=='ready'){
+            var status=node('p','mt-event-message',feed.status==='loading'?'در حال دریافت رویدادها…':'دریافت رویدادها انجام نشد. ');
+            status.setAttribute('role','status');
+            if(feed.status==='error')status.append(button('mt-jnav','تلاش دوباره','retry'));
+            binding.agenda.append(status);
+        }
+        var days=node('div','mt-agenda-days');
+        days.classList.toggle('mt-agenda-single',count===1);
+        for(var i=0;i<count;i++){
+            var date=addDays(start,i),key=dateKey(date),j=mt().toJalali(date);
+            var card=node('section','mt-agenda-day'),head=node('header');
+            card.classList.toggle('mt-agenda-today',key===dateKey(window.MTCalendarCore.now()));
+            head.append(node('strong','',mt().JDAYS[(date.getDay()+1)%7]),node('span','',fa(j.jd)+' '+mt().JMONTHS[j.jm-1]));
+            var create=button('mt-agenda-create','+','new');create.dataset.date=key;create.dataset.agendaFocus='new:'+key;
+            create.setAttribute('aria-label','رویداد جدید برای '+fa(j.jd)+' '+mt().JMONTHS[j.jm-1]);head.append(create);card.append(head);
+            var present=events.filter(function(e){return e.start<dayStamp(addDays(date,1))&&e.end>dayStamp(date);});
+            present.forEach(function(event){
+                var chip=button('mt-jevent');chip.dataset.eventUrl=event.url;chip.dataset.eventStart=event.startDate;chip.dataset.agendaFocus=key+':'+event.key;
+                chip.append(node('bdi','mt-agenda-time',event.allDay?'تمام روز':event.time),node('bdi','mt-agenda-event-title',event.title));
+                chip.title=event.tooltip;card.append(chip);
+            });
+            if(!present.length&&feed.status==='ready')card.append(node('p','mt-agenda-empty','بدون رویداد'));
+            days.append(card);
+        }
+        binding.agenda.append(days);
+        if(focused)binding.agenda.querySelectorAll('[data-agenda-focus]').forEach(function(n){if(n.dataset.agendaFocus===focused)n.focus({preventScroll:true});});
+    }
+    function renderFeedStatus() {
+        binding.root.setAttribute('aria-busy',String(feed.status==='loading'));
+        binding.status.replaceChildren();
+        if(feed.status==='loading')binding.status.textContent='در حال دریافت رویدادهای این ماه…';
+        else if(feed.status==='error'){
+            binding.status.append(node('span','','دریافت رویدادها انجام نشد. '),button('mt-jnav','تلاش دوباره','retry'));
+        } else if(!feed.events.length)binding.status.textContent='برای این بازه رویدادی ثبت نشده است.';
+    }
+    function localizeAgenda(ctx) {
+        var start=civilDate(ctx.view.start),end=addDays(civilDate(ctx.view.end),-1);
+        if(!start||!end)return;
+        function label(d){var j=mt().toJalali(d);return fa(j.jd)+' '+mt().JMONTHS[j.jm-1]+' '+fa(j.jy);}
+        var title=binding.el.querySelector('.fc-header-title h2');
+        if(title)title.textContent=label(start)+(dateKey(start)===dateKey(end)?'':' تا '+label(end));
+        binding.el.querySelectorAll('th[class*="fc-col"]').forEach(function(th){
+            var match=th.className.match(/fc-col(\d+)/);if(!match)return;
+            var date=addDays(start,+match[1]);
+            th.textContent=mt().JDAYS[(date.getDay()+1)%7]+' '+label(date);
+        });
     }
 
     function start() {
@@ -953,5 +1089,6 @@
     };
 
     start();
+    if(window.jQuery)window.jQuery(function(){apply();});
 
 })(window, document);

@@ -1,0 +1,222 @@
+[
+  {
+    "zone": "Asia/Tehran",
+    "name": "Complete Aban range includes event beyond native Gregorian feed",
+    "result": "PASS"
+  },
+  {
+    "zone": "Asia/Tehran",
+    "name": "Event opens directly with preserved civil time and color",
+    "result": "PASS"
+  },
+  {
+    "zone": "Asia/Tehran",
+    "name": "Invalid Jalali date never submits a stale canonical value",
+    "result": "PASS"
+  },
+  {
+    "zone": "Asia/Tehran",
+    "name": "Persian entry saves the same event, color and server wall time",
+    "result": "PASS"
+  },
+  {
+    "zone": "Asia/Tehran",
+    "name": "Browser DST gap does not normalize the editor time",
+    "result": "PASS"
+  },
+  {
+    "zone": "Asia/Tehran",
+    "name": "Login HTML after Save is not reported as successful",
+    "result": "PASS"
+  },
+  {
+    "zone": "Asia/Tehran",
+    "name": "Pending save cannot close the editor or submit twice",
+    "result": "PASS"
+  },
+  {
+    "zone": "Asia/Tehran",
+    "name": "New events have positive duration; equal end is rejected",
+    "result": "PASS"
+  },
+  {
+    "zone": "Asia/Tehran",
+    "name": "New event default preserves server clock inside browser DST gap",
+    "result": "PASS"
+  },
+  {
+    "zone": "Asia/Tehran",
+    "name": "Week is Saturday-first and uses Jalali title",
+    "result": "PASS"
+  },
+  {
+    "zone": "Asia/Tehran",
+    "name": "Week agenda preserves server time inside a browser DST gap",
+    "result": "PASS"
+  },
+  {
+    "zone": "Asia/Tehran",
+    "name": "Day-specific New fills the selected day without a server write",
+    "result": "PASS"
+  },
+  {
+    "zone": "Asia/Tehran",
+    "name": "Month navigation retains events on returning from week/day",
+    "result": "PASS"
+  },
+  {
+    "zone": "Asia/Tehran",
+    "name": "Feed error is explicit and retry restores events",
+    "result": "PASS"
+  },
+  {
+    "zone": "Asia/Tehran",
+    "name": "Expired-session HTML is not an empty calendar",
+    "result": "PASS"
+  },
+  {
+    "zone": "Asia/Tehran",
+    "name": "Obsolete month response cannot replace the current month",
+    "result": "PASS"
+  },
+  {
+    "zone": "Asia/Tehran",
+    "name": "Sidebar and week Today use the same server civil day",
+    "result": "PASS"
+  },
+  {
+    "zone": "Asia/Tehran",
+    "name": "light 1440 month and editor fit viewport",
+    "result": "PASS"
+  },
+  {
+    "zone": "Asia/Tehran",
+    "name": "light 390 month and editor fit viewport",
+    "result": "PASS"
+  },
+  {
+    "zone": "Asia/Tehran",
+    "name": "dark 1440 month and editor fit viewport",
+    "result": "PASS"
+  },
+  {
+    "zone": "Asia/Tehran",
+    "name": "dark 390 month and editor fit viewport",
+    "result": "PASS"
+  },
+  {
+    "zone": "Asia/Tehran",
+    "name": "No uncaught JavaScript exceptions",
+    "result": "PASS"
+  },
+  {
+    "zone": "America/Los_Angeles",
+    "name": "Complete Aban range includes event beyond native Gregorian feed",
+    "result": "PASS"
+  },
+  {
+    "zone": "America/Los_Angeles",
+    "name": "Event opens directly with preserved civil time and color",
+    "result": "PASS"
+  },
+  {
+    "zone": "America/Los_Angeles",
+    "name": "Invalid Jalali date never submits a stale canonical value",
+    "result": "PASS"
+  },
+  {
+    "zone": "America/Los_Angeles",
+    "name": "Persian entry saves the same event, color and server wall time",
+    "result": "PASS"
+  },
+  {
+    "zone": "America/Los_Angeles",
+    "name": "Browser DST gap does not normalize the editor time",
+    "result": "PASS"
+  },
+  {
+    "zone": "America/Los_Angeles",
+    "name": "Login HTML after Save is not reported as successful",
+    "result": "PASS"
+  },
+  {
+    "zone": "America/Los_Angeles",
+    "name": "Pending save cannot close the editor or submit twice",
+    "result": "PASS"
+  },
+  {
+    "zone": "America/Los_Angeles",
+    "name": "New events have positive duration; equal end is rejected",
+    "result": "PASS"
+  },
+  {
+    "zone": "America/Los_Angeles",
+    "name": "New event default preserves server clock inside browser DST gap",
+    "result": "PASS"
+  },
+  {
+    "zone": "America/Los_Angeles",
+    "name": "Week is Saturday-first and uses Jalali title",
+    "result": "PASS"
+  },
+  {
+    "zone": "America/Los_Angeles",
+    "name": "Week agenda preserves server time inside a browser DST gap",
+    "result": "PASS"
+  },
+  {
+    "zone": "America/Los_Angeles",
+    "name": "Day-specific New fills the selected day without a server write",
+    "result": "PASS"
+  },
+  {
+    "zone": "America/Los_Angeles",
+    "name": "Month navigation retains events on returning from week/day",
+    "result": "PASS"
+  },
+  {
+    "zone": "America/Los_Angeles",
+    "name": "Feed error is explicit and retry restores events",
+    "result": "PASS"
+  },
+  {
+    "zone": "America/Los_Angeles",
+    "name": "Expired-session HTML is not an empty calendar",
+    "result": "PASS"
+  },
+  {
+    "zone": "America/Los_Angeles",
+    "name": "Obsolete month response cannot replace the current month",
+    "result": "PASS"
+  },
+  {
+    "zone": "America/Los_Angeles",
+    "name": "Sidebar and week Today use the same server civil day",
+    "result": "PASS"
+  },
+  {
+    "zone": "America/Los_Angeles",
+    "name": "light 1440 month and editor fit viewport",
+    "result": "PASS"
+  },
+  {
+    "zone": "America/Los_Angeles",
+    "name": "light 390 month and editor fit viewport",
+    "result": "PASS"
+  },
+  {
+    "zone": "America/Los_Angeles",
+    "name": "dark 1440 month and editor fit viewport",
+    "result": "PASS"
+  },
+  {
+    "zone": "America/Los_Angeles",
+    "name": "dark 390 month and editor fit viewport",
+    "result": "PASS"
+  },
+  {
+    "zone": "America/Los_Angeles",
+    "name": "No uncaught JavaScript exceptions",
+    "result": "PASS"
+  }
+]
