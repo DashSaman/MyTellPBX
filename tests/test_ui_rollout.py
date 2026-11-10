@@ -91,6 +91,20 @@ class RolloutTests(unittest.TestCase):
         for path in ROLLOUT.ALLOW["legacy"]:
             self.assertTrue(ROLLOUT.allowed({"root": "legacy", "path": path}))
 
+    def test_apply_repair_paths_require_the_explicit_scoped_profile(self):
+        for path in ('functions.inc.php', 'libraries/view.functions.php', 'libraries/mytell-apply.php'):
+            item = {'root': 'admin', 'path': path}
+            self.assertFalse(ROLLOUT.allowed(item))
+            self.assertTrue(ROLLOUT.allowed(item, 'panel-apply-calendar-v752'))
+        for path in ('config.php', 'libraries/gui_auth.php', '../etc/asterisk/sip.conf'):
+            self.assertFalse(ROLLOUT.allowed({'root':'admin', 'path':path}, 'panel-apply-calendar-v752'))
+
+    def test_unknown_profile_fails_closed(self):
+        self.manifest['profile'] = 'unchecked-deployment'
+        self.save()
+        with self.assertRaisesRegex(ValueError, 'profile'):
+            ROLLOUT.validate(self.artifact, self.manifest, self.roots)
+
     def test_apply_and_rollback_restore_bytes_and_remove_only_new_files(self):
         unrelated = self.roots["panel"] / "owner.txt"
         write(unrelated, "keep owner work")
