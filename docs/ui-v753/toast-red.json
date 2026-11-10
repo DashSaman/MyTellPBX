@@ -1,0 +1,269 @@
+{
+  "schema": 1,
+  "purpose": "Close parent Apply result after actual iframe/form/Unpoly lifecycle; all writes intercepted",
+  "sourceOverride": null,
+  "candidateAssetRoot": false,
+  "forwardedRequests": {
+    "login": 1,
+    "reads": 197,
+    "otherWrites": 0
+  },
+  "localReloads": [
+    {
+      "phase": "control-before-navigation",
+      "navigation": false,
+      "resourceType": "xhr"
+    },
+    {
+      "phase": "full-iframe-navigation",
+      "navigation": false,
+      "resourceType": "xhr"
+    },
+    {
+      "phase": "native-sip-submit",
+      "navigation": false,
+      "resourceType": "xhr"
+    },
+    {
+      "phase": "actual-unpoly-fragment-replacement",
+      "navigation": false,
+      "resourceType": "xhr"
+    },
+    {
+      "phase": "single-flight-after-unpoly-reinitialization",
+      "navigation": false,
+      "resourceType": "xhr"
+    }
+  ],
+  "localSubmits": [
+    {
+      "phase": "native-sip-submit",
+      "navigation": true,
+      "resourceType": "document",
+      "upTarget": null
+    }
+  ],
+  "blocked": [
+    {
+      "phase": "setup",
+      "method": "GET",
+      "path": "/index.php?menu=registration",
+      "action": "isRegistered"
+    },
+    {
+      "phase": "setup",
+      "method": "GET",
+      "path": "/index.php?menu=dashboard",
+      "action": "getContent"
+    },
+    {
+      "phase": "setup",
+      "method": "GET",
+      "path": "/index.php?menu=dashboard",
+      "action": "getContent"
+    },
+    {
+      "phase": "setup",
+      "method": "GET",
+      "path": "/index.php?menu=dashboard",
+      "action": "getContent"
+    },
+    {
+      "phase": "setup",
+      "method": "GET",
+      "path": "/index.php?menu=dashboard",
+      "action": "getContent"
+    },
+    {
+      "phase": "setup",
+      "method": "GET",
+      "path": "/index.php?menu=dashboard",
+      "action": "getContent"
+    },
+    {
+      "phase": "setup",
+      "method": "GET",
+      "path": "/index.php?menu=dashboard",
+      "action": "getContent"
+    },
+    {
+      "phase": "setup",
+      "method": "GET",
+      "path": "/index.php?menu=registration",
+      "action": "isRegistered"
+    }
+  ],
+  "errors": [],
+  "assets": [
+    {
+      "phase": "setup",
+      "path": "/admin/assets/mytel/apply.js",
+      "sha256": "bbf9207c38a3eb8c7d9d02db868725c2aba6a7ddf4b40b3ede0ffca782ffed8f"
+    }
+  ],
+  "assertions": [
+    {
+      "name": "close-before-navigation",
+      "pass": true
+    },
+    {
+      "name": "Full iframe navigation changed execution context",
+      "pass": true
+    },
+    {
+      "name": "close-after-full-iframe-navigation",
+      "pass": false
+    },
+    {
+      "name": "Exactly one native SIP submit answered locally",
+      "pass": true
+    },
+    {
+      "name": "close-after-native-sip-submit",
+      "pass": false
+    },
+    {
+      "name": "Actual Unpoly replacements retained iframe execution context",
+      "pass": true
+    },
+    {
+      "name": "close-after-actual-unpoly-replacements",
+      "pass": true
+    },
+    {
+      "name": "Repeated fragment init and duplicate triggers send only one reload",
+      "pass": true
+    },
+    {
+      "name": "close-after-fragment-reinitialization",
+      "pass": true
+    },
+    {
+      "name": "Apply implementation hash captured",
+      "pass": true
+    },
+    {
+      "name": "No JavaScript or route errors during native lifecycle",
+      "pass": true
+    },
+    {
+      "name": "Only login was forwarded; all settings writes and reloads were local mocks",
+      "pass": true
+    }
+  ],
+  "cases": [
+    {
+      "label": "close-before-navigation",
+      "before": {
+        "panelCount": 1,
+        "state": "success",
+        "closeVisible": true,
+        "parentPointer": "auto"
+      },
+      "after": {
+        "panelCount": 0,
+        "state": null,
+        "closeVisible": false,
+        "parentPointer": "auto"
+      }
+    },
+    {
+      "label": "close-after-full-iframe-navigation",
+      "before": {
+        "panelCount": 1,
+        "state": "success",
+        "closeVisible": true,
+        "parentPointer": "auto"
+      },
+      "after": {
+        "panelCount": 1,
+        "state": "success",
+        "closeVisible": true,
+        "parentPointer": "auto"
+      }
+    },
+    {
+      "label": "close-after-native-sip-submit",
+      "before": {
+        "panelCount": 1,
+        "state": "success",
+        "closeVisible": true,
+        "parentPointer": "auto"
+      },
+      "after": {
+        "panelCount": 1,
+        "state": "success",
+        "closeVisible": true,
+        "parentPointer": "auto"
+      }
+    },
+    {
+      "label": "close-after-actual-unpoly-replacements",
+      "before": {
+        "panelCount": 1,
+        "state": "success",
+        "closeVisible": true,
+        "parentPointer": "auto"
+      },
+      "after": {
+        "panelCount": 0,
+        "state": null,
+        "closeVisible": false,
+        "parentPointer": "auto"
+      }
+    },
+    {
+      "label": "close-after-fragment-reinitialization",
+      "before": {
+        "panelCount": 1,
+        "state": "success",
+        "closeVisible": true,
+        "parentPointer": "auto"
+      },
+      "after": {
+        "panelCount": 0,
+        "state": null,
+        "closeVisible": false,
+        "parentPointer": "auto"
+      }
+    }
+  ],
+  "sipOwner": {
+    "forms": [
+      {
+        "id": "mainform",
+        "name": "editSip",
+        "method": "post",
+        "action": "/admin/config.php?display=sipsettings",
+        "upTarget": null
+      }
+    ],
+    "submitButtons": [
+      {
+        "id": "mainformsubmit",
+        "type": "submit",
+        "formId": null,
+        "dataTarget": null
+      },
+      {
+        "id": "mainformreset",
+        "type": "submit",
+        "formId": null,
+        "dataTarget": null
+      }
+    ],
+    "unpoly": true,
+    "upVersion": "2.6.1"
+  },
+  "submitButtonPosted": true,
+  "submitChangedRealm": true,
+  "status": "regression-reproduced",
+  "loginPosts": 1,
+  "provenance": {
+    "fixture": "tests/ui/toast-lifecycle.cjs",
+    "fixture_sha256": "e54b08592eb764fb1bb081704d0c4a45b770327d3e1e63900354f3c44b0f9491",
+    "exit_code": 1,
+    "baseline": "Actual served v752 assets; no candidate overrides",
+    "privacy": "No credentials, target origin, form values, session state, or private paths recorded"
+  }
+}

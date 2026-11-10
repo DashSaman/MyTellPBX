@@ -1,8 +1,9 @@
 /* Request-owned Apply feedback. No catch-all XHR hooks or page-wide lock. */
 (function () {
     'use strict';
-    var active = false, confirming = false, started = 0, timer = null;
-    var panel = null, host = document, disabled = [];
+    if (window.__mtApplyController) { window.__mtApplyController.init(); return; }
+    var active = false, confirming = false, started = 0;
+    var panel = null, disabled = [];
     var STORAGE = 'mt-pbx-apply-pending';
     var TIMEOUT = 120000;
 
@@ -13,73 +14,21 @@
         } catch (e) { /* Private storage may be unavailable. */ }
     }
 
-    function node(tag, name, text) {
-        var element = host.createElement(tag);
-        if (name) element.className = name;
-        if (text) element.textContent = text;
-        return element;
-    }
-
-    function ensurePanel() {
-        try {
-            if (window.parent !== window && window.parent.location.origin === location.origin) host = window.parent.document;
-        } catch (e) { host = document; }
-        var previous = host.getElementById('mt-apply-status');
-        if (panel && previous === panel) return panel;
-        if (previous) previous.remove();
-        if (!host.getElementById('mt-apply-style')) {
-            var style = node('link');
-            style.id = 'mt-apply-style'; style.rel = 'stylesheet';
-            style.href = '/admin/assets/mytel/apply.css?v=752';
-            host.head.appendChild(style);
+    var feedbackApi = null, disposed = false;
+    var feedbackReady = new Promise(function (resolve, reject) {
+        function loaded() {
+            if (!window.MTPBXFeedback) return reject(new Error('Feedback module unavailable'));
+            window.MTPBXFeedback.ready().then(resolve, reject);
         }
-        panel = node('section', 'mt-apply-status');
-        panel.id = 'mt-apply-status'; panel.dir = 'rtl';
-        panel.setAttribute('aria-label', 'وضعیت اعمال تنظیمات');
-        var icon = node('span', 'mt-apply-icon'); icon.setAttribute('aria-hidden', 'true');
-        var content = node('div', 'mt-apply-content');
-        var live = node('div', 'mt-apply-live');
-        live.setAttribute('role', 'status'); live.setAttribute('aria-live', 'polite'); live.setAttribute('aria-atomic', 'true');
-        live.appendChild(node('strong', 'mt-apply-title'));
-        live.appendChild(node('p', 'mt-apply-description'));
-        content.appendChild(live);
-        var elapsed = node('span', 'mt-apply-elapsed'); elapsed.setAttribute('aria-hidden', 'true');
-        content.appendChild(elapsed);
-        var details = node('details', 'mt-apply-details');
-        details.appendChild(node('summary', '', 'جزئیات نتیجه'));
-        details.appendChild(node('pre')); details.hidden = true;
-        content.appendChild(details);
-        var close = node('button', 'mt-apply-close', '×');
-        close.type = 'button'; close.setAttribute('aria-label', 'بستن پیام نتیجه');
-        close.addEventListener('click', function () { if (!active) panel.remove(); });
-        panel.appendChild(icon); panel.appendChild(content); panel.appendChild(close);
-        host.body.appendChild(panel);
-        return panel;
-    }
-
+        if (window.MTPBXFeedback) return loaded();
+        var script = document.createElement('script');
+        script.src = '/admin/assets/mytel/feedback.js?v=753';
+        script.onload = loaded; script.onerror = reject; document.head.appendChild(script);
+    }).catch(function () { return null; });
     function render(state, title, description, detail) {
-        var element = ensurePanel();
-        element.dataset.state = state;
-        element.querySelector('.mt-apply-title').textContent = title;
-        element.querySelector('.mt-apply-description').textContent = description;
-        element.querySelector('.mt-apply-icon').textContent = state === 'applying' ? '' : state === 'success' ? '✓' : '!';
-        element.querySelector('.mt-apply-close').hidden = state === 'applying';
-        var more = element.querySelector('details');
-        more.hidden = !detail;
-        more.querySelector('pre').textContent = detail || '';
-        if (!detail) more.open = false;
+        panel = feedbackApi.render('apply', state, title, description, detail);
     }
-
-    function elapsed() {
-        if (!panel) return;
-        var seconds = Math.max(0, Math.floor((Date.now() - started) / 1000));
-        panel.querySelector('.mt-apply-elapsed').textContent = 'زمان سپری‌شده: ' + seconds.toLocaleString('fa-IR') + ' ثانیه';
-        if (seconds >= 30 && panel.dataset.state === 'applying') {
-            var description = panel.querySelector('.mt-apply-description');
-            var message = 'هنوز در انتظار پاسخ سرور هستیم. درخواست دوباره ارسال نمی‌شود.';
-            if (description.textContent !== message) description.textContent = message;
-        }
-    }
+    function elapsed() { if (feedbackApi) feedbackApi.elapsed('apply', started); }
 
     function setBusy(busy) {
         var button = document.getElementById('button_reload');
@@ -112,14 +61,20 @@
     }
 
     function apply() {
-        if (active) return;
-        active = true; started = Date.now(); remember(started);
+        if (active || (feedbackApi && feedbackApi.isBusy('save'))) return;
+        active = true;
+        feedbackReady.then(function (api) {
+        if (disposed) { active = false; return; }
+        if (!api) throw new Error('Feedback module unavailable');
+        feedbackApi = api;
+        if (api.isBusy('save') || api.isBusy('apply')) { active = false; return; }
+        started = Date.now(); remember(started);
         setBusy(true);
         render('applying', 'در حال اعمال تنظیمات…', 'تنظیمات ذخیره‌شده در حال ارسال به مرکز تلفن است. می‌توانید صفحه را بخوانید و پیمایش کنید.');
-        elapsed(); timer = window.setInterval(elapsed, 1000);
+        elapsed();
         function complete() {
             active = false; confirming = false;
-            clearInterval(timer); timer = null; setBusy(false);
+            feedbackApi.busy('apply', false); setBusy(false);
         }
         try {
             window.jQuery.ajax({
@@ -161,6 +116,10 @@
             unknown('ارسال یا پردازش درخواست کامل نشد. وضعیت مرکز تلفن را پیش از تلاش دوباره بررسی کنید.');
             complete();
         }
+        }).catch(function () {
+            active = false; setBusy(false);
+            window.alert('نمایش وضعیت عملیات آماده نشد. صفحه را تازه کنید؛ درخواست اعمال ارسال نشد.');
+        });
     }
 
     function init() {
@@ -200,9 +159,21 @@
         var button = document.getElementById('button_reload');
         if (button) { button.setAttribute('role', 'button'); button.setAttribute('aria-label', 'اعمال تنظیمات ذخیره‌شده'); }
         try {
-            if (sessionStorage.getItem(STORAGE)) unknown('پاسخ نهایی درخواست قبلی در این مرورگر ثبت نشده است. پیش از اعمال دوباره، وضعیت مرکز تلفن را بررسی کنید.');
+            if (!active && sessionStorage.getItem(STORAGE)) feedbackReady.then(function (api) { if (!api) return; feedbackApi = api; unknown('پاسخ نهایی درخواست قبلی در این مرورگر ثبت نشده است. پیش از اعمال دوباره، وضعیت مرکز تلفن را بررسی کنید.'); });
         } catch (e) { /* Storage is optional. */ }
     }
+    window.__mtApplyController = {init:init};
+    window.addEventListener('pageshow', function (event) {
+        disposed = false;
+        if (event.persisted) { active = false; confirming = false; setBusy(false); }
+    });
+    window.addEventListener('pagehide', function () {
+        disposed = true;
+        if (active && feedbackApi && feedbackApi.state('apply') === 'applying') {
+            unknown('صفحه هنگام اعمال تنظیمات عوض شد؛ نتیجهٔ نهایی دریافت نشد. پیش از ارسال دوباره وضعیت مرکز تلفن را بررسی کنید.');
+            feedbackApi.busy('apply', false);
+        }
+    });
     if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', init);
     else init();
     document.addEventListener('up:fragment:inserted', init);

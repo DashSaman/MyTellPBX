@@ -17,7 +17,7 @@
 .mt-apply-status .mt-apply-title { display: block; font-size: 15px; font-weight: 750; color: var(--mt-text, #18283E); }
 .mt-apply-status .mt-apply-description { margin: 4px 0 0; font-size: 13px; color: var(--mt-text-muted, #52647C); }
 .mt-apply-status .mt-apply-icon { flex: 0 0 28px; width: 28px; height: 28px; display: grid; place-items: center; border: 2px solid currentColor; border-radius: 50%; color: var(--apply-color); font-weight: 800; line-height: 1; }
-.mt-apply-status[data-state="applying"] .mt-apply-icon { border-color: var(--mt-border, #DFE6F0); border-top-color: var(--apply-color); animation: mt-apply-spin .9s linear infinite; }
+.mt-apply-status:is([data-state="applying"],[data-state="saving"]) .mt-apply-icon { border-color: var(--mt-border, #DFE6F0); border-top-color: var(--apply-color); animation: mt-apply-spin .9s linear infinite; }
 .mt-apply-status .mt-apply-elapsed { display: block; font-size: 12px; margin-top: 8px; color: var(--mt-text-muted, #52647C); font-variant-numeric: tabular-nums; }
 .mt-apply-status .mt-apply-elapsed:empty { display: none; }
 .mt-apply-status .mt-apply-close { flex: 0 0 32px; min-width: 32px; height: 32px; padding: 0; background: transparent; border: 1px solid var(--mt-border, #DFE6F0); border-radius: 7px; color: var(--mt-text-muted, #52647C); cursor: pointer; font-size: 22px; line-height: 1; }
@@ -29,4 +29,9 @@
 :root body #button_reload.mt-apply-busy::after { content: 'در حال اعمال…' !important; }
 @keyframes mt-apply-spin { to { transform: rotate(360deg); } }
 @media (max-width: 600px) { .mt-apply-status { left: 12px; bottom: 12px; width: calc(100vw - 24px); padding: 14px; gap: 10px; } }
-@media (prefers-reduced-motion: reduce) { .mt-apply-status[data-state="applying"] .mt-apply-icon { animation: none; border-style: dotted; } }
+@media (prefers-reduced-motion: reduce) { .mt-apply-status:is([data-state="applying"],[data-state="saving"]) .mt-apply-icon { animation: none; border-style: dotted; } }
+
+#mt-save-status { bottom: 24px; }
+/* The request-owned save card replaces the legacy opaque iframe loader only
+   during this native SIP save. Other page navigation keeps its normal loader. */
+.mt-native-save-pending .mt-page-loader { display: none !important; }

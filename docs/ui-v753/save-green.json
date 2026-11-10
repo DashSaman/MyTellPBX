@@ -1,0 +1,74 @@
+[
+  {
+    "name": "native Submit gives immediate nonblocking progress and preserves successful controls",
+    "result": "PASS"
+  },
+  {
+    "name": "repeated click and jQuery synthetic Submit cannot send another request",
+    "result": "PASS"
+  },
+  {
+    "name": "matching server success marker confirms only this attempt",
+    "result": "PASS"
+  },
+  {
+    "name": "server validation failure is visible and never reports Saved",
+    "result": "PASS"
+  },
+  {
+    "name": "mismatched attempt marker is an unknown outcome",
+    "result": "PASS"
+  },
+  {
+    "name": "HTTP200 without a save result never means success",
+    "result": "PASS"
+  },
+  {
+    "name": "old success markup without a pending attempt is ignored",
+    "result": "PASS"
+  },
+  {
+    "name": "invalid native controls prevent synthetic Submit and feedback",
+    "result": "PASS"
+  },
+  {
+    "name": "existing form validation cancellation is preserved",
+    "result": "PASS"
+  },
+  {
+    "name": "unrelated module submission remains native and unmodified",
+    "result": "PASS"
+  },
+  {
+    "name": "Apply in progress blocks Save without losing form values",
+    "result": "PASS"
+  },
+  {
+    "name": "native requestSubmit retains the real submitter name and value",
+    "result": "PASS"
+  },
+  {
+    "name": "fragment replacement and repeated script evaluation do not duplicate handlers",
+    "result": "PASS"
+  },
+  {
+    "name": "unavailable sessionStorage does not break native submission",
+    "result": "PASS"
+  },
+  {
+    "name": "parent watchdog releases a surviving document after HTTP204, without automatic retry",
+    "result": "PASS"
+  },
+  {
+    "name": "confirmed response cancels the parent watchdog",
+    "result": "PASS"
+  },
+  {
+    "name": "restoring a pending page from history releases its old guard without resending",
+    "result": "PASS"
+  },
+  {
+    "name": "Unpoly-owned forms are outside the native submission adapter",
+    "result": "PASS"
+  }
+]
