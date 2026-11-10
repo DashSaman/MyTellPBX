@@ -1,0 +1,922 @@
+[
+  {
+    "theme": "light",
+    "width": 1440,
+    "result": "PASS",
+    "before": {
+      "checked": false,
+      "changes": 0,
+      "formWrites": 0,
+      "width": 89,
+      "height": 27,
+      "container": {
+        "color": "rgb(24, 40, 62)",
+        "bg": "rgb(220, 229, 242)",
+        "bgImage": "none",
+        "display": "block",
+        "outline": "rgb(24, 40, 62) none 3px"
+      },
+      "off": {
+        "color": "rgb(124, 124, 124)",
+        "bg": "rgb(220, 229, 242)",
+        "bgImage": "none",
+        "display": "block",
+        "outline": "rgb(124, 124, 124) none 3px"
+      },
+      "offLabel": {
+        "color": "rgb(36, 50, 74)",
+        "bg": "rgba(0, 0, 0, 0)",
+        "bgImage": "none",
+        "display": "inline",
+        "outline": "rgb(36, 50, 74) none 3px"
+      },
+      "on": {
+        "color": "rgb(255, 255, 255)",
+        "bg": "rgb(36, 92, 197)",
+        "bgImage": "none",
+        "display": "block",
+        "outline": "rgb(255, 255, 255) none 3px"
+      },
+      "onLabel": {
+        "color": "rgb(255, 255, 255)",
+        "bg": "rgba(0, 0, 0, 0)",
+        "bgImage": "none",
+        "display": "inline",
+        "outline": "rgb(255, 255, 255) none 3px"
+      },
+      "track": {
+        "color": "rgb(24, 40, 62)",
+        "bg": "rgb(100, 112, 138)",
+        "bgImage": "none",
+        "display": "none",
+        "outline": "rgb(24, 40, 62) none 3px"
+      },
+      "handle": {
+        "color": "rgb(24, 40, 62)",
+        "bg": "rgb(255, 255, 255)",
+        "bgImage": "none",
+        "display": "block",
+        "outline": "rgb(24, 40, 62) none 3px"
+      }
+    },
+    "on": {
+      "checked": true,
+      "changes": 1,
+      "formWrites": 0,
+      "width": 89,
+      "height": 27,
+      "container": {
+        "color": "rgb(24, 40, 62)",
+        "bg": "rgb(220, 229, 242)",
+        "bgImage": "none",
+        "display": "block",
+        "outline": "rgb(255, 138, 0) solid 3px"
+      },
+      "off": {
+        "color": "rgb(124, 124, 124)",
+        "bg": "rgb(220, 229, 242)",
+        "bgImage": "none",
+        "display": "block",
+        "outline": "rgb(124, 124, 124) none 3px"
+      },
+      "offLabel": {
+        "color": "rgb(36, 50, 74)",
+        "bg": "rgba(0, 0, 0, 0)",
+        "bgImage": "none",
+        "display": "inline",
+        "outline": "rgb(36, 50, 74) none 3px"
+      },
+      "on": {
+        "color": "rgb(255, 255, 255)",
+        "bg": "rgb(36, 92, 197)",
+        "bgImage": "none",
+        "display": "block",
+        "outline": "rgb(255, 255, 255) none 3px"
+      },
+      "onLabel": {
+        "color": "rgb(255, 255, 255)",
+        "bg": "rgba(0, 0, 0, 0)",
+        "bgImage": "none",
+        "display": "inline",
+        "outline": "rgb(255, 255, 255) none 3px"
+      },
+      "track": {
+        "color": "rgb(24, 40, 62)",
+        "bg": "rgb(36, 92, 197)",
+        "bgImage": "none",
+        "display": "none",
+        "outline": "rgb(255, 138, 0) solid 3px"
+      },
+      "handle": {
+        "color": "rgb(24, 40, 62)",
+        "bg": "rgb(255, 255, 255)",
+        "bgImage": "none",
+        "display": "block",
+        "outline": "rgb(24, 40, 62) none 3px"
+      }
+    },
+    "off": {
+      "checked": false,
+      "changes": 2,
+      "formWrites": 0,
+      "width": 89,
+      "height": 27,
+      "container": {
+        "color": "rgb(24, 40, 62)",
+        "bg": "rgb(220, 229, 242)",
+        "bgImage": "none",
+        "display": "block",
+        "outline": "rgb(255, 138, 0) solid 3px"
+      },
+      "off": {
+        "color": "rgb(124, 124, 124)",
+        "bg": "rgb(220, 229, 242)",
+        "bgImage": "none",
+        "display": "block",
+        "outline": "rgb(124, 124, 124) none 3px"
+      },
+      "offLabel": {
+        "color": "rgb(36, 50, 74)",
+        "bg": "rgba(0, 0, 0, 0)",
+        "bgImage": "none",
+        "display": "inline",
+        "outline": "rgb(36, 50, 74) none 3px"
+      },
+      "on": {
+        "color": "rgb(255, 255, 255)",
+        "bg": "rgb(36, 92, 197)",
+        "bgImage": "none",
+        "display": "block",
+        "outline": "rgb(255, 255, 255) none 3px"
+      },
+      "onLabel": {
+        "color": "rgb(255, 255, 255)",
+        "bg": "rgba(0, 0, 0, 0)",
+        "bgImage": "none",
+        "display": "inline",
+        "outline": "rgb(255, 255, 255) none 3px"
+      },
+      "track": {
+        "color": "rgb(24, 40, 62)",
+        "bg": "rgb(100, 112, 138)",
+        "bgImage": "none",
+        "display": "none",
+        "outline": "rgb(255, 138, 0) solid 3px"
+      },
+      "handle": {
+        "color": "rgb(24, 40, 62)",
+        "bg": "rgb(255, 255, 255)",
+        "bgImage": "none",
+        "display": "block",
+        "outline": "rgb(24, 40, 62) none 3px"
+      }
+    },
+    "disabled": {
+      "checked": false,
+      "changes": 2,
+      "formWrites": 0,
+      "width": 89,
+      "height": 27,
+      "container": {
+        "color": "rgb(24, 40, 62)",
+        "bg": "rgb(220, 229, 242)",
+        "bgImage": "none",
+        "display": "block",
+        "outline": "rgb(24, 40, 62) none 3px"
+      },
+      "off": {
+        "color": "rgb(203, 203, 203)",
+        "bg": "rgb(220, 229, 242)",
+        "bgImage": "none",
+        "display": "block",
+        "outline": "rgb(203, 203, 203) none 3px"
+      },
+      "offLabel": {
+        "color": "rgb(36, 50, 74)",
+        "bg": "rgba(0, 0, 0, 0)",
+        "bgImage": "none",
+        "display": "inline",
+        "outline": "rgb(36, 50, 74) none 3px"
+      },
+      "on": {
+        "color": "rgb(255, 255, 255)",
+        "bg": "rgb(36, 92, 197)",
+        "bgImage": "none",
+        "display": "block",
+        "outline": "rgb(255, 255, 255) none 3px"
+      },
+      "onLabel": {
+        "color": "rgb(255, 255, 255)",
+        "bg": "rgba(0, 0, 0, 0)",
+        "bgImage": "none",
+        "display": "inline",
+        "outline": "rgb(255, 255, 255) none 3px"
+      },
+      "track": {
+        "color": "rgb(24, 40, 62)",
+        "bg": "rgb(100, 112, 138)",
+        "bgImage": "none",
+        "display": "none",
+        "outline": "rgb(24, 40, 62) none 3px"
+      },
+      "handle": {
+        "color": "rgb(24, 40, 62)",
+        "bg": "rgb(255, 255, 255)",
+        "bgImage": "none",
+        "display": "block",
+        "outline": "rgb(24, 40, 62) none 3px"
+      }
+    },
+    "blockedAssetRequests": 1
+  },
+  {
+    "theme": "light",
+    "width": 390,
+    "result": "PASS",
+    "before": {
+      "checked": false,
+      "changes": 0,
+      "formWrites": 0,
+      "width": 89,
+      "height": 27,
+      "container": {
+        "color": "rgb(24, 40, 62)",
+        "bg": "rgb(220, 229, 242)",
+        "bgImage": "none",
+        "display": "block",
+        "outline": "rgb(24, 40, 62) none 3px"
+      },
+      "off": {
+        "color": "rgb(124, 124, 124)",
+        "bg": "rgb(220, 229, 242)",
+        "bgImage": "none",
+        "display": "block",
+        "outline": "rgb(124, 124, 124) none 3px"
+      },
+      "offLabel": {
+        "color": "rgb(36, 50, 74)",
+        "bg": "rgba(0, 0, 0, 0)",
+        "bgImage": "none",
+        "display": "inline",
+        "outline": "rgb(36, 50, 74) none 3px"
+      },
+      "on": {
+        "color": "rgb(255, 255, 255)",
+        "bg": "rgb(36, 92, 197)",
+        "bgImage": "none",
+        "display": "block",
+        "outline": "rgb(255, 255, 255) none 3px"
+      },
+      "onLabel": {
+        "color": "rgb(255, 255, 255)",
+        "bg": "rgba(0, 0, 0, 0)",
+        "bgImage": "none",
+        "display": "inline",
+        "outline": "rgb(255, 255, 255) none 3px"
+      },
+      "track": {
+        "color": "rgb(24, 40, 62)",
+        "bg": "rgb(100, 112, 138)",
+        "bgImage": "none",
+        "display": "none",
+        "outline": "rgb(24, 40, 62) none 3px"
+      },
+      "handle": {
+        "color": "rgb(24, 40, 62)",
+        "bg": "rgb(255, 255, 255)",
+        "bgImage": "none",
+        "display": "block",
+        "outline": "rgb(24, 40, 62) none 3px"
+      }
+    },
+    "on": {
+      "checked": true,
+      "changes": 1,
+      "formWrites": 0,
+      "width": 89,
+      "height": 27,
+      "container": {
+        "color": "rgb(24, 40, 62)",
+        "bg": "rgb(220, 229, 242)",
+        "bgImage": "none",
+        "display": "block",
+        "outline": "rgb(255, 138, 0) solid 3px"
+      },
+      "off": {
+        "color": "rgb(124, 124, 124)",
+        "bg": "rgb(220, 229, 242)",
+        "bgImage": "none",
+        "display": "block",
+        "outline": "rgb(124, 124, 124) none 3px"
+      },
+      "offLabel": {
+        "color": "rgb(36, 50, 74)",
+        "bg": "rgba(0, 0, 0, 0)",
+        "bgImage": "none",
+        "display": "inline",
+        "outline": "rgb(36, 50, 74) none 3px"
+      },
+      "on": {
+        "color": "rgb(255, 255, 255)",
+        "bg": "rgb(36, 92, 197)",
+        "bgImage": "none",
+        "display": "block",
+        "outline": "rgb(255, 255, 255) none 3px"
+      },
+      "onLabel": {
+        "color": "rgb(255, 255, 255)",
+        "bg": "rgba(0, 0, 0, 0)",
+        "bgImage": "none",
+        "display": "inline",
+        "outline": "rgb(255, 255, 255) none 3px"
+      },
+      "track": {
+        "color": "rgb(24, 40, 62)",
+        "bg": "rgb(36, 92, 197)",
+        "bgImage": "none",
+        "display": "none",
+        "outline": "rgb(255, 138, 0) solid 3px"
+      },
+      "handle": {
+        "color": "rgb(24, 40, 62)",
+        "bg": "rgb(255, 255, 255)",
+        "bgImage": "none",
+        "display": "block",
+        "outline": "rgb(24, 40, 62) none 3px"
+      }
+    },
+    "off": {
+      "checked": false,
+      "changes": 2,
+      "formWrites": 0,
+      "width": 89,
+      "height": 27,
+      "container": {
+        "color": "rgb(24, 40, 62)",
+        "bg": "rgb(220, 229, 242)",
+        "bgImage": "none",
+        "display": "block",
+        "outline": "rgb(255, 138, 0) solid 3px"
+      },
+      "off": {
+        "color": "rgb(124, 124, 124)",
+        "bg": "rgb(220, 229, 242)",
+        "bgImage": "none",
+        "display": "block",
+        "outline": "rgb(124, 124, 124) none 3px"
+      },
+      "offLabel": {
+        "color": "rgb(36, 50, 74)",
+        "bg": "rgba(0, 0, 0, 0)",
+        "bgImage": "none",
+        "display": "inline",
+        "outline": "rgb(36, 50, 74) none 3px"
+      },
+      "on": {
+        "color": "rgb(255, 255, 255)",
+        "bg": "rgb(36, 92, 197)",
+        "bgImage": "none",
+        "display": "block",
+        "outline": "rgb(255, 255, 255) none 3px"
+      },
+      "onLabel": {
+        "color": "rgb(255, 255, 255)",
+        "bg": "rgba(0, 0, 0, 0)",
+        "bgImage": "none",
+        "display": "inline",
+        "outline": "rgb(255, 255, 255) none 3px"
+      },
+      "track": {
+        "color": "rgb(24, 40, 62)",
+        "bg": "rgb(100, 112, 138)",
+        "bgImage": "none",
+        "display": "none",
+        "outline": "rgb(255, 138, 0) solid 3px"
+      },
+      "handle": {
+        "color": "rgb(24, 40, 62)",
+        "bg": "rgb(255, 255, 255)",
+        "bgImage": "none",
+        "display": "block",
+        "outline": "rgb(24, 40, 62) none 3px"
+      }
+    },
+    "disabled": {
+      "checked": false,
+      "changes": 2,
+      "formWrites": 0,
+      "width": 89,
+      "height": 27,
+      "container": {
+        "color": "rgb(24, 40, 62)",
+        "bg": "rgb(220, 229, 242)",
+        "bgImage": "none",
+        "display": "block",
+        "outline": "rgb(24, 40, 62) none 3px"
+      },
+      "off": {
+        "color": "rgb(203, 203, 203)",
+        "bg": "rgb(220, 229, 242)",
+        "bgImage": "none",
+        "display": "block",
+        "outline": "rgb(203, 203, 203) none 3px"
+      },
+      "offLabel": {
+        "color": "rgb(36, 50, 74)",
+        "bg": "rgba(0, 0, 0, 0)",
+        "bgImage": "none",
+        "display": "inline",
+        "outline": "rgb(36, 50, 74) none 3px"
+      },
+      "on": {
+        "color": "rgb(255, 255, 255)",
+        "bg": "rgb(36, 92, 197)",
+        "bgImage": "none",
+        "display": "block",
+        "outline": "rgb(255, 255, 255) none 3px"
+      },
+      "onLabel": {
+        "color": "rgb(255, 255, 255)",
+        "bg": "rgba(0, 0, 0, 0)",
+        "bgImage": "none",
+        "display": "inline",
+        "outline": "rgb(255, 255, 255) none 3px"
+      },
+      "track": {
+        "color": "rgb(24, 40, 62)",
+        "bg": "rgb(100, 112, 138)",
+        "bgImage": "none",
+        "display": "none",
+        "outline": "rgb(24, 40, 62) none 3px"
+      },
+      "handle": {
+        "color": "rgb(24, 40, 62)",
+        "bg": "rgb(255, 255, 255)",
+        "bgImage": "none",
+        "display": "block",
+        "outline": "rgb(24, 40, 62) none 3px"
+      }
+    },
+    "blockedAssetRequests": 1
+  },
+  {
+    "theme": "dark",
+    "width": 1440,
+    "result": "PASS",
+    "before": {
+      "checked": false,
+      "changes": 0,
+      "formWrites": 0,
+      "width": 89,
+      "height": 27,
+      "container": {
+        "color": "rgb(234, 240, 250)",
+        "bg": "rgb(220, 229, 242)",
+        "bgImage": "none",
+        "display": "block",
+        "outline": "rgb(234, 240, 250) none 3px"
+      },
+      "off": {
+        "color": "rgb(124, 124, 124)",
+        "bg": "rgb(220, 229, 242)",
+        "bgImage": "none",
+        "display": "block",
+        "outline": "rgb(124, 124, 124) none 3px"
+      },
+      "offLabel": {
+        "color": "rgb(36, 50, 74)",
+        "bg": "rgba(0, 0, 0, 0)",
+        "bgImage": "none",
+        "display": "inline",
+        "outline": "rgb(36, 50, 74) none 3px"
+      },
+      "on": {
+        "color": "rgb(255, 255, 255)",
+        "bg": "rgb(36, 92, 197)",
+        "bgImage": "none",
+        "display": "block",
+        "outline": "rgb(255, 255, 255) none 3px"
+      },
+      "onLabel": {
+        "color": "rgb(255, 255, 255)",
+        "bg": "rgba(0, 0, 0, 0)",
+        "bgImage": "none",
+        "display": "inline",
+        "outline": "rgb(255, 255, 255) none 3px"
+      },
+      "track": {
+        "color": "rgb(234, 240, 250)",
+        "bg": "rgb(100, 112, 138)",
+        "bgImage": "none",
+        "display": "none",
+        "outline": "rgb(234, 240, 250) none 3px"
+      },
+      "handle": {
+        "color": "rgb(234, 240, 250)",
+        "bg": "rgb(255, 255, 255)",
+        "bgImage": "none",
+        "display": "block",
+        "outline": "rgb(234, 240, 250) none 3px"
+      }
+    },
+    "on": {
+      "checked": true,
+      "changes": 1,
+      "formWrites": 0,
+      "width": 89,
+      "height": 27,
+      "container": {
+        "color": "rgb(234, 240, 250)",
+        "bg": "rgb(220, 229, 242)",
+        "bgImage": "none",
+        "display": "block",
+        "outline": "rgb(255, 138, 0) solid 3px"
+      },
+      "off": {
+        "color": "rgb(124, 124, 124)",
+        "bg": "rgb(220, 229, 242)",
+        "bgImage": "none",
+        "display": "block",
+        "outline": "rgb(124, 124, 124) none 3px"
+      },
+      "offLabel": {
+        "color": "rgb(36, 50, 74)",
+        "bg": "rgba(0, 0, 0, 0)",
+        "bgImage": "none",
+        "display": "inline",
+        "outline": "rgb(36, 50, 74) none 3px"
+      },
+      "on": {
+        "color": "rgb(255, 255, 255)",
+        "bg": "rgb(36, 92, 197)",
+        "bgImage": "none",
+        "display": "block",
+        "outline": "rgb(255, 255, 255) none 3px"
+      },
+      "onLabel": {
+        "color": "rgb(255, 255, 255)",
+        "bg": "rgba(0, 0, 0, 0)",
+        "bgImage": "none",
+        "display": "inline",
+        "outline": "rgb(255, 255, 255) none 3px"
+      },
+      "track": {
+        "color": "rgb(234, 240, 250)",
+        "bg": "rgb(169, 201, 255)",
+        "bgImage": "none",
+        "display": "none",
+        "outline": "rgb(255, 138, 0) solid 3px"
+      },
+      "handle": {
+        "color": "rgb(234, 240, 250)",
+        "bg": "rgb(255, 255, 255)",
+        "bgImage": "none",
+        "display": "block",
+        "outline": "rgb(234, 240, 250) none 3px"
+      }
+    },
+    "off": {
+      "checked": false,
+      "changes": 2,
+      "formWrites": 0,
+      "width": 89,
+      "height": 27,
+      "container": {
+        "color": "rgb(234, 240, 250)",
+        "bg": "rgb(220, 229, 242)",
+        "bgImage": "none",
+        "display": "block",
+        "outline": "rgb(255, 138, 0) solid 3px"
+      },
+      "off": {
+        "color": "rgb(124, 124, 124)",
+        "bg": "rgb(220, 229, 242)",
+        "bgImage": "none",
+        "display": "block",
+        "outline": "rgb(124, 124, 124) none 3px"
+      },
+      "offLabel": {
+        "color": "rgb(36, 50, 74)",
+        "bg": "rgba(0, 0, 0, 0)",
+        "bgImage": "none",
+        "display": "inline",
+        "outline": "rgb(36, 50, 74) none 3px"
+      },
+      "on": {
+        "color": "rgb(255, 255, 255)",
+        "bg": "rgb(36, 92, 197)",
+        "bgImage": "none",
+        "display": "block",
+        "outline": "rgb(255, 255, 255) none 3px"
+      },
+      "onLabel": {
+        "color": "rgb(255, 255, 255)",
+        "bg": "rgba(0, 0, 0, 0)",
+        "bgImage": "none",
+        "display": "inline",
+        "outline": "rgb(255, 255, 255) none 3px"
+      },
+      "track": {
+        "color": "rgb(234, 240, 250)",
+        "bg": "rgb(100, 112, 138)",
+        "bgImage": "none",
+        "display": "none",
+        "outline": "rgb(255, 138, 0) solid 3px"
+      },
+      "handle": {
+        "color": "rgb(234, 240, 250)",
+        "bg": "rgb(255, 255, 255)",
+        "bgImage": "none",
+        "display": "block",
+        "outline": "rgb(234, 240, 250) none 3px"
+      }
+    },
+    "disabled": {
+      "checked": false,
+      "changes": 2,
+      "formWrites": 0,
+      "width": 89,
+      "height": 27,
+      "container": {
+        "color": "rgb(234, 240, 250)",
+        "bg": "rgb(220, 229, 242)",
+        "bgImage": "none",
+        "display": "block",
+        "outline": "rgb(234, 240, 250) none 3px"
+      },
+      "off": {
+        "color": "rgb(203, 203, 203)",
+        "bg": "rgb(220, 229, 242)",
+        "bgImage": "none",
+        "display": "block",
+        "outline": "rgb(203, 203, 203) none 3px"
+      },
+      "offLabel": {
+        "color": "rgb(36, 50, 74)",
+        "bg": "rgba(0, 0, 0, 0)",
+        "bgImage": "none",
+        "display": "inline",
+        "outline": "rgb(36, 50, 74) none 3px"
+      },
+      "on": {
+        "color": "rgb(255, 255, 255)",
+        "bg": "rgb(36, 92, 197)",
+        "bgImage": "none",
+        "display": "block",
+        "outline": "rgb(255, 255, 255) none 3px"
+      },
+      "onLabel": {
+        "color": "rgb(255, 255, 255)",
+        "bg": "rgba(0, 0, 0, 0)",
+        "bgImage": "none",
+        "display": "inline",
+        "outline": "rgb(255, 255, 255) none 3px"
+      },
+      "track": {
+        "color": "rgb(234, 240, 250)",
+        "bg": "rgb(100, 112, 138)",
+        "bgImage": "none",
+        "display": "none",
+        "outline": "rgb(234, 240, 250) none 3px"
+      },
+      "handle": {
+        "color": "rgb(234, 240, 250)",
+        "bg": "rgb(255, 255, 255)",
+        "bgImage": "none",
+        "display": "block",
+        "outline": "rgb(234, 240, 250) none 3px"
+      }
+    },
+    "blockedAssetRequests": 1
+  },
+  {
+    "theme": "dark",
+    "width": 390,
+    "result": "PASS",
+    "before": {
+      "checked": false,
+      "changes": 0,
+      "formWrites": 0,
+      "width": 89,
+      "height": 27,
+      "container": {
+        "color": "rgb(234, 240, 250)",
+        "bg": "rgb(220, 229, 242)",
+        "bgImage": "none",
+        "display": "block",
+        "outline": "rgb(234, 240, 250) none 3px"
+      },
+      "off": {
+        "color": "rgb(124, 124, 124)",
+        "bg": "rgb(220, 229, 242)",
+        "bgImage": "none",
+        "display": "block",
+        "outline": "rgb(124, 124, 124) none 3px"
+      },
+      "offLabel": {
+        "color": "rgb(36, 50, 74)",
+        "bg": "rgba(0, 0, 0, 0)",
+        "bgImage": "none",
+        "display": "inline",
+        "outline": "rgb(36, 50, 74) none 3px"
+      },
+      "on": {
+        "color": "rgb(255, 255, 255)",
+        "bg": "rgb(36, 92, 197)",
+        "bgImage": "none",
+        "display": "block",
+        "outline": "rgb(255, 255, 255) none 3px"
+      },
+      "onLabel": {
+        "color": "rgb(255, 255, 255)",
+        "bg": "rgba(0, 0, 0, 0)",
+        "bgImage": "none",
+        "display": "inline",
+        "outline": "rgb(255, 255, 255) none 3px"
+      },
+      "track": {
+        "color": "rgb(234, 240, 250)",
+        "bg": "rgb(100, 112, 138)",
+        "bgImage": "none",
+        "display": "none",
+        "outline": "rgb(234, 240, 250) none 3px"
+      },
+      "handle": {
+        "color": "rgb(234, 240, 250)",
+        "bg": "rgb(255, 255, 255)",
+        "bgImage": "none",
+        "display": "block",
+        "outline": "rgb(234, 240, 250) none 3px"
+      }
+    },
+    "on": {
+      "checked": true,
+      "changes": 1,
+      "formWrites": 0,
+      "width": 89,
+      "height": 27,
+      "container": {
+        "color": "rgb(234, 240, 250)",
+        "bg": "rgb(220, 229, 242)",
+        "bgImage": "none",
+        "display": "block",
+        "outline": "rgb(255, 138, 0) solid 3px"
+      },
+      "off": {
+        "color": "rgb(124, 124, 124)",
+        "bg": "rgb(220, 229, 242)",
+        "bgImage": "none",
+        "display": "block",
+        "outline": "rgb(124, 124, 124) none 3px"
+      },
+      "offLabel": {
+        "color": "rgb(36, 50, 74)",
+        "bg": "rgba(0, 0, 0, 0)",
+        "bgImage": "none",
+        "display": "inline",
+        "outline": "rgb(36, 50, 74) none 3px"
+      },
+      "on": {
+        "color": "rgb(255, 255, 255)",
+        "bg": "rgb(36, 92, 197)",
+        "bgImage": "none",
+        "display": "block",
+        "outline": "rgb(255, 255, 255) none 3px"
+      },
+      "onLabel": {
+        "color": "rgb(255, 255, 255)",
+        "bg": "rgba(0, 0, 0, 0)",
+        "bgImage": "none",
+        "display": "inline",
+        "outline": "rgb(255, 255, 255) none 3px"
+      },
+      "track": {
+        "color": "rgb(234, 240, 250)",
+        "bg": "rgb(169, 201, 255)",
+        "bgImage": "none",
+        "display": "none",
+        "outline": "rgb(255, 138, 0) solid 3px"
+      },
+      "handle": {
+        "color": "rgb(234, 240, 250)",
+        "bg": "rgb(255, 255, 255)",
+        "bgImage": "none",
+        "display": "block",
+        "outline": "rgb(234, 240, 250) none 3px"
+      }
+    },
+    "off": {
+      "checked": false,
+      "changes": 2,
+      "formWrites": 0,
+      "width": 89,
+      "height": 27,
+      "container": {
+        "color": "rgb(234, 240, 250)",
+        "bg": "rgb(220, 229, 242)",
+        "bgImage": "none",
+        "display": "block",
+        "outline": "rgb(255, 138, 0) solid 3px"
+      },
+      "off": {
+        "color": "rgb(124, 124, 124)",
+        "bg": "rgb(220, 229, 242)",
+        "bgImage": "none",
+        "display": "block",
+        "outline": "rgb(124, 124, 124) none 3px"
+      },
+      "offLabel": {
+        "color": "rgb(36, 50, 74)",
+        "bg": "rgba(0, 0, 0, 0)",
+        "bgImage": "none",
+        "display": "inline",
+        "outline": "rgb(36, 50, 74) none 3px"
+      },
+      "on": {
+        "color": "rgb(255, 255, 255)",
+        "bg": "rgb(36, 92, 197)",
+        "bgImage": "none",
+        "display": "block",
+        "outline": "rgb(255, 255, 255) none 3px"
+      },
+      "onLabel": {
+        "color": "rgb(255, 255, 255)",
+        "bg": "rgba(0, 0, 0, 0)",
+        "bgImage": "none",
+        "display": "inline",
+        "outline": "rgb(255, 255, 255) none 3px"
+      },
+      "track": {
+        "color": "rgb(234, 240, 250)",
+        "bg": "rgb(100, 112, 138)",
+        "bgImage": "none",
+        "display": "none",
+        "outline": "rgb(255, 138, 0) solid 3px"
+      },
+      "handle": {
+        "color": "rgb(234, 240, 250)",
+        "bg": "rgb(255, 255, 255)",
+        "bgImage": "none",
+        "display": "block",
+        "outline": "rgb(234, 240, 250) none 3px"
+      }
+    },
+    "disabled": {
+      "checked": false,
+      "changes": 2,
+      "formWrites": 0,
+      "width": 89,
+      "height": 27,
+      "container": {
+        "color": "rgb(234, 240, 250)",
+        "bg": "rgb(220, 229, 242)",
+        "bgImage": "none",
+        "display": "block",
+        "outline": "rgb(234, 240, 250) none 3px"
+      },
+      "off": {
+        "color": "rgb(203, 203, 203)",
+        "bg": "rgb(220, 229, 242)",
+        "bgImage": "none",
+        "display": "block",
+        "outline": "rgb(203, 203, 203) none 3px"
+      },
+      "offLabel": {
+        "color": "rgb(36, 50, 74)",
+        "bg": "rgba(0, 0, 0, 0)",
+        "bgImage": "none",
+        "display": "inline",
+        "outline": "rgb(36, 50, 74) none 3px"
+      },
+      "on": {
+        "color": "rgb(255, 255, 255)",
+        "bg": "rgb(36, 92, 197)",
+        "bgImage": "none",
+        "display": "block",
+        "outline": "rgb(255, 255, 255) none 3px"
+      },
+      "onLabel": {
+        "color": "rgb(255, 255, 255)",
+        "bg": "rgba(0, 0, 0, 0)",
+        "bgImage": "none",
+        "display": "inline",
+        "outline": "rgb(255, 255, 255) none 3px"
+      },
+      "track": {
+        "color": "rgb(234, 240, 250)",
+        "bg": "rgb(100, 112, 138)",
+        "bgImage": "none",
+        "display": "none",
+        "outline": "rgb(234, 240, 250) none 3px"
+      },
+      "handle": {
+        "color": "rgb(234, 240, 250)",
+        "bg": "rgb(255, 255, 255)",
+        "bgImage": "none",
+        "display": "block",
+        "outline": "rgb(234, 240, 250) none 3px"
+      }
+    },
+    "blockedAssetRequests": 1
+  }
+]

@@ -1,0 +1,54 @@
+[
+  {
+    "name": "confirmation off sends once and does not prompt",
+    "result": "PASS"
+  },
+  {
+    "name": "cancelled confirmation never sends Apply",
+    "result": "PASS"
+  },
+  {
+    "name": "repeated activation sends one request",
+    "result": "PASS"
+  },
+  {
+    "name": "Apply has visible feedback and leaves body readable",
+    "result": "PASS"
+  },
+  {
+    "name": "unrelated request cannot dismiss Apply feedback",
+    "result": "PASS"
+  },
+  {
+    "name": "autosave controls freeze, including dynamic fragments, and restore prior state",
+    "result": "PASS"
+  },
+  {
+    "name": "server error retains pending changes and restores controls",
+    "result": "PASS"
+  },
+  {
+    "name": "success explicitly confirms and clears pending changes",
+    "result": "PASS"
+  },
+  {
+    "name": "warnings are distinct from clean success",
+    "result": "PASS"
+  },
+  {
+    "name": "error details never execute returned HTML",
+    "result": "PASS"
+  },
+  {
+    "name": "malformed JSON leaves pending state and shows unknown result",
+    "result": "PASS"
+  },
+  {
+    "name": "permission failure directs user to login",
+    "result": "PASS"
+  },
+  {
+    "name": "timeout is uncertain and does not automatically repeat Apply",
+    "result": "PASS"
+  }
+]

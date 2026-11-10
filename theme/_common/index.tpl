@@ -27,8 +27,7 @@
     <link rel="stylesheet" href="{$WEBPATH}themes/{$THEMENAME}/css/base.css?v=735">
     <link rel="stylesheet" href="{$WEBPATH}themes/{$THEMENAME}/css/components.css?v=122">
     <link rel="stylesheet" href="{$WEBPATH}themes/{$THEMENAME}/css/applet.css?v=122">
-    <link rel="stylesheet" href="{$WEBPATH}themes/{$THEMENAME}/css/mt-calendar.css?v=122">
-    <link rel="stylesheet" href="{$WEBPATH}themes/{$THEMENAME}/css/mt-secadv.css?v=122">
+    <link rel="stylesheet" href="{$WEBPATH}themes/{$THEMENAME}/css/mt-secadv.css?v=752">
     <link rel="stylesheet" href="{$WEBPATH}themes/{$THEMENAME}/css/theme-dark.css?v=731">
     <link rel="stylesheet" href="{$WEBPATH}themes/{$THEMENAME}/css/theme-toggle.css?v=732">
     <link rel="stylesheet" href="{$WEBPATH}themes/{$THEMENAME}/css/mytelldesk-card.css?v=731">
@@ -93,9 +92,12 @@
     <script src="libs/js/iframe.js"></script>
 
     {$HEADER}
-    {$HEADER_MODULES}
+    {$HEADER_MODULES|replace:'modules/calendar/themes/default/js/javascript.js':'modules/calendar/themes/default/js/javascript.js?v=752'}
+    <link rel="stylesheet" href="{$WEBPATH}themes/{$THEMENAME}/css/workspace.css?v=752">
+    <link rel="stylesheet" href="{$WEBPATH}themes/{$THEMENAME}/css/mt-calendar.css?v=752">
     </head>
     <body leftmargin="0" topmargin="0" marginwidth="0" marginheight="0" class="mt-body page-body" {$BODYPARAMS}{if $MT_CAN_ENTER_DESK} data-mt-desk="1"{/if}>
+    <a href="#neo-contentbox-maincolumn" class="mt-skip-link">رفتن به محتوای صفحه</a>
     <div class="page-container mt-shell">
 
         {$MENU}
@@ -241,11 +243,14 @@ $(document).ready(function(e) {
         <script src="{$WEBPATH}themes/{$THEMENAME}/js/neon-custom.js"></script>
         <script src="{$WEBPATH}themes/{$THEMENAME}/vendor/echarts/echarts.min.js"></script>
         <script src="{$WEBPATH}themes/{$THEMENAME}/js/mytel-charts.js?v=100"></script>
-        <script src="{$WEBPATH}themes/{$THEMENAME}/js/theme.js?v=738"></script>
-        <script src="{$WEBPATH}themes/{$THEMENAME}/js/mt-calendar.js?v=122"></script>
+        <script src="{$WEBPATH}themes/{$THEMENAME}/js/theme.js?v=752"></script>
+        <script src="{$WEBPATH}themes/{$THEMENAME}/js/calendar-core.js?v=752"></script>
+        <script src="{$WEBPATH}themes/{$THEMENAME}/js/calendar-editor.js?v=752"></script>
+        <script src="{$WEBPATH}themes/{$THEMENAME}/js/mt-calendar.js?v=752"></script>
         <script src="{$WEBPATH}themes/{$THEMENAME}/js/mt-date-icons.js?v=122"></script>
         <script src="{$WEBPATH}themes/{$THEMENAME}/js/mt-cdr-filters.js?v=122"></script>
         <script src="{$WEBPATH}themes/{$THEMENAME}/js/mt-secadv.js?v=122"></script>
+        <script src="{$WEBPATH}themes/{$THEMENAME}/js/workspace.js?v=752"></script>
     </div>
 </body>
 </html>

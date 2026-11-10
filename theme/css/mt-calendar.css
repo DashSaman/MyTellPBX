@@ -4,6 +4,16 @@
  * Stock day/week views retain their original layout and direction.
  */
 
+/* Calendar v752 shares the panel's semantic palette in both appearances. */
+:root #formCalendar, :root .mt-calendar-dialog {
+    --cal-bg: var(--mt-surface, #fff);
+    --cal-soft: var(--mt-surface-2, #f4f7fb);
+    --cal-ink: var(--mt-text, #172b45);
+    --cal-muted: var(--mt-text-muted, #52657d);
+    --cal-line: var(--mt-border, #d8e1ed);
+    --cal-accent: var(--mt-primary-fg, #245cc5);
+}
+
 #calendar_main.mt-jmonth-active > .fc-view-container,
 #calendar_main.mt-jmonth-active > .fc-content,
 #calendar_main.mt-jmonth-active > .fc-view-month,
@@ -517,3 +527,150 @@
         transition: none !important;
     }
 }
+
+/* Final scoped overrides: module styles are loaded before this file. */
+:root body #formCalendar > table, :root body #formCalendar > table > tbody, :root body #formCalendar > table > tbody > tr { display:block; width:100%; background:none; border:0; }
+:root body #formCalendar > table > tbody > tr { display:grid; grid-template-columns:240px minmax(0,1fr); gap:24px; align-items:start; }
+:root body #formCalendar > table > tbody > tr > td { display:block; width:auto!important; min-width:0; padding:0; border:0; }
+:root body #calendar_toolbar { padding:18px!important; background:var(--cal-bg); border:1px solid var(--cal-line)!important; border-radius:12px; }
+:root body #calendar_newevent { width:100%; min-height:44px; border:0; border-radius:8px; background:var(--mt-primary-fg,#245cc5)!important; color:var(--mt-bg,#fff)!important; font-weight:700; box-shadow:none; }
+:root body #calendar_main { width:100%; min-width:0; color:var(--cal-ink); }
+:root body #calendar_main .mt-jmonth { --mt-cal-primary:var(--cal-accent); --mt-cal-ink:var(--cal-ink); --mt-cal-muted:var(--cal-muted); --mt-cal-line:var(--cal-line); --mt-cal-surface:var(--cal-bg); --mt-cal-soft:var(--cal-soft); border-radius:12px; box-shadow:none; margin-top:16px; }
+:root body #calendar_main .mt-jmonth-header { background:var(--cal-bg); padding:20px; gap:16px; }
+:root body #calendar_main .mt-jmonth-title { color:var(--cal-ink); font-size:26px; line-height:1.5; }
+:root body #calendar_main .mt-jmonth-heading { padding:0; border:0; }
+:root body #calendar_main .mt-jmonth-table { min-width:640px; table-layout:fixed; }
+:root body #calendar_main .mt-jcell-body { min-height:110px; padding:8px; }
+:root body #calendar_main .mt-jholiday-label:empty, :root body #calendar_main .mt-jholiday-label[aria-hidden] { display:none; }
+:root body #calendar_main .mt-jweekday { background:var(--cal-soft); color:var(--cal-muted); padding-block:10px; }
+:root body #calendar_main .mt-joutside { background:var(--cal-soft); }
+:root body #calendar_main .mt-jtoday { background:var(--mt-primary-tint,#eaf1ff); box-shadow:inset 0 0 0 2px var(--cal-accent); }
+:root body #calendar_main .mt-jday-open { color:var(--cal-ink); }
+:root body #calendar_main .mt-jtoday .mt-jday-number { color:var(--cal-accent); background:transparent; box-shadow:none; }
+:root body #calendar_main .mt-jgregorian { color:var(--cal-muted); }
+:root body #calendar_main :is(.mt-jnav,.fc-button) { background:var(--cal-bg); border:1px solid var(--cal-line); color:var(--cal-ink); border-radius:8px; box-shadow:none; text-shadow:none; min-height:38px; height:auto; padding:8px 12px; font-family:inherit; }
+:root body #calendar_main :is(.mt-jnav-today,.fc-state-active) { background:var(--cal-accent); border-color:var(--cal-accent); color:var(--mt-bg,#fff); }
+:root body #calendar_main .fc-header { border:0; background:none; margin:0; }
+:root body #calendar_main .fc-header td { background:none; border:0; padding:0 3px; vertical-align:middle; }
+:root body #calendar_main .fc-header-title h2 { font-size:18px; line-height:1.8; color:var(--cal-ink); }
+:root body #calendar_main .mt-jevent { border:1px solid var(--cal-line); border-inline-start:3px solid var(--cal-accent); background:var(--cal-soft); color:var(--cal-ink); border-radius:5px; box-shadow:none; min-height:30px; }
+:root body #calendar_main .mt-jevent:hover { background:var(--mt-primary-tint,#eaf1ff); }
+:root body #calendar_main .mt-jmonth-status { color:var(--cal-muted); background:var(--cal-soft); border-color:var(--cal-line); display:flex; align-items:center; gap:12px; }
+:root body #calendar_main .mt-jmonth-status:empty { display:none; }
+:root body #calendar_main .fc-agenda { background:var(--cal-bg); color:var(--cal-ink); }
+:root body #calendar_main :is(.fc-widget-header,.fc-widget-content) { border-color:var(--cal-line); background:var(--cal-bg); color:var(--cal-ink); }
+:root body #calendar_main .fc-agenda-days th { font-size:12px; white-space:normal; line-height:1.8; }
+:root body #calendar_toolbar :is(.mt-calside,.mt-calside-head,.mt-calside-grid,.mt-calside-week) { background:none; color:var(--cal-ink); border-color:var(--cal-line); box-shadow:none; }
+:root body #calendar_toolbar .mt-mini { color:var(--cal-ink); background:var(--cal-bg); border-radius:6px; box-shadow:none; }
+:root body #calendar_toolbar .mt-mini.today { color:var(--mt-bg); background:var(--cal-accent); }
+:root body #calendar_toolbar select { background:var(--cal-soft); color:var(--cal-ink); border:1px solid var(--cal-line); border-radius:6px; min-height:36px; }
+:root body #calendar_ical_links { margin-top:20px; padding-top:16px; border-top:1px solid var(--cal-line); }
+:root body #calendar_ical_links :is(.ui-widget-header,.title_size) { background:none; color:var(--cal-muted); border:0; font-size:12px; }
+:root body .mt-calendar-dialog { position:fixed; max-width:calc(100vw - 24px); background:var(--cal-bg); color:var(--cal-ink); border:1px solid var(--cal-line); border-radius:14px; padding:0; box-shadow:0 16px 56px #0004; direction:rtl; font-family:var(--mt-font,Vazirmatn,Tahoma,sans-serif); }
+:root body .mt-calendar-dialog .ui-dialog-titlebar { background:var(--cal-soft); border:0; border-bottom:1px solid var(--cal-line); color:var(--cal-ink); padding:16px 20px; border-radius:14px 14px 0 0; }
+:root body .mt-calendar-dialog .ui-dialog-title { float:right; margin:0; font-size:17px; }
+:root body .mt-calendar-dialog .ui-dialog-titlebar-close { left:12px; right:auto; }
+:root body #calendar_eventdialog { padding:16px 20px; max-height:calc(100dvh - 180px); overflow:auto; color:var(--cal-ink); background:var(--cal-bg); }
+:root body #calendar_eventdialog > table { width:100%; padding:0!important; background:none; table-layout:fixed; }
+:root body #calendar_eventdialog > table > tbody > tr > td { background:none; color:var(--cal-ink); border:0; text-align:right; padding:8px 0; white-space:normal; }
+:root body #calendar_eventdialog > table > tbody > tr > td:first-child { width:100px; padding-inline-end:12px; }
+:root body #calendar_eventdialog :is(input[type=text],textarea,select) { width:100%; max-width:100%; min-height:40px; padding:8px 10px; border:1px solid var(--cal-line); background:var(--cal-bg); color:var(--cal-ink); border-radius:7px; box-sizing:border-box; font-family:inherit; }
+:root body #calendar_eventdialog textarea { resize:vertical; min-height:80px; }
+:root body #calendar_eventdialog #tags { margin:0!important; width:100%!important; }
+:root body .mt-calendar-dialog .ui-dialog-buttonpane { background:var(--cal-soft); border-top:1px solid var(--cal-line); padding:12px 20px; margin:0; border-radius:0 0 14px 14px; }
+:root body .mt-calendar-dialog .ui-dialog-buttonset { float:none; display:flex; flex-wrap:wrap; gap:8px; }
+:root body .mt-calendar-dialog :is(.ui-dialog-buttonpane button,.mt-event-date button) { color:var(--cal-ink); background:var(--cal-bg); border:1px solid var(--cal-line); border-radius:7px; min-height:38px; padding:6px 12px; font-family:inherit; }
+:root body .mt-calendar-dialog .ui-dialog-buttonpane button:first-child { background:var(--cal-accent); color:var(--mt-bg); border-color:var(--cal-accent); font-weight:700; }
+:root body .mt-calendar-dialog button:disabled { opacity:.55; cursor:wait; }
+:root body .mt-event-date-row { display:grid; grid-template-columns:minmax(110px,1fr) 80px auto; gap:8px; align-items:center; }
+:root body .mt-event-date > label { font-size:12px; font-weight:600; display:block; margin-bottom:6px; }
+:root body .mt-date-hint, :root body .mt-calendar-zone { color:var(--cal-muted); font-size:11px; line-height:1.9; }
+:root body .mt-event-message { margin:0 0 12px; padding:10px 12px; background:var(--mt-warning-bg,#fff4db); color:var(--mt-warning-fg,#644600); border-radius:7px; line-height:1.8; }
+:root body .mt-event-message:empty { display:none; }
+:root body #calendar_eventdialog input[aria-invalid=true] { border-color:var(--mt-danger-fg,#b02b39); }
+:root body .mt-event-picker { padding:12px; margin-block:10px; border:1px solid var(--cal-line); border-radius:8px; background:var(--cal-soft); }
+:root body .mt-picker-nav { display:flex; align-items:center; justify-content:space-between; gap:8px; margin-bottom:12px; }
+:root body .mt-picker-nav strong { font-size:13px; }
+:root body .mt-picker-grid { display:grid; grid-template-columns:repeat(7,minmax(0,1fr)); gap:3px; text-align:center; }
+:root body .mt-picker-grid button { padding:4px; min-width:0; }
+:root body .mt-picker-grid [aria-current=date] { background:var(--cal-accent); color:var(--mt-bg); }
+:root body .mt-calendar-dialog :focus-visible { outline:3px solid var(--mt-focus,#6ca1ff); outline-offset:2px; }
+:root body #calendar_eventdialog .ui-state-active { background:var(--cal-accent); color:var(--mt-bg); border-color:var(--cal-accent); }
+@media(max-width:1100px){
+ :root body #formCalendar > table > tbody > tr { grid-template-columns:minmax(0,1fr); gap:16px; }
+ :root body #calendar_toolbar { display:flex!important; align-items:center; flex-wrap:wrap; gap:16px; }
+ :root body #calendar_toolbar .mt-calside { margin:0; }
+ :root body #calendar_toolbar .mt-calside-grid, :root body #calendar_toolbar .mt-calside-week, :root body #calendar_toolbar .mt-calside-today { display:none; }
+ :root body #calendar_ical_links { margin:0; padding:0; border:0; }
+ :root body #calendar_buttonbox { min-width:150px; }
+}
+@media(max-width:600px){
+ :root body #calendar_main .mt-jmonth-header { padding:16px; }
+ :root body #calendar_main .mt-jmonth-title { font-size:22px; }
+ :root body #calendar_main .fc-header-title h2 { font-size:13px; }
+ :root body #calendar_main .fc-header tr { display:flex; flex-wrap:wrap; gap:10px; justify-content:space-between; }
+ :root body #calendar_main .fc-header td { display:block; }
+ :root body #calendar_eventdialog { padding:12px; }
+ :root body #calendar_eventdialog > table > tbody > tr > td { display:block; width:100%!important; padding:5px 0; }
+ :root body #calendar_eventdialog > table > tbody > tr { display:block; margin-bottom:12px; }
+ :root body .mt-event-date-row { grid-template-columns:minmax(110px,1fr) 80px; }
+ :root body .mt-event-date-row button { grid-column:1 / -1; }
+}
+:root body #calendar_main .mt-jmonth-title { font-style:normal; }
+:root body:has(.mt-calendar-dialog) .ui-widget-overlay { background:rgba(15,28,47,.42); opacity:1; }
+:root body #calendar_eventdialog > table > tbody > tr, :root body #calendar_eventdialog > table > tbody > tr > td { height:auto!important; }
+:root body #calendar_eventdialog .mt-event-date-row input { position:static!important; float:none!important; margin:0!important; }
+:root body #calendar_eventdialog .mt-event-date-row button { position:static!important; margin:0!important; }
+@media(max-width:600px){
+ :root body #calendar_toolbar { grid-row:1; }
+ :root body #calendar_main .mt-jmonth-table { min-width:0; }
+ :root body #calendar_main .mt-jcell-body { min-height:78px; padding:4px 2px; }
+ :root body #calendar_main .mt-jday-number { font-size:18px; width:auto; height:auto; line-height:1.7; }
+ :root body #calendar_main .mt-jtoday-label, :root body #calendar_main .mt-jgregorian, :root body #calendar_main .mt-jevent-time { display:none; }
+ :root body #calendar_main .mt-jevent { padding:2px; min-height:22px; gap:2px; font-size:10px; border-inline-start-width:2px; }
+ :root body #calendar_main .mt-jevent-dot { display:none; }
+ :root body #calendar_main .mt-jday-open { padding:0; min-width:0; width:100%; }
+ :root body #calendar_main .mt-jweekday { padding:8px 2px; }
+ :root body #calendar_eventdialog > table, :root body #calendar_eventdialog > table > tbody { display:block; }
+ :root body #calendar_eventdialog .mt-event-date-row { grid-template-rows:auto auto; }
+}
+:root body .mt-calendar-dialog { top:50%!important; left:50%!important; transform:translate(-50%,-50%); margin:0; max-height:calc(100dvh - 24px); }
+:root body #calendar_main .mt-jtoday .mt-jday-open { background:var(--cal-accent)!important; color:var(--mt-bg)!important; }
+:root body #calendar_main .mt-jtoday .mt-jday-number { color:inherit!important; }
+:root body #calendar_main .mt-jmonth-header { background:var(--cal-bg)!important; }
+:root body #calendar_main .mt-jmonth-title { color:var(--cal-ink)!important; }
+:root body .mt-event-message { background:var(--mt-warning-tint); color:var(--mt-warning-fg); font-style:normal; }
+:root body .mt-calendar-dialog:not([style*="display: none"]) { display:flex!important; flex-direction:column; overflow:hidden; }
+:root body .mt-calendar-dialog .ui-dialog-titlebar, :root body .mt-calendar-dialog .ui-dialog-buttonpane { flex:0 0 auto; }
+:root body #calendar_eventdialog { flex:1 1 auto; min-height:0!important; height:auto!important; }
+:root body #calendar_eventdialog input[type=text] { width:100%!important; }
+:root body #calendar_eventdialog textarea[name=description] { height:80px; }
+:root body #calendar_toolbar .mt-calside { padding:0; border:0; }
+:root body #calendar_toolbar .mt-calside-title { font-size:13px; }
+:root body #calendar_ical_links :is(.ui-widget-content,.title_size) { background:none!important; border:0!important; }
+@media(max-width:1100px){
+ :root body #calendar_toolbar { padding:12px!important; }
+ :root body #calendar_toolbar .mt-calside { flex:1; min-width:170px; }
+ :root body #calendar_ical_links { order:3; font-size:11px; }
+ :root body #calendar_ical_links .title_size { display:none; }
+}
+/* Week/day use civil-date agenda cards; the browser's DST cannot move events. */
+#calendar_main.mt-jagenda-active > .fc-content { display:none!important; }
+#calendar_main .mt-jagenda[hidden] { display:none!important; }
+:root body #calendar_main .mt-jagenda { margin-top:20px; direction:rtl; }
+:root body #calendar_main .mt-agenda-days { display:grid; grid-template-columns:repeat(7,minmax(0,1fr)); gap:8px; }
+:root body #calendar_main .mt-agenda-day { min-width:0; padding:10px; background:var(--cal-bg); border:1px solid var(--cal-line); border-radius:9px; }
+:root body #calendar_main .mt-agenda-day header { display:flex; flex-wrap:wrap; align-items:center; gap:4px; padding-bottom:12px; margin-bottom:12px; border-bottom:1px solid var(--cal-line); }
+:root body #calendar_main .mt-agenda-day header strong { font-size:12px; color:var(--cal-ink); }
+:root body #calendar_main .mt-agenda-day header span { font-size:11px; color:var(--cal-muted); }
+:root body #calendar_main .mt-agenda-create { margin-inline-start:auto; background:var(--cal-soft); border:1px solid var(--cal-line); color:var(--cal-accent); border-radius:6px; min-width:32px; min-height:32px; }
+:root body #calendar_main .mt-agenda-today { border-color:var(--cal-accent); }
+:root body #calendar_main .mt-jagenda .mt-jevent { display:flex; flex-direction:column; align-items:flex-start; width:100%; padding:8px; gap:5px; margin-bottom:8px; text-align:start; white-space:normal; overflow-wrap:anywhere; }
+:root body #calendar_main .mt-agenda-time { font-size:12px; direction:ltr; }
+:root body #calendar_main .mt-agenda-event-title { font-size:13px; line-height:1.7; }
+:root body #calendar_main .mt-agenda-empty { color:var(--cal-muted); font-size:11px; padding-block:16px; }
+:root body #calendar_main .mt-agenda-single { grid-template-columns:minmax(0,1fr); }
+:root body #calendar_main .mt-agenda-single .mt-jevent { flex-direction:row; gap:16px; }
+@media(max-width:1100px){:root body #calendar_main .mt-agenda-days { grid-template-columns:repeat(2,minmax(0,1fr)); }}
+@media(max-width:600px){:root body #calendar_main .mt-agenda-days { grid-template-columns:minmax(0,1fr); }}
+:root body #calendar_main .fc-button:is(.fc-state-active,.ui-state-active) { background:var(--cal-accent)!important; border-color:var(--cal-accent)!important; color:var(--mt-bg)!important; font-weight:750; }

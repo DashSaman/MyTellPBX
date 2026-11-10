@@ -737,7 +737,7 @@ PHP
     set_amportal_key BRAND_IMAGE_ISSABELPBX_LINK_LEFT "https://mytel.one"
     set_brand_db_keys
 
-    # 6) Admin theme patchers (restore-then-apply, create .bak-mt backups)
+    # 6) Admin theme patchers (preserve owner edits, private scoped backups)
     "${PY_BIN}" "${BUNDLE_DIR}/admin-theme/patch-admin-theme.py" >>"$LOG" 2>&1 \
         || die "admin theme patcher failed"
     php -l "${WEB_ROOT}/admin/views/header.php" >>"$LOG" 2>&1 \
@@ -751,6 +751,10 @@ PHP
     if [ -f "${BUNDLE_DIR}/admin-fixes/fix-apply-config.py" ]; then
         "${PY_BIN}" "${BUNDLE_DIR}/admin-fixes/fix-apply-config.py" >>"$LOG" 2>&1 \
             || die "apply-config fix failed"
+    fi
+    if [ -f "${BUNDLE_DIR}/admin-fixes/install-scoped-repairs.py" ]; then
+        "${PY_BIN}" "${BUNDLE_DIR}/admin-fixes/install-scoped-repairs.py" --web-root "${WEB_ROOT}" >>"$LOG" 2>&1 \
+            || die "scoped Apply/calendar repair failed"
     fi
 
     # 8) Clear known caches + ownership + validate Apache config

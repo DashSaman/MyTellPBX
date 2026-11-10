@@ -165,3 +165,68 @@
 @media (prefers-reduced-motion: reduce) {
     *, *::before, *::after { animation-duration: .001ms !important; animation-iteration-count: 1 !important; transition-duration: .001ms !important; scroll-behavior: auto !important; }
 }
+
+/* Selected choices are identifiable by fill, weight AND a checkmark. Native
+   checked/name/value and change handlers remain the source of truth. */
+:root[data-mt-theme] { --mt-radio-selected-bg: #245CC5; --mt-radio-selected-fg: #FFFFFF; }
+:root[data-mt-theme="dark"] { --mt-radio-selected-bg: #A9C9FF; --mt-radio-selected-fg: #10243E; }
+:root[data-mt-theme] body .radiotoggle { display: inline-flex; flex-wrap: wrap; gap: 6px; vertical-align: middle; width: max-content; max-width: 100%; }
+:root[data-mt-theme] body .radiotoggle > label,
+:root[data-mt-theme] body :is(.radio, #mainform .radio) > .radiotoggle > label {
+    display: inline-flex; align-items: center; justify-content: center; gap: 7px;
+    min-height: 36px; min-width: 76px; margin: 0 !important; padding: 6px 12px !important;
+    width: auto !important; flex: 0 0 auto;
+    border: 1px solid var(--mt-control-border) !important; border-radius: 8px !important;
+    background: var(--mt-control-bg) !important; color: var(--mt-text-muted) !important;
+    font-size: 13px !important; font-weight: 500 !important; line-height: 22px;
+    cursor: pointer; box-sizing: border-box; transition: background .12s, border-color .12s;
+}
+:root[data-mt-theme] body .radiotoggle > label::before {
+    content: ''; display: inline-grid; place-items: center; width: 16px; height: 16px;
+    flex: 0 0 16px; border: 1px solid currentColor; border-radius: 50%; box-sizing: border-box;
+    font: 700 12px/1 Arial, sans-serif;
+}
+:root[data-mt-theme] body .radiotoggle > input:checked + label,
+:root[data-mt-theme] body :is(.radio, #mainform .radio) > .radiotoggle > input[type="radio"]:checked + label,
+:root[data-mt-theme] body .radiotoggle > label:has(input:checked) {
+    background: #245CC5 !important; color: #FFFFFF !important; border-color: #245CC5 !important;
+    font-weight: 750 !important; box-shadow: 0 1px 3px #102B5926 !important;
+}
+:root[data-mt-theme="dark"] body .radiotoggle > input:checked + label,
+:root[data-mt-theme="dark"] body :is(.radio, #mainform .radio) > .radiotoggle > input[type="radio"]:checked + label,
+:root[data-mt-theme="dark"] body .radiotoggle > label:has(input:checked) {
+    background: #A9C9FF !important; color: #10243E !important; border-color: #A9C9FF !important;
+}
+:root[data-mt-theme] body .radiotoggle > input:checked + label::before,
+:root[data-mt-theme] body .radiotoggle > label:has(input:checked)::before { content: '✓'; }
+:root[data-mt-theme] body .radiotoggle > input:focus-visible + label { outline: 3px solid var(--mt-focus) !important; outline-offset: 3px; }
+:root[data-mt-theme] body .radiotoggle > input:disabled + label { cursor: not-allowed; border-style: dashed !important; }
+:root[data-mt-theme] body input:is([type="checkbox"],[type="radio"]) { accent-color: var(--mt-primary); }
+:root[data-mt-theme] body input[type="checkbox"]:not(.switch):not(.is-checkradio) { min-width: 17px; min-height: 17px; }
+:root[data-mt-theme] body input.switch:checked + label::before { background: var(--mt-primary) !important; border-color: var(--mt-primary) !important; }
+:root[data-mt-theme] body label.is-checkbox:has(input:checked) { outline: 2px solid var(--mt-primary); outline-offset: 1px; font-weight: 700; }
+:root[data-mt-theme] body .valueinput { max-width: 100%; }
+:root[data-mt-theme] body .content .field { min-width: 0; }
+@media (max-width: 700px) {
+    :root[data-mt-theme] body .content .field.is-horizontal { display: block; }
+    :root[data-mt-theme] body .content .field-label { text-align: left; margin-right: 0; margin-bottom: 8px; }
+    :root[data-mt-theme] body .content .field-body { min-width: 0; }
+    :root[data-mt-theme] body .radiotoggle { max-width: 100%; }
+    :root[data-mt-theme] body .navbar.is-dark .navbar-dropdown.multicolumn { width: auto !important; max-width: 100%; }
+}
+/* Legacy two-column settings forms need to reflow before autofocus can scroll
+   their labels out of view. Keep source order and native LTR direction. */
+@media (max-width:700px) {
+ :root[data-mt-theme] body #mainform > table.notfixed { table-layout:fixed!important; width:100%!important; min-width:0!important; }
+ :root[data-mt-theme] body #mainform > table.notfixed,
+ :root[data-mt-theme] body #mainform > table.notfixed > tbody,
+ :root[data-mt-theme] body #mainform > table.notfixed > tbody > tr { display:block; max-width:100%; }
+ :root[data-mt-theme] body #mainform > table.notfixed > tbody > tr > td { display:block; width:100%!important; min-width:0!important; max-width:100%; box-sizing:border-box; padding:8px 12px; white-space:normal; }
+ :root[data-mt-theme] body #mainform > table.notfixed > tbody > tr > td.is-flex { flex-wrap:wrap; gap:8px; }
+ :root[data-mt-theme] body #mainform > table.notfixed fieldset { min-width:0; max-width:100%; display:flex; flex-wrap:wrap; gap:6px; }
+ :root[data-mt-theme] body #mainform > table.notfixed :is(input.w100,textarea,select) { width:100%; min-width:0; max-width:100%; box-sizing:border-box; }
+}
+@media (max-width:700px) {
+ :root[data-mt-theme] body .content:has(form[name="frm_voicemail"]) { width:100%; max-width:100%; min-width:0!important; }
+ :root[data-mt-theme] body .content:has(form[name="frm_voicemail"]) :is(#tabs,#tab-content) { width:100%!important; max-width:100%; min-width:0; }
+}

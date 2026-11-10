@@ -83,19 +83,9 @@
         var JMONTHS = ['فروردین','اردیبهشت','خرداد','تیر','مرداد','شهریور','مهر','آبان','آذر','دی','بهمن','اسفند'];
         var JDAYS = ['شنبه','یکشنبه','دوشنبه','سه‌شنبه','چهارشنبه','پنجشنبه','جمعه'];
         var GDAYS_SHORT = { Sun: 'ی', Mon: 'د', Tue: 'س', Wed: 'چ', Thu: 'پ', Fri: 'ج', Sat: 'ش' };
-        /* official + recurring Iranian holidays (jy, jm, jd, title) */
-        var HOLIDAYS = [
-            [0,1,1,'نوروز'],[0,1,2,'نوروز'],[0,1,3,'نوروز'],[0,1,4,'نوروز'],
-            [0,1,12,'روز جمهوری اسلامی'],[0,1,13,'روز طبیعت'],
-            [0,3,14,'رحلت امام خمینی'],[0,3,15,'قیام ۱۵ خرداد'],
-            [0,11,22,'پیروزی انقلاب'],[0,12,29,'ملی شدن نفت'],
-            [0,3,1,'نبرد خرمشهر'],[0,9,16,'روز دانش‌آموز'],[0,8,13,'روز دانش‌آموز'],
-            [0,2,1,'روز کارگر معلم'],[0,6,31,'روز گفت‌وگو'],
-            [1404,1,25,'تولد حضرت فاطمه'],[1404,2,28,'ليلة المباث'],[1404,3,3,'تولد امام حسین'],
-            [1404,3,13,'ولادت امام رضا'],[1404,7,23,'تولد امام رضا'],
-            [1404,10,10,'اربعین'],[1404,10,18,'وفات حضرت رسول'],[1404,11,3,'شهادت امام حسن'],
-            [1404,11,20,'میلاد رسول اکرم'],[1404,12,20,'نیمه شعبان']
-        ];
+        /* Annual holiday data is deliberately empty until a verified source is
+           bundled. Friday styling is separate from public-holiday assertions. */
+        var HOLIDAYS = [];
         function holidayName(jy, jm, jd) {
             for (var i = 0; i < HOLIDAYS.length; i++) {
                 var h = HOLIDAYS[i];
@@ -1421,57 +1411,6 @@
             /* the month view is owned by MTCalendar (mt-calendar.js) — a
                GPT-designed fully-Persian Jalali grid. This shim only keeps
                week/day views Persian while they are visible. */
-            var apply = function () {
-                if (!window.MTCalendar) return;
-                if (cal.classList.contains('mt-jmonth-active')) return;
-                /* week/day: Persian weekday letters + Jalali day numbers */
-                cal.querySelectorAll('.fc-day-header').forEach(function (th) {
-                    var en = (th.textContent || '').trim();
-                    var short = en.slice(0, 3);
-                    if (MT.GDAYS_SHORT[short] !== undefined) th.textContent = MT.GDAYS_SHORT[short];
-                    th.classList.toggle('fc-fri', th.textContent === 'ج');
-                });
-                cal.querySelectorAll('td[data-date]').forEach(function (cell) {
-                    var parts = (cell.getAttribute('data-date') || '').split('-');
-                    if (parts.length !== 3) return;
-                    var dt = new Date(+parts[0], +parts[1] - 1, +parts[2]);
-                    var numHolder = cell.querySelector('.fc-day-number');
-                    if (numHolder && !numHolder.dataset.mtJ) {
-                        var j0 = MT.toJalali(dt);
-                        numHolder.dataset.mtJ = '1';
-                        var g = numHolder.textContent.trim();
-                        numHolder.innerHTML = '<b class="mt-jday">' + MT.faNum(j0.jd) + '</b><small class="mt-gday">' + g + '</small>';
-                    }
-                    var jd = MT.toJalali(dt);
-                    var hol = MT.holidayName(jd.jy, jd.jm, jd.jd);
-                    cell.classList.toggle('mt-holiday', !!hol || dt.getDay() === 5);
-                    if (hol) { cell.setAttribute('title', hol); cell.classList.add('mt-has-name'); }
-                });
-                /* agenda week/day headers carry the date in fc-day classes —
-                   replace "Mon 10/5" with Persian weekday + Jalali date */
-                var view = null;
-                try { view = window.jQuery('#calendar_main').fullCalendar('getView'); } catch (e) {}
-                if (view && view.start) {
-                    cal.querySelectorAll('thead th').forEach(function (th) {
-                        var dayCls = (th.className || '').match(/fc-(sun|mon|tue|wed|thu|fri|sat)\b/);
-                        if (!dayCls) return;
-                        var col = (th.className || '').match(/fc-col(\d+)/);
-                        var d0 = new Date(view.start.getFullYear(), view.start.getMonth(),
-                            view.start.getDate() + (col ? +col[1] : 0), 12);
-                        var j = MT.toJalali(d0);
-                        /* JDAYS is Saturday-first; getDay() is Sunday-first */
-                        var label = MT.JDAYS[(d0.getDay() + 1) % 7] + ' ' + MT.faNum(j.jd) + ' ' + MT.JMONTHS[j.jm - 1];
-                        if (th.dataset.mtAg !== label) {
-                            th.dataset.mtAg = label;
-                            th.textContent = label;
-                        }
-                        th.classList.toggle('fc-fri', d0.getDay() === 5);
-                    });
-                }
-            };
-            apply();
-            setInterval(apply, 1500);
-
             /* stock iCal widget: Persian title is old and stiff — retitle
                and give the mixed-direction link a safe bidi wrap */
             var icalBox = document.getElementById('calendar_ical_links');
@@ -1528,7 +1467,7 @@
                 });
                 var miniRender = function (jy, jm) {
                     var grid = side.querySelector('.mt-calside-grid');
-                    var todayJ = MT.toJalali(new Date());
+                    var todayJ = MT.toJalali(window.MTCalendarCore.now());
                     var first = MT.toGregorian(jy, jm, 1);
                     var lead = (first.getDay() + 1) % 7; /* Saturday-first */
                     var len = 29;
@@ -1554,7 +1493,7 @@
                 selM.addEventListener('change', function () { jump(+selY.value, +selM.value, 1); });
                 selY.addEventListener('change', function () { jump(+selY.value, +selM.value, 1); });
                 side.querySelector('.mt-calside-today').addEventListener('click', function () {
-                    var t = MT.toJalali(new Date());
+                    var t = MT.toJalali(window.MTCalendarCore.now());
                     jump(t.jy, t.jm, t.jd);
                 });
                 /* keep the side panel in sync with the main view — driven
@@ -1562,7 +1501,7 @@
                 var syncSide = function () {
                     var cur = null;
                     try { cur = window.jQuery('#calendar_main').fullCalendar('getDate'); } catch (e) {}
-                    var j = cur ? MT.toJalali(cur) : MT.toJalali(new Date());
+                    var j = cur ? MT.toJalali(cur) : MT.toJalali(window.MTCalendarCore.now());
                     /* the main view can move outside 1395–1415 — extend the
                        selector so it always represents the current year */
                     if (!selY.querySelector('option[value="' + j.jy + '"]')) {
@@ -1598,7 +1537,8 @@
                 });
             }
         };
-        setTimeout(jalaliCalendar, 1500);
+        jalaliCalendar();
+        setTimeout(jalaliCalendar, 300);
 
         /* ---------- MyTel Jalali date picker (report date filters) ----------
            jQuery-UI datepicker ships Gregorian-only; the real input keeps the
