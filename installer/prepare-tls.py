@@ -88,6 +88,14 @@ def regular_file(path):
 def validate_pair(certificate, key, openssl):
     regular_file(certificate)
     regular_file(key)
+    key_bytes = key.read_bytes().strip()
+    accepted_headers = [b'-----BEGIN PRIVATE KEY-----', b'-----BEGIN RSA PRIVATE KEY-----',
+                        b'-----BEGIN EC PRIVATE KEY-----', b'-----BEGIN DSA PRIVATE KEY-----']
+    if (not any(key_bytes.startswith(header) for header in accepted_headers) or
+            re.search(rb'^Proc-Type:\s*4,ENCRYPTED\s*$', key_bytes, re.MULTILINE)):
+        # Even empty-passphrase encryption must not become a future Apache/FOP2
+        # password prompt. These services consume an unencrypted PEM private key.
+        raise ValueError('Encrypted or unsupported TLS private-key format refused')
     dates = run_command([openssl, 'x509', '-in', str(certificate), '-noout', '-startdate', '-enddate'])
     try:
         parsed = dict(line.split('=', 1) for line in dates.decode('ascii').splitlines())
