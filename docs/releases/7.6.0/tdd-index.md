@@ -23,6 +23,11 @@ tested bytes.
 | Missing first-boot credential adapter in archive | `ecd55e9` | `81ea87b`,actual archive payload comparison |
 | Desk pin/state/cache integration | `431c2fd`,`6243f01`,`4aa864f`,`13cb3c2`,`3bc5ed8` | `7a43190`,`b027398` |
 | Credential transport and exact verification | `3f9ec17`,`b51074b` | `5a1edf7`,actual Bash recording clients and native PHP adapter |
+| Trunk-based report direction and guarded integration | `cdf6f0a` | `b71adcc`,native SQL/metadata/nullable/collision/cache cases |
+| Separate report-only rollout | `72275b1` | `4a0b078`,6 scoped-policy cases |
+| Snapshot-derived report preparation | `8f2ac87`,`66b2f7a` | `3c2ff9e`,`9e4265d`,8 preservation/boundary cases |
+| Parent substitution, new-file clobber and rollback unlink | `37c6f9e` | `728ebbd`,5 native FD regressions plus51 prior cases |
+| Populated summary and hourly header obstruction | `28dfe42`,`cf38d6d` | `1a15880`,`10ed7f3`,typed wrappers and16 rendered states |
 
 The calendar harness initially required a mini calendar visible on mobile even
 though the intended compact layout hides it, and required scrolling even when all
@@ -47,9 +52,18 @@ php tests/ui/save-result.php admin-fixes/patch-submit.py
 php tests/ui/sip-save-transaction.php admin-fixes/sip-save-transaction.php
 php tests/ui/desk-launcher.php modules/mytellpbxopdesk/launcher-access.php
 php tests/ui/password-init.php installer/password-init.php
+php tests/ui/asternic-direction.php admin-fixes/asternic-direction.php
 ```
 
 Browser scripts under `tests/ui/` require authenticated access and appropriate
 write-blocking/interception fixtures. Do not run a generic crawler or submit
 configuration just to reproduce route coverage. Keep screenshots, native source
 snapshots and credentials outside Git.
+
+The Asternic fixture also accepts `--native-sql` only with explicit
+`MT_ASTERNIC_TEST_DIRECTORY` and `MT_ASTERNIC_TEST_MYSQL_SOCKET` paths inside an
+owned disposable MariaDB datadir. It verifies the socket and server datadir before
+creating synthetic tables. Never point tests at an operational database. The
+native release check used MariaDB 10.3.39 with a 256MiB cap, no TCP/default config
+and production paths inaccessible; the normal PHP invocation above checks the
+compiler/runtime boundaries without connecting to any database.

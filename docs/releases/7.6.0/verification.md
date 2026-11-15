@@ -53,7 +53,7 @@ blocked. Read-only sweeps never save PBX settings or originate calls.
 The Linux suite executes the actual Bash functions against owned disposable
 files/recording commands and tests the Python Desk adapter, source ownership,
 download integrity, cache permissions, resume guards and rollback policies.
-The final installer-source checkpoint passed 135 Python tests with zero skips,
+The installer-source checkpoint before the report extension passed 135 Python tests with zero skips,
 62 native PHP assertions and Bash syntax checks. The chart/calendar Node suite
 passed 16 tests; JavaScript syntax passed for 36 source and browser-test files.
 Bundle assembly runs with actual GNU tools and Git, including clean CRLF checkout
@@ -105,3 +105,48 @@ manifest before production writes. Final deployment observations and the public
 asset checksums belong to the external release receipt `release.json`, published
 with the release assets, so they can bind the final source without a hash cycle.
 Neither HTTP 200 nor service health alone is accepted as operational proof.
+
+## Added Asternic report scope
+
+The outgoing filter now uses configured trunk/channel or explicit Dial-target
+evidence. It is independent of dialed prefixes and Caller ID. Existing ACL,
+selection, date/disposition/BUSY filters and CDR-leg accounting remain intact.
+One shared predicate serves summary, combined, hourly distribution and drilldown;
+exports receive the same rendered report data. See
+[the direction contract](../../ASTERNIC_DIRECTION_FA.md).
+
+The exact helper passed 196 assertions against actual isolated MariaDB 10.3.39,
+including SIP/PJSIP/IAX2/DAHDI/Zap, safe static Custom/Local targets, prefixless,
+7/9/arbitrary/E.164 dial strings, failed/blank/null destination evidence,
+forwarding, internal/name collisions, SQL-literal safety and request-object cache
+identity. Live sites exposed SIP trunks; other technologies were synthetic
+fixtures, not new live-call claims. The private fixture uses an explicit private
+socket/datadir, no defaults/TCP and no access to the production database/PBX.
+
+A separate read-only candidate compiler used the installed catalog and indexed,
+bounded source data to confirm omitted outgoing records return under the same
+selection/business policies. It performed no CDR, route or trunk writes. A
+production reference host was read only; its customized module was not copied
+wholesale into the public source. Asternic is an optional manually installed
+module, not supplied by the base installer.
+
+Populated-state testing found overlapping headers hidden by empty/default-route
+coverage: 12-column Combined and 26-column hourly grids at 390px. Exact typed PHP
+table wrappers reuse the existing local-scroll style and preserve table order,
+handlers and export arrays. Sixteen rendered states passed text-ink/overflow
+checks, keyboard focus and contained arrow scrolling; the existing expanded
+nine-column detail table needed no additional markup. No theme/JS bytes changed.
+
+The native report-only rollout profile `asternic-trunk-direction-v760` permits
+exactly two report files and their classifier helper. It requires independent
+SQL/readonly-preview/PHP/source evidence, version/anchor checks, scoped private
+backups and exact-tree/manifest READY. A reproduced privileged filesystem escape
+was fixed using parent-directory descriptors, no-follow traversal, exclusive
+new-file creation and anchored rollback removal; five native regression cases
+and 51 existing rollout/profile checks passed, preserving mode/mtime/user xattrs.
+
+UI9 was independently approved/deployed before this later report request; the
+final release receipt records the separate report3 rollout and binds all current
+payloads to the final tag. The full combined-source counts and installed report
+observations are recorded in that receipt. No default-route sweep is represented
+as proof of every populated report or external business integration.
