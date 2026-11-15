@@ -22,7 +22,7 @@ class InstallerBundleTests(unittest.TestCase):
         paths=re.findall(r'^copy_path "([^"]+)"', (REPO/'scripts/build-installer-bundle.sh').read_text(),re.M)
         for name in set(paths+['VERSION','LICENSE','.gitattributes']):
             p=self.root/name;p.parent.mkdir(parents=True,exist_ok=True);p.write_bytes((REPO/name).read_bytes())
-        for name in ['installer/install-myteldesk.py','installer/myteldesk-release.json','modules/mytellpbxopdesk/launcher-access.php']:
+        for name in ['installer/install-myteldesk.py','installer/myteldesk-release.json','installer/password-init.php','modules/mytellpbxopdesk/launcher-access.php']:
             p=self.root/name;p.parent.mkdir(parents=True,exist_ok=True);p.write_bytes(b'fixture corresponding source: '+name.encode())
         (self.root/'.gitignore').write_text('.env\n*.tgz\n')
         self.env=dict(os.environ)
@@ -40,7 +40,7 @@ class InstallerBundleTests(unittest.TestCase):
         result,archive,prefix=self.build();self.assertEqual(result.returncode,0,result.stdout)
         with tarfile.open(archive) as tar:
             names=set(tar.getnames())
-            for name in ['installer/install-myteldesk.py','installer/myteldesk-release.json','modules/mytellpbxopdesk/index.php','modules/mytellpbxopdesk/launcher-access.php','LICENSE']:
+            for name in ['installer/install-myteldesk.py','installer/myteldesk-release.json','installer/password-init.php','modules/mytellpbxopdesk/index.php','modules/mytellpbxopdesk/launcher-access.php','LICENSE']:
                 with self.subTest(name=name):
                     self.assertIn(prefix+name,names)
                     if prefix+name in names:self.assertEqual(tar.extractfile(prefix+name).read(),(self.root/name).read_bytes())
