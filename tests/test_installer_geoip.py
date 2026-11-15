@@ -104,6 +104,7 @@ class GeoipTests(unittest.TestCase):
             self.assertIn('--connect-timeout', argv)
             self.assertNotIn('-k', argv)
             self.assertLessEqual(kwargs['timeout'], 100)
+            self.assertEqual(kwargs.get('stdin'), subprocess.DEVNULL)
             Path(argv[argv.index('--output') + 1]).write_bytes(gzip.compress(CSV.encode()))
             return mock.Mock(returncode=0, stdout='200', stderr='')
         output = self.base / 'download.gz'
