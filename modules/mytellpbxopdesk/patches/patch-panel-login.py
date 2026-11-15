@@ -20,7 +20,7 @@ client-IP|login pair) with the native endpoint.
 Frontend: explicit account-source toggle on the login card («حساب پنل»
 default vs «حساب میز کار»); each posts to its own endpoint, never both.
 
-Usage (root on 192.168.8.171):   python3 patch-panel-login.py [--skip-build]
+Usage (root on your existing PBX):   python3 patch-panel-login.py [--skip-build]
 Idempotent; one-time .bak-mt backups; nonzero exit on unexpected anchors.
 """
 import argparse

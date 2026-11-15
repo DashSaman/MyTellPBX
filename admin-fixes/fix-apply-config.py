@@ -5,7 +5,7 @@ Symptoms fixed:
   - clicking «انجام تغییرات» (Apply Config) left the red bar on top forever
     and never showed a success message.
 
-Root causes (all three verified live on 192.168.8.171):
+Root causes (all three verified on the reviewed installed PBX):
   1) modules/dashboard/page.index.php injected $.ajaxSetup({timeout:10000})
      GLOBALLY. The reload POST (handler=reload) legitimately takes 8-15s, so
      jQuery aborted it at exactly 10s (status=0) — success never ran.
