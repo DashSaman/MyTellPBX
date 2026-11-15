@@ -601,6 +601,15 @@ stage_packages1() {
     mark_stage packages1
 }
 
+stage_tls() {
+    stage_done tls && return 0
+    step "آماده‌سازی گواهی MyTellPBX برای سرویس‌های وب"
+    [ -f "${BUNDLE_DIR}/installer/prepare-tls.py" ] || die "TLS preparation helper missing from bundle"
+    run_logged "${PY_BIN}" -B "${BUNDLE_DIR}/installer/prepare-tls.py" \
+        || die "TLS pair preparation failed; existing certificates retained (see ${LOG})"
+    mark_stage tls
+}
+
 stage_packages2() {
     stage_done packages2 && return 0
     step "نصب ماژول‌های مرکز تماس"
@@ -1155,6 +1164,16 @@ PHP
 
 # The separate product owns its runtime, database, accounts and reversible
 # service activation. Do not run old /opt/opdesk patchers over its release.
+stage_geoip() {
+    stage_done geoip && return 0
+    step "نصب و اعتبارسنجی خودکار پایگاه دادهٔ کشورها (بدون نیاز به کلید)"
+    [ -f "${BUNDLE_DIR}/installer/geoip-update.py" ] || die "GeoIP updater missing from bundle"
+    "${PY_BIN}" -B "${BUNDLE_DIR}/installer/geoip-update.py" --install \
+        --status-module "${BUNDLE_DIR}/modules/mytellpbxgeoip/index.php" 2>&1 | tee -a "${LOG}" \
+        || die "country database verification failed; review the reported stage"
+    mark_stage geoip
+}
+
 stage_myteldesk() {
     step "نصب و بررسی میز کار اپراتور و تحلیل گفتار خودکار"
     [ -f "${BUNDLE_DIR}/installer/install-myteldesk.py" ] || die "pinned Desk installer missing from bundle"
@@ -1269,10 +1288,12 @@ main() {
     stage_repos
     stage_update
     stage_packages1
+    stage_tls
     stage_packages2
     stage_post_base
     stage_framework_init
     stage_mytel_layer
+    stage_geoip
     stage_myteldesk
     stage_selfcheck
     finish

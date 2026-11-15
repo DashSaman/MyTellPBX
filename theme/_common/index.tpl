@@ -164,6 +164,9 @@
             </a>
             <span class="mt-footer-sep">&bull;</span>
             <span>{$BRAND_TAGLINE}</span>
+            {if $smarty.get.menu eq 'sec_geoip_map' || $smarty.get.menu eq 'sec_geoip_key' || $smarty.get.menu eq 'sec_advanced_settings' || $smarty.get.menu eq 'sec_firewall_rules'}
+            <span class="mt-footer-geoip">IP country data: <a href="https://db-ip.com" target="_blank" rel="noopener noreferrer">DB-IP</a> (<a href="https://creativecommons.org/licenses/by/4.0/" target="_blank" rel="noopener noreferrer">CC BY 4.0</a>)</span>
+            {/if}
             <span class="mt-footer-year">&copy; {$currentyear}</span>
         </footer>
 
