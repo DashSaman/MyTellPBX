@@ -32,9 +32,13 @@ server or an exact-source interrupted installation, not an arbitrary PBX updater
 | Scoped root workspace | `tests/test_installer_workspace.py` | Bundle copy/download/extraction stay in a fresh private workspace; ownership, mode, path and symlink checks precede writes; cleanup is scoped |
 | Native panel launcher | `tests/ui/desk-launcher.php` | Administrator-only fixed local redirect, explicit guest/denial/unavailable states, read-only ACL handle and parameterized identity lookup; no implicit shared-admin login |
 
-The first local implementation run passed all sixteen helper/stage tests. Final
-Linux/PHP results and coverage are recorded in the release verification report;
-this initial checkpoint does not claim completion of those pending checks.
+GREEN executed against frozen Git tree `4cf2b0499821c82ac7c79e0197121493b431e6a2`:
+Python3.6 passed118/118 with0skips, including the six actual POSIX workspace cases;
+PHP7.4 passed54 checks, including fourteen new launcher/readonly-SQLite cases.
+The Linux runner was UID65534 with loopback-only networking and PBX/application/
+database paths inaccessible. These are isolated fixture checks, not production
+mutation or a whole-OS installation. The private source/archive/evidence hashes
+are retained by the independent verification lane.
 
 ## Operational scope
 

@@ -1,16 +1,17 @@
 #!/bin/bash
 # ==========================================================================
 # MyTellPBX one-line installer for Rocky Linux 8.10 (x86_64)
-# Version: 7.4.0
+# Version: 7.6.0
 #
 # Installs the complete MyTellPBX contact-center platform:
 #   - telephony base (Asterisk 20, MariaDB, Apache, PHP 7.4, framework)
 #   - the MyTellPBX Persian RTL theme for the panel and admin console
 #   - full MyTel branding, dark/light themes, Persian language
+#   - pinned MytelDesk 1.1.0 with automatic verified CPU VAD
 #
 # Quick start (download, review, run — never pipe straight into bash):
 #   curl -fsSL -o install-mytellpbx.sh \
-#     https://github.com/DashSaman/MyTellPBX/releases/download/v7.4.0/install-mytellpbx.sh
+#     https://github.com/DashSaman/MyTellPBX/releases/download/v7.6.0/install-mytellpbx.sh
 #   bash install-mytellpbx.sh
 #
 # Environment overrides (all optional):
@@ -21,6 +22,8 @@
 #                          A-Z a-z 0-9 space . @ = _ ! - ; generated if unset).
 #   MYTELL_ADMIN_PASS      Predefined panel admin password (same rules).
 #   MYTELL_SKIP_UPDATE     1 = skip the initial OS update step.
+#   MYTELL_DESK_PUBLIC_URL HTTPS origin for the desk (optional; defaults to
+#                          the server address, preserves an owned Desk URL).
 #   MYTELL_BUNDLE_URL      Internal/test override of the bundle download URL.
 #   MYTELL_BUNDLE_FILE     Internal/test path to a pre-downloaded bundle
 #                          (skips the network checks for offline lab runs).
@@ -38,21 +41,24 @@
 set -u
 set -o pipefail
 
-MYTELLPBX_VERSION="7.5.1"
-MYTELLPBX_BUNDLE="mytelpbx-bundle-7.5.1.tgz"
+MYTELLPBX_VERSION="7.6.0"
+MYTELLPBX_BUNDLE="mytelpbx-bundle-7.6.0.tgz"
 # Expected SHA-256 of the bundle asset (filled in by the release builder).
-MYTELLPBX_BUNDLE_SHA256="9ce31339bd7ca9f0eb69998d5237b5e6861e5039760173ae9dbca214e8a9eb35"
+MYTELLPBX_BUNDLE_SHA256="RELEASE_BUNDLE_SHA256_PENDING"
 MYTELLPBX_GITHUB="https://github.com/DashSaman/MyTellPBX"
-MYTELLPBX_RELEASE_TAG="v7.5.1"
+MYTELLPBX_RELEASE_TAG="v7.6.0"
 MYTELLPBX_BUNDLE_URL="${MYTELL_BUNDLE_URL:-${MYTELLPBX_GITHUB}/releases/download/${MYTELLPBX_RELEASE_TAG}/${MYTELLPBX_BUNDLE}}"
 
 LOG="/var/log/mytelpbx-install.log"
 STATE_DIR="/var/lib/mytelpbx-installer"
 LOCK_FILE="/var/run/mytelpbx-install.lock"
 CRED_FILE="/root/mytelpbx-credentials.txt"
-BUNDLE_TMP="/tmp/${MYTELLPBX_BUNDLE}.part"
-BUNDLE_FINAL="/tmp/${MYTELLPBX_BUNDLE}"
-BUNDLE_ROOT="/tmp/mytelpbx-bundle"
+WORK_DIR=""
+WORK_DIR_OWNED=""
+WORK_DIR_FINGERPRINT=""
+BUNDLE_TMP=""
+BUNDLE_FINAL=""
+BUNDLE_ROOT=""
 BUNDLE_DIR=""
 
 ASTVER="${MYTELL_ASTVER:-20}"
@@ -106,6 +112,94 @@ valid_password() {
     return 0
 }
 
+# A base-OS installer is not a general PBX updater. A directory or old stage
+# marker alone is not ownership. Resume only the exact version and bundle that
+# established this root-private source receipt before any package/secret work.
+guard_install_source() {
+    [ ! -L "${STATE_DIR}" ] || die "installer state symlink refused"
+    [ -e "${STATE_DIR}" ] || return 0
+    [ -d "${STATE_DIR}" ] || die "unknown installer state path"
+    [ "$(stat -c '%u' -- "${STATE_DIR}")" = "0" ] && [ "$(stat -c '%a' -- "${STATE_DIR}")" = "700" ] \
+        || die "installer state must be root-owned and private"
+    if [ ! -e "${STATE_DIR}/source.json" ] && [ ! -L "${STATE_DIR}/source.json" ]; then
+        # A process may stop between mkdir and its first atomic receipt. Recover
+        # only an empty private directory on a positively inventoried fresh OS.
+        [ -z "$(find "${STATE_DIR}" -mindepth 1 -maxdepth 1 -print -quit)" ] \
+            || die "unknown/legacy installer state; use reviewed UI maintenance, not the fresh-system installer"
+        require_fresh_base
+        return 0
+    fi
+    [ -f "${STATE_DIR}/source.json" ] && [ ! -L "${STATE_DIR}/source.json" ] || die "invalid installer source receipt"
+    [ "$(stat -c '%u' -- "${STATE_DIR}/source.json")" = "0" ] && [ "$(stat -c '%a' -- "${STATE_DIR}/source.json")" = "600" ] \
+        || die "installer source receipt must be root-owned and private"
+    "${PY_BIN}" -B - "${STATE_DIR}/source.json" "${MYTELLPBX_VERSION}" "${MYTELLPBX_BUNDLE_SHA256}" <<'PY' \
+        || die "different or invalid installer source; use reviewed UI maintenance instead of an OS upgrade"
+import json, re, sys
+try:
+    with open(sys.argv[1], encoding='utf-8') as source: value = json.load(source)
+    expected = dict(owner='MyTellPBX', schema=1, version=sys.argv[2], bundle_sha256=sys.argv[3])
+    valid = value == expected and type(value.get('schema')) is int and re.fullmatch('[0-9a-f]{64}', sys.argv[3]) is not None
+except (OSError, ValueError): valid = False
+if not valid: raise SystemExit(1)
+PY
+}
+
+require_fresh_base() {
+    local package status
+    for package in issabel httpd mariadb-server asterisk20 elastix; do
+        if rpm --quiet -q "${package}"; then
+            die "existing PBX packages detected; use reviewed maintenance instead of the fresh-system installer"
+        else
+            status=$?
+            [ "${status}" = "1" ] || die "cannot establish fresh-system package inventory"
+        fi
+    done
+}
+
+write_install_source() {
+    if [ -e "${STATE_DIR}/source.json" ]; then guard_install_source; return; fi
+    "${PY_BIN}" -B - "${STATE_DIR}" "${MYTELLPBX_VERSION}" "${MYTELLPBX_BUNDLE_SHA256}" <<'PY' \
+        || die "cannot establish private installer source receipt"
+import json, os, pathlib, re, sys, tempfile
+root = pathlib.Path(sys.argv[1])
+if root.is_symlink() or not root.is_dir() or list(root.iterdir()): raise SystemExit('Refusing nonempty unknown installer state')
+if not re.fullmatch('[0-9a-f]{64}', sys.argv[3]): raise SystemExit('Release bundle checksum has not been finalized')
+fd, name = tempfile.mkstemp(prefix='.source-', dir=str(root))
+try:
+    with os.fdopen(fd, 'w', encoding='utf-8') as out:
+        json.dump(dict(owner='MyTellPBX', schema=1, version=sys.argv[2], bundle_sha256=sys.argv[3]), out, sort_keys=True)
+        out.write('\n'); out.flush(); os.fsync(out.fileno())
+    os.chmod(name, 0o600); os.replace(name, str(root / 'source.json'))
+finally:
+    if os.path.exists(name): os.unlink(name)
+PY
+}
+
+check_network_prerequisites() {
+    # An offline bundle or already completed base package stages must not be
+    # rejected merely because an unrelated legacy mirror is unavailable.
+    [ -z "${MYTELL_BUNDLE_FILE:-}" ] || return 0
+    if [ ! -f "${BUNDLE_FINAL}" ]; then
+        curl -fsS --max-time 30 -o /dev/null "${MYTELLPBX_GITHUB}" \
+            || die "cannot reach github.com (DNS/TLS)"
+        local http_code
+        http_code=$(curl -fsSL --max-time 60 -o /dev/null -w '%{http_code}' -r 0-0 \
+            "${MYTELLPBX_BUNDLE_URL}" 2>>"$LOG" || echo 000)
+        [ "${http_code}" = "206" ] || [ "${http_code}" = "200" ] \
+            || die "release bundle not reachable (HTTP ${http_code})"
+    fi
+    if ! stage_done packages1 || ! stage_done packages2; then
+        curl -fsS --max-time 30 -o /dev/null \
+            "http://mirror.issabel.org/?release=5&arch=x86_64&repo=base" \
+            || die "telephony base repository mirror unreachable"
+    fi
+    if ! stage_done repos; then
+        curl -fsSI --max-time 30 -o /dev/null \
+            "https://rpms.remirepo.net/enterprise/remi-release-8.rpm" \
+            || die "php module repository unreachable"
+    fi
+}
+
 # --------------------------------------------------------------------------
 # Preflight
 # --------------------------------------------------------------------------
@@ -113,6 +207,13 @@ preflight() {
     step "بررسی پیش‌نیازها"
 
     [ "$(id -u)" -eq 0 ] || die "root required"
+
+    if command -v python3 >/dev/null 2>&1; then PY_BIN="$(command -v python3)"
+    elif [ -x /usr/libexec/platform-python ]; then PY_BIN="/usr/libexec/platform-python"
+    else die "python3 not available"; fi
+    "${PY_BIN}" -B -c 'import sys; raise SystemExit(0 if sys.version_info >= (3,6) else 1)' \
+        || die "python >= 3.6 required"
+    guard_install_source
 
     # Exact platform: Rocky Linux 8.10 x86_64
     grep -q "Rocky Linux release 8.10" /etc/redhat-release \
@@ -141,11 +242,7 @@ preflight() {
 
     # Fresh-server guard: refuse an unrelated pre-existing PBX install
     if [ ! -d "${STATE_DIR}" ]; then
-        local conflicting=0 p
-        for p in issabel httpd mariadb-server asterisk20 elastix; do
-            rpm --quiet -q "$p" && conflicting=1
-        done
-        [ "${conflicting}" = "0" ] || die "existing PBX packages detected; this installer targets a fresh Rocky 8.10 system"
+        require_fresh_base
     fi
 
     # Tools required by the installer itself
@@ -163,25 +260,7 @@ preflight() {
         || die "python >= 3.6 required for theme patchers"
     command -v flock >/dev/null 2>&1 || die "flock not found"
 
-    # Network: DNS + TLS to GitHub and exact bundle asset availability
-    # (skipped when an internal local bundle file is provided)
-    if [ -z "${MYTELL_BUNDLE_FILE:-}" ]; then
-        curl -fsS --max-time 30 -o /dev/null "${MYTELLPBX_GITHUB}" \
-            || die "cannot reach github.com (DNS/TLS)"
-        local http_code
-        http_code=$(curl -fsSL --max-time 60 -o /dev/null -w '%{http_code}' -r 0-0 \
-            "${MYTELLPBX_BUNDLE_URL}" 2>>"$LOG" || echo 000)
-        [ "${http_code}" = "206" ] || [ "${http_code}" = "200" ] \
-            || die "release bundle not reachable (HTTP ${http_code}): ${MYTELLPBX_BUNDLE_URL}"
-    fi
-
-    # Telephony repo metadata + php module repository availability
-    curl -fsS --max-time 30 -o /dev/null \
-        "http://mirror.issabel.org/?release=5&arch=x86_64&repo=base" \
-        || die "telephony base repository mirror unreachable"
-    curl -fsSI --max-time 30 -o /dev/null \
-        "https://rpms.remirepo.net/enterprise/remi-release-8.rpm" \
-        || die "php module repository unreachable"
+    check_network_prerequisites
 
     say "پیش‌نیازها تأیید شد"
 }
@@ -191,10 +270,58 @@ acquire_lock() {
     flock -n 9 || die "another installer run holds ${LOCK_FILE}"
 }
 
+check_workspace() {
+    [ -n "${WORK_DIR}" ] && [ -d "${WORK_DIR}" ] && [ ! -L "${WORK_DIR}" ] \
+        || die "private installer workspace missing or symlinked"
+    [ "$(cd -- "${WORK_DIR}" && pwd -P)" = "${WORK_DIR}" ] \
+        || die "installer workspace is not a canonical absolute directory"
+    [ "$(stat -c '%u' -- "${WORK_DIR}")" = "0" ] && [ "$(stat -c '%a' -- "${WORK_DIR}")" = "700" ] \
+        || die "installer workspace must be root-owned and private"
+    local path relative
+    for path in "${BUNDLE_TMP}" "${BUNDLE_FINAL}" "${BUNDLE_ROOT}"; do
+        case "${path}" in "${WORK_DIR}/"*) ;; *) die "bundle path outside private workspace";; esac
+        relative="${path#"${WORK_DIR}/"}"
+        case "${relative}" in ''|.|..|*/*) die "bundle path must be a direct workspace child";; esac
+        [ ! -L "${path}" ] || die "bundle path symlink refused"
+        if [ -e "${path}" ]; then
+            [ "$(stat -c '%u' -- "${path}")" = "0" ] || die "bundle path has unsafe ownership"
+            if [ "${path}" = "${BUNDLE_ROOT}" ]; then
+                [ -d "${path}" ] || die "bundle extraction path has unexpected type"
+            else
+                [ -f "${path}" ] || die "bundle download path has unexpected type"
+            fi
+        fi
+    done
+}
+
+cleanup_workspace() {
+    [ -n "${WORK_DIR_OWNED}" ] || return 0
+    # Never remove a substituted directory, symlink, or an operator's path.
+    if [ -d "${WORK_DIR_OWNED}" ] && [ ! -L "${WORK_DIR_OWNED}" ] \
+        && [ "$(stat -c '%d:%i:%u:%a' -- "${WORK_DIR_OWNED}")" = "${WORK_DIR_FINGERPRINT}" ]; then
+        rm -rf -- "${WORK_DIR_OWNED}"
+    else
+        warn "private workspace changed; automatic cleanup skipped"
+    fi
+}
+
+initialize_workspace() {
+    [ -z "${WORK_DIR_OWNED}" ] || die "installer workspace already initialized"
+    WORK_DIR=$(umask 077; mktemp -d /tmp/mytelpbx-install.XXXXXXXX) || die "cannot create private installer workspace"
+    BUNDLE_TMP="${WORK_DIR}/${MYTELLPBX_BUNDLE}.part"
+    BUNDLE_FINAL="${WORK_DIR}/${MYTELLPBX_BUNDLE}"
+    BUNDLE_ROOT="${WORK_DIR}/bundle"
+    check_workspace
+    readonly WORK_DIR_OWNED="${WORK_DIR}"
+    readonly WORK_DIR_FINGERPRINT="$(stat -c '%d:%i:%u:%a' -- "${WORK_DIR}")"
+    trap cleanup_workspace EXIT
+}
+
 # --------------------------------------------------------------------------
 # Bundle download + verification (before any system mutation)
 # --------------------------------------------------------------------------
 verify_bundle() {
+    check_workspace
     # Internal/test affordance: a pre-downloaded bundle file skips the network
     if [ -n "${MYTELL_BUNDLE_FILE:-}" ]; then
         [ -f "${MYTELL_BUNDLE_FILE}" ] || die "MYTELL_BUNDLE_FILE not found: ${MYTELL_BUNDLE_FILE}"
@@ -660,7 +787,7 @@ PHP
 }
 
 stage_mytel_layer() {
-    stage_done mytel_layer && return 0
+    stage_done "mytel_layer-${MYTELLPBX_VERSION}" && return 0
     step "نصب قالب و برندسازی مای‌تل"
 
     # credentials must be in scope on resumed runs too (framework stage skipped)
@@ -765,7 +892,21 @@ PHP
     systemctl enable httpd >>"$LOG" 2>&1 || true
     systemctl restart httpd >>"$LOG" 2>&1 || die "httpd restart failed"
 
-    mark_stage mytel_layer
+    mark_stage "mytel_layer-${MYTELLPBX_VERSION}"
+}
+
+# The separate product owns its runtime, database, accounts and reversible
+# service activation. Do not run old /opt/opdesk patchers over its release.
+stage_myteldesk() {
+    step "نصب و بررسی میز کار اپراتور و تحلیل گفتار خودکار"
+    [ -f "${BUNDLE_DIR}/installer/install-myteldesk.py" ] || die "pinned Desk installer missing from bundle"
+    local args=(--cache-root "${STATE_DIR}/cache/myteldesk" --launcher-source "${BUNDLE_DIR}/modules/mytellpbxopdesk" --web-root "${WEB_ROOT}")
+    [ -z "${MYTELL_DESK_PUBLIC_URL:-}" ] || args+=(--public-url "${MYTELL_DESK_PUBLIC_URL}")
+    # Keep real upstream stages visible. pipefail preserves a failed installer
+    # exit instead of treating tee's successful log write as installation success.
+    "${PY_BIN}" -B "${BUNDLE_DIR}/installer/install-myteldesk.py" "${args[@]}" 2>&1 | tee -a "${LOG}" \
+        || die "MytelDesk/CPU VAD verification failed; existing data retained, review the reported stage"
+    mark_stage myteldesk
 }
 
 # --------------------------------------------------------------------------
@@ -787,6 +928,7 @@ stage_selfcheck() {
 
     systemctl is-active --quiet mariadb || die "self-check: mariadb not active"
     systemctl is-active --quiet httpd   || die "self-check: httpd not active"
+    /usr/local/sbin/myteldesk doctor || die "self-check: MytelDesk or CPU voice analysis not ready"
     sleep 8
     systemctl is-active --quiet asterisk || warn "asterisk unit not active yet (may start on first config load)"
 
@@ -818,6 +960,8 @@ finish() {
     echo "=============================================================="
     echo "   نشانی پنل:      https://${ip}/"
     echo "   نام کاربری:     admin"
+    echo "   میز کار:        https://${ip}/MytellDesk/ (ورود با حساب پنل)"
+    echo "   مدیر محلی میز کار: /etc/myteldesk/initial-admin.txt (فقط root)"
     if [ -t 1 ]; then
         echo "   رمز پنل:        ${ADMIN_PASS}"
         echo "   رمز MariaDB:    ${MYSQL_ROOT_PASS}"
@@ -850,7 +994,10 @@ main() {
     # the state directory must not exist yet when preflight runs
     preflight
     mkdir -p "${STATE_DIR}"
+    chmod 700 "${STATE_DIR}"
     acquire_lock
+    write_install_source
+    initialize_workspace
 
     # Truncate only AFTER the lock is ours (a refused run must not clobber
     # the active run's log).
@@ -867,6 +1014,7 @@ main() {
     stage_post_base
     stage_framework_init
     stage_mytel_layer
+    stage_myteldesk
     stage_selfcheck
     finish
 }

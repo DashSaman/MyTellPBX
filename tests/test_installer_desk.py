@@ -140,20 +140,22 @@ class DeskHelperTests(unittest.TestCase):
                                     standalone_state=self.base / 'absent')
         self.assertEqual(len(calls), 1)
 
+    @unittest.skipUnless(os.name == 'posix', 'Native descriptor-relative POSIX installation')
     def test_launcher_installs_complete_new_files_without_rewriting_owned_content(self):
-        source = self.base / 'source'; source.mkdir(); target = self.base / 'web/modules/mytellpbxopdesk'
+        source = self.base / 'source'; source.mkdir(); (self.base / 'web').mkdir(); target = self.base / 'web/modules/mytellpbxopdesk'
         for name in ['index.php', 'launcher-access.php']: (source / name).write_text('<?php // ' + name)
-        self.module.install_launcher(source, self.base / 'web')
+        self.module.install_launcher(source, self.base / 'web', expected_uid=os.geteuid())
         self.assertEqual((target / 'index.php').read_bytes(), (source / 'index.php').read_bytes())
         stamp = (target / 'index.php').stat().st_mtime_ns
-        self.module.install_launcher(source, self.base / 'web')
+        self.module.install_launcher(source, self.base / 'web', expected_uid=os.geteuid())
         self.assertEqual((target / 'index.php').stat().st_mtime_ns, stamp)
 
+    @unittest.skipUnless(os.name == 'posix', 'Native descriptor-relative POSIX installation')
     def test_unknown_launcher_edits_are_preserved_before_any_partial_install(self):
         source = self.base / 'source'; source.mkdir(); target = self.base / 'web/modules/mytellpbxopdesk'; target.mkdir(parents=True)
         for name in ['index.php', 'launcher-access.php']: (source / name).write_text('<?php // reviewed ' + name)
         (target / 'index.php').write_text('operator customization')
-        with self.assertRaises(ValueError): self.module.install_launcher(source, self.base / 'web')
+        with self.assertRaises(ValueError): self.module.install_launcher(source, self.base / 'web', expected_uid=os.geteuid())
         self.assertEqual((target / 'index.php').read_text(), 'operator customization')
         self.assertFalse((target / 'launcher-access.php').exists())
 
