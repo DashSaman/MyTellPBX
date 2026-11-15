@@ -33,14 +33,31 @@ async function check(name,width,theme,fn){try{await fn();result.checks.push({nam
    const groups=p.locator('.navbar-start > .navbar-item.has-dropdown');assert(await groups.count()>0);
    for(let i=0;i<await groups.count();i++){
     const group=groups.nth(i),link=group.locator(':scope > .navbar-link');await link.focus();const menu=group.locator(':scope > .navbar-dropdown');
-    assert(await link.evaluate(el=>document.activeElement===el),'Native menu group is absent from keyboard focus');
+    const focus=await link.evaluate(el=>({active:document.activeElement===el,tabIndex:el.tabIndex,attribute:el.getAttribute('tabindex'),tag:el.tagName,disabled:el.getAttribute('aria-disabled'),onfocus:el.getAttribute('onfocus'),inert:!!el.closest('[inert]'),display:getComputedStyle(el).display,width:el.getBoundingClientRect().width,activeTag:document.activeElement.tagName,activeId:document.activeElement.id}));
+    assert(focus.active,'Native menu group is absent from keyboard focus: '+JSON.stringify(focus));
     assert(await menu.isVisible(),'Keyboard focus did not reveal a native menu');
     const r=await menu.boundingBox();assert(r.x>=0&&r.x+r.width<=width,'Native menu is clipped by viewport at '+r.x.toFixed(1)+' width '+r.width.toFixed(1));
+    await p.keyboard.press('Tab');
+    const child=await menu.evaluate(el=>{const active=document.activeElement,s=getComputedStyle(active);return {inside:el.contains(active),link:active.matches('a[href]'),outline:s.outlineStyle,width:parseFloat(s.outlineWidth)};});
+    assert(child.inside&&child.link,'Tab did not reach a native menu option');assert.notEqual(child.outline,'none');assert(child.width>=2);
+    assert(Math.abs((await menu.boundingBox()).x-r.x)<1,'Repeated focus compounded the menu translation');
    }
   });
   if(width>=1024)await check('pointer-open native menus stay entirely inside the viewport',width,theme,async()=>{
    const groups=p.locator('.navbar-start > .navbar-item.has-dropdown');assert(await groups.count()>0);
    for(let i=0;i<await groups.count();i++){const group=groups.nth(i);await group.locator(':scope > .navbar-link').hover();const menu=group.locator(':scope > .navbar-dropdown');assert(await menu.isVisible());const r=await menu.boundingBox();assert(r.x>=0&&r.x+r.width<=width,'Pointer menu is clipped at '+r.x.toFixed(1)+' width '+r.width.toFixed(1));}
+  });
+  if(width>=1024)await check('menu fitting preserves native vertical transforms and resets only its own offset on resize',width,theme,async()=>{
+   const group=p.locator('.navbar-start > .navbar-item.has-dropdown').last(),menu=group.locator(':scope > .navbar-dropdown'),heading=group.locator(':scope > .navbar-link');
+   await menu.evaluate(el=>{el.style.setProperty('transform','translateY(3px)','important');el.setAttribute('data-mt-preserve-fixture','');});
+   await p.addStyleTag({content:'.navbar-dropdown[data-mt-preserve-fixture]{translate:0px 2px;}'});
+   await heading.hover();await heading.focus();
+   const before=await menu.boundingBox();
+   const native=()=>menu.evaluate(el=>({vertical:new DOMMatrixReadOnly(getComputedStyle(el).transform).m42,inlineTransform:el.style.transform,priority:el.style.getPropertyPriority('transform'),translateY:parseFloat(getComputedStyle(el).translate.split(/\s+/)[1]),fitted:el.classList.contains('mt-native-menu-fit'),offset:el.style.getPropertyValue('--mt-menu-shift')}));
+   let m=await native();assert.equal(m.vertical,3,'Fitting changed the desktop vertical transform');assert.equal(m.translateY,2,'Fitting changed the native translate Y');assert(before.x>=0&&before.x+before.width<=width);
+   await p.setViewportSize({width:1023,height:1000});await p.waitForTimeout(60);m=await native();result.transformProbes=result.transformProbes||[];result.transformProbes.push({width,theme,mobile:m});assert.equal(m.inlineTransform,'translateY(3px)','Clearing the fit changed the native inline transform');assert.equal(m.priority,'important');assert.equal(m.translateY,2);assert.equal(m.fitted,false);assert.equal(m.offset,'');
+   await p.setViewportSize({width,height:1000});await heading.hover();await heading.focus();
+   const after=await menu.boundingBox();assert(Math.abs(after.x-before.x)<1,'Resize compounded the native menu offset');m=await native();assert.equal(m.vertical,3,'Resize changed the native transform');assert.equal(m.translateY,2);
   });
   await p.screenshot({path:path.join(out,'report-'+width+'-'+theme+'.png'),fullPage:false,animations:'disabled',mask:[p.locator('input[type=text],input[type=password],textarea')],maskColor:'#7a8899'});
   await p.goto(origin+'/admin/config.php?display=vmblast',{waitUntil:'domcontentloaded'});await p.locator('.chosen-container-multi .chosen-search-input').waitFor();
