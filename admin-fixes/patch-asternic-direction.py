@@ -88,6 +88,28 @@ def transform_report_tables(text):
     return text
 
 
+def transform_hour_tables(text):
+    start = 'function asternic_distribution($appconfig) {'
+    end = 'function inbound_outbound($type,$appconfig) {'
+    if text.count(start) != 1 or text.count(end) != 1:
+        raise ValueError('Unknown Asternic hour grid region')
+    before, tail = text.split(start, 1)
+    section, after = tail.split(end, 1)
+    opener = 'echo "<table>\\n<thead>";'
+    scroll = ('echo "<div class=\'mt-admin-table-scroll mt-cdr-hour-scroll\' tabindex=\'0\' role=\'region\' '
+              'aria-label=\'جدول توزیع ساعتی تماس‌ها\' data-mt-cdr-columns=\'26\'><table style=\'min-width: 1040px; table-layout: auto;\'>\\n<thead>";')
+    if 'mt-cdr-hour-scroll' not in section:
+        section = replace_exact(section, opener, scroll, 2)
+        section = replace_exact(section, 'echo "</tbody></table>";', 'echo "</tbody></table></div>";', 1)
+        section = replace_exact(section, 'echo "</table>";', 'echo "</table></div>";', 1)
+    elif section.count(scroll) != 2 or section.count('echo "</tbody></table></div>";') != 1 or section.count('echo "</table></div>";') != 1:
+        raise ValueError('Unknown existing Asternic hour grid markup')
+    headers = re.findall(re.escape(scroll) + r'(.*?)</thead><tbody>', section, re.IGNORECASE | re.DOTALL)
+    if len(headers) != 2 or any(header.count('colspan=25') != 1 or header.count('for ($hour=0;$hour<24;$hour++)') != 1 for header in headers):
+        raise ValueError('Asternic hour grid column contract changed')
+    return before + start + section + end + after
+
+
 def transform_page(text):
     newline = '\r\n' if '\r\n' in text else '\n'
     text = text.replace('\r\n', '\n')
@@ -113,6 +135,7 @@ def transform_page(text):
     for old, new in DIRECTION_COMMENTS.items():
         text = text.replace(old, new)
     text = transform_report_tables(text)
+    text = transform_hour_tables(text)
     validate_result(text, expected)
     return text.replace('\n', newline)
 
