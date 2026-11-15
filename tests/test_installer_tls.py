@@ -92,6 +92,15 @@ class TLSPreparationTests(unittest.TestCase):
         with self.assertRaises(ValueError):
             self.prepare()
 
+        self.assertEqual(self.cert.read_bytes(), b'not a certificate\n')
+        self.make_pair()
+        encrypted = self.root / 'encrypted.key'
+        subprocess.check_call([OPENSSL, 'pkey', '-in', str(self.key), '-aes256', '-passout', 'pass:fixture-only', '-out', str(encrypted)],
+                              stdin=subprocess.DEVNULL, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+        self.key.write_bytes(encrypted.read_bytes())
+        with self.assertRaises(ValueError):
+            self.prepare()
+
     def test_empty_passphrase_encrypted_pkcs8_key_is_refused_and_preserved(self):
         self.make_pair()
         encrypted = self.root / 'empty-passphrase.key'
@@ -103,14 +112,6 @@ class TLSPreparationTests(unittest.TestCase):
         with self.assertRaises(ValueError):
             self.prepare()
         self.assertEqual(self.key.read_bytes(), before)
-        self.assertEqual(self.cert.read_bytes(), b'not a certificate\n')
-        self.make_pair()
-        encrypted = self.root / 'encrypted.key'
-        subprocess.check_call([OPENSSL, 'pkey', '-in', str(self.key), '-aes256', '-passout', 'pass:fixture-only', '-out', str(encrypted)],
-                              stdin=subprocess.DEVNULL, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
-        self.key.write_bytes(encrypted.read_bytes())
-        with self.assertRaises(ValueError):
-            self.prepare()
 
     def test_invalid_identities_are_rejected_before_creation(self):
         for names, addresses in [(['pbx/escape'], []), (['pbx\nsubject'], []), (['-host'], []), ([], ['not-an-ip']), ([], [])]:
