@@ -13,6 +13,14 @@
 :root body #footer { width: calc(100% - 20px); max-width: calc(100% - 20px); box-sizing: border-box; }
 :root body .content :is(h1,h2,h3,h4,h5,h6,strong) { color: var(--mt-text); }
 
+/* Native logfiles keeps its dark #0f192a well in both themes. Its error ink
+   needs the dark-surface danger tone independently of the surrounding theme. */
+:root[data-mt-theme] body #log_view span.red { color: var(--mt-log-error-ink, #FFADB2) !important; }
+/* Keep the native critical fill, icon and actions. The heading and timestamp
+   share warning-on ink; do not inherit white from the orange notification. */
+:root[data-mt-theme] body #notify_item_issabelpbx_RCONFFAIL .syslog_text > h4 { color: var(--mt-warning-on) !important; }
+:root[data-mt-theme] body #notify_item_issabelpbx_RCONFFAIL .syslog_text > h4 > span.mr-2 { color: inherit !important; }
+
 /* Preserve native menu metrics (including the 3-column 600px dropdown). */
 :root body .navbar.is-dark { background: var(--mt-side-bg) !important; box-shadow: none !important; border: 0 !important; border-bottom: 1px solid #304763 !important; min-height: 60px; }
 :root body .navbar.is-dark :is(.navbar-link, .navbar-item) { color: #C0CEE1; }
