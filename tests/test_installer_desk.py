@@ -48,6 +48,11 @@ class DeskHelperTests(unittest.TestCase):
     def setUp(self):
         self.temp = tempfile.TemporaryDirectory(); self.addCleanup(self.temp.cleanup)
         self.base = Path(self.temp.name); self.module = helper()
+        if os.name != 'posix':
+            # Root/POSIX permission checks run for real in the isolated Linux
+            # suite. Windows only exercises the portable workflow callbacks.
+            owner_adapter = mock.patch.object(self.module, 'secure_bundle', return_value=None)
+            owner_adapter.start(); self.addCleanup(owner_adapter.stop)
 
     def test_pin_accepts_only_named_release_and_exact_source_identity(self):
         self.assertEqual(self.module.validate_pin(pin()), pin())
@@ -221,6 +226,14 @@ class DeskHelperTests(unittest.TestCase):
             calls = []
             self.module.install(release_pin, cache, run=lambda a: calls.append(a), legacy_paths=[], standalone_state=state)
             self.assertEqual(len(calls), 2)
+
+    def test_zero_exit_without_pinned_ready_state_is_not_installation_success(self):
+        archive = self.base / 'source.tgz'; release_pin = make_archive(archive)
+        with mock.patch.object(self.module, 'secure_directory', side_effect=lambda p: p.mkdir(parents=True, exist_ok=True)):
+            with self.assertRaises(ValueError):
+                self.module.install(release_pin, self.base / 'cache', run=lambda _a: None,
+                                    fetch=lambda _u,p: p.write_bytes(archive.read_bytes()), legacy_paths=[],
+                                    standalone_state=self.base / 'absent')
 
 
 class InstallerStageTests(unittest.TestCase):
