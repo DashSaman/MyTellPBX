@@ -53,6 +53,12 @@ class PolishScopeTests(unittest.TestCase):
         self.assertEqual(target.read_bytes(),b'old ACL entry')
         self.assertFalse((base/'backup').exists())
 
+    def test_polish_does_not_require_obsolete_desk_or_optional_phone_directories(self):
+        _,roots,artifact,manifest,_,target=self.fixture()
+        roots['desk'].rmdir();roots['phone'].rmdir()
+        self.assertEqual(len(policy.validate(artifact,manifest,roots)),1)
+        self.assertEqual(target.read_bytes(),b'old ACL entry')
+
     def test_new_entry_roundtrip_keeps_original_and_unrelated_owner_data(self):
         base,roots,artifact,manifest,review,target=self.fixture()
         unrelated=target.with_name('operator-note.txt');unrelated.write_bytes(b'keep owner data')
