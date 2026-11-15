@@ -4,6 +4,8 @@
 Only six stock presentation statements change. Package/configuration identities,
 legal notices, network discovery, the login profile and service logic stay intact.
 Python 3.6 compatible; unrecognized or partly changed banners are refused.
+The installer runs as root in trusted root-owned OS directories. The writer's
+path checks are not a sandbox against concurrent privileged directory replacement.
 """
 import argparse
 import hashlib

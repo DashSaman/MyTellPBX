@@ -7,7 +7,6 @@ import hashlib
 import importlib.util
 import os
 from pathlib import Path
-import re
 import shutil
 import subprocess
 import tempfile
@@ -49,8 +48,8 @@ class LoginBrandingTests(unittest.TestCase):
         self.profile = self.root / 'etc/profile.d/login-info.sh'
         self.motd.parent.mkdir(parents=True)
         self.profile.parent.mkdir(parents=True)
-        self.motd.write_text(MOTD, encoding='utf-8', newline='\n')
-        self.profile.write_text(PROFILE, encoding='utf-8', newline='\n')
+        self.motd.write_bytes(MOTD.encode('utf-8'))
+        self.profile.write_bytes(PROFILE.encode('utf-8'))
         self.backups = Path(self.temp.name) / 'private-backups'
 
     def test_official_fixtures_are_exact_pinned_source(self):
@@ -74,7 +73,7 @@ class LoginBrandingTests(unittest.TestCase):
         if not bash:
             self.skipTest('Native Bash is unavailable')
         result = subprocess.run([bash, '--noprofile', '--norc', '-s'],
-                                input=static_banner(transform(MOTD)), text=True,
+                                input=static_banner(transform(MOTD)), universal_newlines=True,
                                 stdout=subprocess.PIPE, stderr=subprocess.PIPE, timeout=10)
         self.assertEqual(result.returncode, 0, result.stderr)
         self.assertNotRegex(result.stdout, r'(?i)issabel')
