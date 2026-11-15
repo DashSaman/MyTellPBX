@@ -159,6 +159,69 @@ class DeskHelperTests(unittest.TestCase):
         self.assertEqual((target / 'index.php').read_text(), 'operator customization')
         self.assertFalse((target / 'launcher-access.php').exists())
 
+    @unittest.skipUnless(os.name == 'posix', 'Native cached-payload ownership contract')
+    def test_writable_cached_payload_is_refused_before_root_command_execution(self):
+        archive = self.base / 'source.tgz'; release_pin = make_archive(archive); cache = self.base / 'cache'; cache.mkdir()
+        bundle = self.module.obtain_bundle(release_pin, cache, lambda _u, p: p.write_bytes(archive.read_bytes()))
+        (bundle / 'installer/install.py').chmod(0o777)
+        calls = []
+        with mock.patch.object(self.module, 'secure_directory', return_value=None):
+            with self.assertRaises(ValueError):
+                self.module.install(release_pin, cache, run=lambda argv: calls.append(argv), legacy_paths=[],
+                                    standalone_state=self.base / 'absent')
+        self.assertEqual(calls, [])
+
+    def test_cached_manifest_cannot_redefine_a_trusted_payload(self):
+        archive = self.base / 'source.tgz'; release_pin = make_archive(archive); cache = self.base / 'cache'; cache.mkdir()
+        bundle = self.module.obtain_bundle(release_pin, cache, lambda _u, p: p.write_bytes(archive.read_bytes()))
+        changed = bundle / 'installer/install.py'; changed.write_bytes(b'# altered executable\n')
+        manifest = json.loads((bundle / 'manifest.json').read_text())
+        manifest['files']['installer/install.py'] = {'sha256': hashlib.sha256(changed.read_bytes()).hexdigest(), 'bytes': changed.stat().st_size}
+        (bundle / 'manifest.json').write_text(json.dumps(manifest))
+        with self.assertRaises(ValueError): self.module.obtain_bundle(release_pin, cache)
+
+    def test_newer_foreign_or_different_ready_desk_stops_before_fetch_run_and_launcher(self):
+        archive = self.base / 'source.tgz'; release_pin = make_archive(archive); state = self.base / 'state.json'
+        for index, value in enumerate([
+            {'owner':'MytelDesk','schema':1,'status':'ready','version':'1.2.0','tree':'c'*40},
+            {'owner':'MytelDesk','schema':1,'status':'ready','version':'1.1.0','tree':'c'*40},
+            {'owner':'other','schema':1,'status':'ready','version':'1.1.0','tree':'b'*40},
+            {'owner':'MytelDesk','schema':1,'status':'ready'},
+            {'owner':'MytelDesk','schema':1,'status':'preparing','public_url':'https://pbx.example'},
+        ]):
+            state.write_text(json.dumps(value)); cache = self.base / ('cache-' + str(index)); calls = []
+            with mock.patch.object(self.module, 'secure_directory', side_effect=lambda p: p.mkdir(parents=True, exist_ok=True)), \
+                    mock.patch.object(self.module, 'install_launcher', side_effect=lambda *_a: calls.append('launcher')):
+                with self.subTest(state=value), self.assertRaises(ValueError):
+                    self.module.install(release_pin, cache, run=lambda a: calls.append(a),
+                                        fetch=lambda _u,p: (calls.append('fetch'),p.write_bytes(archive.read_bytes())),
+                                        legacy_paths=[], standalone_state=state)
+            self.assertEqual(calls, []); self.assertFalse(cache.exists())
+
+    def test_known_owned_older_release_may_upgrade_without_resetting_state_values(self):
+        archive = self.base / 'source.tgz'; release_pin = make_archive(archive)
+        release_pin['upgrades_from'] = [{'version':'1.0.0','source_tree':'c'*40}]
+        state = self.base / 'state.json'; original = json.dumps({'owner':'MytelDesk','schema':1,'status':'ready','version':'1.0.0','tree':'c'*40})
+        state.write_text(original); calls = []
+        with mock.patch.object(self.module, 'secure_directory', side_effect=lambda p: p.mkdir(parents=True, exist_ok=True)):
+            self.module.install(release_pin, self.base / 'cache', run=lambda a: calls.append(a),
+                                fetch=lambda _u,p: p.write_bytes(archive.read_bytes()), legacy_paths=[], standalone_state=state)
+        self.assertEqual(len(calls), 2); self.assertEqual(state.read_text(), original)
+
+    def test_helper_failure_records_exact_partial_state_for_a_safe_same_pin_retry(self):
+        archive = self.base / 'source.tgz'; release_pin = make_archive(archive); state = self.base / 'state.json'; cache = self.base / 'cache'
+        def failed(argv):
+            state.write_text(json.dumps({'owner':'MytelDesk','schema':1,'status':'preparing','public_url':'https://pbx.example'}))
+            raise subprocess.CalledProcessError(1, argv)
+        with mock.patch.object(self.module, 'secure_directory', side_effect=lambda p: p.mkdir(parents=True, exist_ok=True)):
+            with self.assertRaises(subprocess.CalledProcessError):
+                self.module.install(release_pin, cache, run=failed, fetch=lambda _u,p: p.write_bytes(archive.read_bytes()), legacy_paths=[], standalone_state=state)
+            receipt = json.loads((cache / 'attempt.json').read_text())
+            self.assertEqual(receipt['state_sha256'], hashlib.sha256(state.read_bytes()).hexdigest())
+            calls = []
+            self.module.install(release_pin, cache, run=lambda a: calls.append(a), legacy_paths=[], standalone_state=state)
+            self.assertEqual(len(calls), 2)
+
 
 class InstallerStageTests(unittest.TestCase):
     def setUp(self):
