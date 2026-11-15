@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Hash-checked, journaled UI rollout with a narrow opt-in Apply/calendar profile.
+"""Hash-checked, journaled rollout with explicit narrow presentation/report profiles.
 
 Default operation is a read-only preflight. Apply requires an independent READY
 line bound to the exact manifest plus an explicit expected server hostname.
@@ -45,6 +45,12 @@ POLISH_PANEL = PANEL | {'css/base.css', 'css/theme-dark.css', 'css/theme-toggle.
 POLISH_ADMIN = {'views/header.php', 'assets/mytel/workspace.css', 'assets/mytel/workspace.js'}
 POLISH_CHECKS = {'offline-tests', 'js-syntax', 'php-syntax', 'polish-browser',
                  'entry-auth', 'apply-browser', 'calendar-tests'}
+ASTERNIC_PROFILE = 'asternic-trunk-direction-v760'
+ASTERNIC_PATHS = {'modules/asternic_cdr/page.asternic_cdr.php',
+                  'modules/asternic_cdr/functions.inc.php',
+                  'modules/asternic_cdr/mytell-direction.php'}
+ASTERNIC_CHECKS = {'offline-tests', 'php-syntax', 'cdr-direction',
+                   'cdr-mariadb', 'cdr-readonly-preview'}
 APPLY_PATHS = {'functions.inc.php', 'libraries/view.functions.php', 'libraries/mytell-apply.php'}
 CALENDAR_PATHS = {'modules/calendar/index.php', 'modules/calendar/themes/default/calendar_gui.tpl',
                   'modules/calendar/themes/default/js/javascript.js', 'modules/calendar/scenarios/rest/CalendarEvent.class.php'}
@@ -89,6 +95,8 @@ def allowed(item, profile=None):
     root, relative = item["root"], item["path"]
     if root not in ALLOW:
         return False
+    if profile == ASTERNIC_PROFILE:
+        return root == 'admin' and relative in ASTERNIC_PATHS
     if profile == POLISH_PROFILE:
         return ((root == 'panel' and relative in POLISH_PANEL) or
                 (root == 'admin' and relative in POLISH_ADMIN) or
@@ -106,6 +114,8 @@ def allowed(item, profile=None):
 
 
 def priority(item):
+    if item['root'] == 'admin' and item['path'] == 'modules/asternic_cdr/mytell-direction.php':
+        return 10  # Install the shared read-only classifier before either caller.
     if item['root'] == 'legacy' and item['path'] == 'modules/mytellpbxopdesk/launcher-access.php':
         return 10  # Publish dependencies before the PHP entrypoint; rollback reverses this.
     if item["root"] == "desk":
@@ -126,7 +136,8 @@ def valid_hash(value, nullable=False):
 def validate(artifact, manifest, roots, expected="before"):
     outside_served(artifact, roots)
     profile = manifest.get('profile')
-    required_roots = {'panel', 'admin', 'legacy'} if profile == POLISH_PROFILE else set(ROOTS)
+    required_roots = ({'admin'} if profile == ASTERNIC_PROFILE else
+                      {'panel', 'admin', 'legacy'} if profile == POLISH_PROFILE else set(ROOTS))
     if set(roots) != set(ROOTS) or any(not roots[name].is_dir() for name in required_roots):
         raise ValueError("All installed UI roots are required")
     if expected not in ("before", "after"):
@@ -135,7 +146,7 @@ def validate(artifact, manifest, roots, expected="before"):
         raise ValueError("Unsupported or empty UI manifest")
     if not re.fullmatch(r"[0-9a-f]{40}|[0-9a-f]{64}", manifest.get("source_id", "")):
         raise ValueError("An exact Git tree ID is required")
-    if profile not in (None, SCOPED_PROFILE, SUBMIT_PROFILE, POLISH_PROFILE):
+    if profile not in (None, SCOPED_PROFILE, SUBMIT_PROFILE, POLISH_PROFILE, ASTERNIC_PROFILE):
         raise ValueError('Unknown release profile')
     records = manifest.get("checks", [])
     if not isinstance(records, list) or any(not isinstance(item, dict) or not isinstance(item.get("check"), str) or type(item.get("rc")) is not int for item in records):
@@ -143,7 +154,8 @@ def validate(artifact, manifest, roots, expected="before"):
     checks = {item["check"]: item["rc"] for item in records}
     if len(checks) != len(records):
         raise ValueError("Duplicate build checks")
-    required = (POLISH_CHECKS if profile == POLISH_PROFILE else
+    required = (ASTERNIC_CHECKS if profile == ASTERNIC_PROFILE else
+                POLISH_CHECKS if profile == POLISH_PROFILE else
                 SUBMIT_CHECKS if profile == SUBMIT_PROFILE else
                 SCOPED_CHECKS if profile == SCOPED_PROFILE else REQUIRED_CHECKS)
     if not required.issubset(checks) or any(item["rc"] != 0 for item in records):
