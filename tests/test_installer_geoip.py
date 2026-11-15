@@ -252,6 +252,23 @@ class GeoipTests(unittest.TestCase):
         self.assertEqual(result['updated_utc'], '2026-11-15T18:00:00Z')
         self.assertRegex(result['updated_utc'], r'^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}Z$')
 
+    def test_metadata_failure_reports_active_valid_data_and_retry_repairs_both_files(self):
+        info = self.convert()
+        root = self.base / 'root'
+        info.update(month='2026-11', created_utc='2026-11-15T18:00:00Z', source_sha256='a' * 64,
+                    source_url='https://download.db-ip.com/free/dbip-country-lite-2026-11.csv.gz')
+        atomic = geoip.atomic
+        def fail_latest(path, *args, **kwargs):
+            if Path(path).name == 'latest.json':
+                raise OSError('fixture metadata failure')
+            return atomic(path, *args, **kwargs)
+        with mock.patch.object(geoip, 'atomic', side_effect=fail_latest):
+            with self.assertRaisesRegex(ValueError, 'data is active; status publication incomplete'):
+                geoip.publish_metadata(root, info)
+        geoip.publish_metadata(root, info)
+        self.assertEqual(json.loads((root / geoip.STATE / 'latest.json').read_text(encoding='utf-8')), info)
+        self.assertEqual(json.loads((root / 'usr/share/mytellpbx-geoip/status.json').read_text(encoding='utf-8'))['updated_utc'], info['created_utc'])
+
     def test_cron_install_refuses_unknown_source_without_writing(self):
         root = self.base / 'root'
         cron = root / 'etc/cron.daily/geoip_update.sh'
@@ -310,6 +327,24 @@ class GeoipTests(unittest.TestCase):
             with self.assertRaises(ValueError):
                 geoip.install(root, REPO / 'installer/geoip-update.py', payload)
             self.assertEqual(target.read_bytes(), b'<?php echo "owner edit";')
+
+    def test_install_metadata_write_failure_is_recoverable_with_the_same_source(self):
+        root = self.base / 'root'
+        cron = root / geoip.CRON
+        cron.parent.mkdir(parents=True)
+        vendor = b'#!/bin/sh\necho vendor fixture\n'
+        cron.write_bytes(vendor)
+        atomic = geoip.atomic
+        def fail_receipt(path, *args, **kwargs):
+            if Path(path).name == 'install.json':
+                raise OSError('fixture receipt write failure')
+            return atomic(path, *args, **kwargs)
+        with mock.patch.object(geoip, 'VENDOR_CRON_SHA256', hashlib.sha256(vendor).hexdigest()), mock.patch.object(geoip, 'verify_builder'):
+            with mock.patch.object(geoip, 'atomic', side_effect=fail_receipt), self.assertRaises(OSError):
+                geoip.install(root, REPO / 'installer/geoip-update.py')
+            self.assertEqual(cron.read_bytes(), geoip.WRAPPER)
+            geoip.install(root, REPO / 'installer/geoip-update.py')
+            self.assertEqual(json.loads((root / geoip.STATE / 'install.json').read_text(encoding='utf-8'))['owner'], geoip.OWNER)
 
 
 if __name__ == '__main__':

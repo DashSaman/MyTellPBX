@@ -17,6 +17,7 @@ import re
 import struct
 import subprocess
 import tempfile
+import time
 
 OWNER = 'MyTellPBX GeoIP'
 BUILDER_SHA256 = '0cecbfa332dae054495b7aa40b6bab311325e82161f5eefa1306cd4de82b25ff'
@@ -71,6 +72,7 @@ def convert_csv(source, destination, min_rows=100000, min_countries=200):
     csv.field_size_limit(256)
     hashes, countries, previous = {}, set(), {4: -1, 6: -1}
     families, rows, size, last_family = {'4': 0, '6': 0}, 0, 0, 4
+    deadline = time.monotonic() + 120
     with gzip.open(str(source), 'rt', encoding='utf-8', newline='') as stream, Path(destination).open('w', encoding='utf-8', newline='') as output:
         writer = csv.writer(output, lineterminator='\n')
         for row in csv.reader(stream, strict=True):
@@ -85,6 +87,8 @@ def convert_csv(source, destination, min_rows=100000, min_countries=200):
             rows += 1
             if rows > 1500000 or size > MAX_CSV:
                 raise ValueError('Country CSV exceeds its bounded size')
+            if rows % 4096 == 0 and time.monotonic() > deadline:
+                raise ValueError('Country conversion exceeded its bounded deadline')
             code = row[2]
             if code not in countries:
                 countries.add(code)
@@ -213,8 +217,13 @@ def publish_status(root, info):
     directory = owned_path(root, 'usr/share/mytellpbx-geoip')
     directory.mkdir(parents=True, exist_ok=True)
     directory.chmod(0o755)
+    # Also normalize an earlier candidate's fractional timestamp on an idempotent
+    # retry; a cached valid database must not leave the strict public UI unavailable.
+    created = info['created_utc']
+    pattern = '%Y-%m-%dT%H:%M:%S.%fZ' if '.' in created else '%Y-%m-%dT%H:%M:%SZ'
+    stamp = datetime.datetime.strptime(created, pattern).strftime('%Y-%m-%dT%H:%M:%SZ')
     public = {'owner': OWNER, 'schema': 1, 'provider': 'DB-IP Country Lite', 'status': 'ready',
-              'month': info['month'], 'updated_utc': info['created_utc'], 'rows': info['rows'],
+              'month': info['month'], 'updated_utc': stamp, 'rows': info['rows'],
               'ipv4_ranges': info['families']['4'], 'ipv6_ranges': info['families']['6'],
               'country_count': len(info['countries']), 'layout': 'flat-network-BE',
               'source_url': info['source_url'], 'source_sha256': info['source_sha256'],
@@ -222,6 +231,14 @@ def publish_status(root, info):
               'license_url': 'https://creativecommons.org/licenses/by/4.0/'}
     atomic(directory / 'status.json', (json.dumps(public, sort_keys=True) + '\n').encode('utf-8'))
     return public
+
+
+def publish_metadata(root, info):
+    try:
+        publish_status(root, info)
+        atomic(Path(root) / STATE / 'latest.json', (json.dumps(info, sort_keys=True) + '\n').encode('utf-8'), 0o600)
+    except Exception as error:
+        raise ValueError('Validated GeoIP data is active; status publication incomplete. Retry the updater to repair metadata.') from error
 
 
 def install(root, source, status_module=None):
@@ -291,7 +308,7 @@ def update(root):
                 raise ValueError('Existing country pointer is not owned')
             info = release_info(prior.parent)
             if info.get('month') == month:
-                publish_status(root, info)
+                publish_metadata(root, info)
                 return info
         elif active.exists() and (not active.is_dir() or any(active.iterdir())):
             raise ValueError('Unknown populated country data is preserved')
@@ -314,7 +331,7 @@ def update(root):
             info.update(owner=OWNER, schema=1, layout='flat-network-BE', month=month,
                         source_url=url, source_sha256=digest(source), builder_sha256=BUILDER_SHA256,
                         license='CC-BY-4.0', attribution='https://db-ip.com',
-                        created_utc=datetime.datetime.utcnow().isoformat() + 'Z')
+                        created_utc=datetime.datetime.utcnow().strftime('%Y-%m-%dT%H:%M:%SZ'))
             atomic(compiled / 'NOTICE.txt', NOTICE.encode('utf-8'))
             atomic(compiled / 'manifest.json', (json.dumps(info, sort_keys=True, indent=2) + '\n').encode('utf-8'))
             for folder in (compiled, compiled / 'BE', compiled / 'LE'):
@@ -329,8 +346,7 @@ def update(root):
             else:
                 os.replace(str(compiled), str(destination))
             activate(root, destination)
-            publish_status(root, info)
-            atomic(state / 'latest.json', (json.dumps(info, sort_keys=True) + '\n').encode('utf-8'), 0o600)
+            publish_metadata(root, info)
             return info
 
 
