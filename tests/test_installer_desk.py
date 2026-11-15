@@ -140,6 +140,23 @@ class DeskHelperTests(unittest.TestCase):
                                     standalone_state=self.base / 'absent')
         self.assertEqual(len(calls), 1)
 
+    def test_launcher_installs_complete_new_files_without_rewriting_owned_content(self):
+        source = self.base / 'source'; source.mkdir(); target = self.base / 'web/modules/mytellpbxopdesk'
+        for name in ['index.php', 'launcher-access.php']: (source / name).write_text('<?php // ' + name)
+        self.module.install_launcher(source, self.base / 'web')
+        self.assertEqual((target / 'index.php').read_bytes(), (source / 'index.php').read_bytes())
+        stamp = (target / 'index.php').stat().st_mtime_ns
+        self.module.install_launcher(source, self.base / 'web')
+        self.assertEqual((target / 'index.php').stat().st_mtime_ns, stamp)
+
+    def test_unknown_launcher_edits_are_preserved_before_any_partial_install(self):
+        source = self.base / 'source'; source.mkdir(); target = self.base / 'web/modules/mytellpbxopdesk'; target.mkdir(parents=True)
+        for name in ['index.php', 'launcher-access.php']: (source / name).write_text('<?php // reviewed ' + name)
+        (target / 'index.php').write_text('operator customization')
+        with self.assertRaises(ValueError): self.module.install_launcher(source, self.base / 'web')
+        self.assertEqual((target / 'index.php').read_text(), 'operator customization')
+        self.assertFalse((target / 'launcher-access.php').exists())
+
 
 class InstallerStageTests(unittest.TestCase):
     def setUp(self):
@@ -206,6 +223,28 @@ class InstallerStageTests(unittest.TestCase):
         result = self.shell('curl(){ echo "$*" >> ' + repr(marker.as_posix()) + '; case "$*" in *http_code*) printf 200;; esac; }\nBUNDLE_FINAL=\nMYTELL_BUNDLE_FILE=\ncheck_network_prerequisites\n')
         self.assertEqual(result.returncode, 0, result.stderr)
         self.assertIn('mirror.issabel.org', marker.read_text()); self.assertIn('rpms.remirepo.net', marker.read_text())
+
+    def test_empty_interrupted_state_requires_positive_fresh_package_inventory(self):
+        self.state.mkdir()
+        metadata = 'stat(){ if [ "$2" = "%u" ]; then echo 0; elif [ "$2" = "%a" ]; then echo 700; fi; }\n'
+        fresh = self.shell(metadata + 'rpm(){ return 1; }\nguard_install_source\n')
+        self.assertEqual(fresh.returncode, 0, fresh.stderr)
+        existing = self.shell(metadata + 'rpm(){ return 0; }\nguard_install_source\n')
+        self.assertNotEqual(existing.returncode, 0)
+        unavailable = self.shell(metadata + 'rpm(){ return 7; }\nguard_install_source\n')
+        self.assertNotEqual(unavailable.returncode, 0)
+        (self.state / 'legacy-stage.done').touch()
+        legacy = self.shell(metadata + 'rpm(){ return 1; }\nguard_install_source\n')
+        self.assertNotEqual(legacy.returncode, 0)
+
+    def test_bundle_failure_keeps_a_same_source_resume_receipt_before_download(self):
+        first = self.shell('MYTELLPBX_VERSION=7.6.0\nMYTELLPBX_BUNDLE_SHA256=' + 'a' * 64 + '\npreflight(){ guard_install_source; }\nacquire_lock(){ :; }\ninitialize_workspace(){ :; }\nverify_bundle(){ exit 13; }\nmain\n')
+        self.assertEqual(first.returncode, 13, first.stderr)
+        receipt = json.loads((self.state / 'source.json').read_text())
+        self.assertEqual(receipt['bundle_sha256'], 'a' * 64)
+        metadata = 'stat(){ if [ "$2" = "%u" ]; then echo 0; elif [ "$2" = "%a" ]; then if [ -d "${@: -1}" ]; then echo 700; else echo 600; fi; fi; }\n'
+        second = self.shell(metadata + 'MYTELLPBX_VERSION=7.6.0\nMYTELLPBX_BUNDLE_SHA256=' + 'a' * 64 + '\nguard_install_source\n')
+        self.assertEqual(second.returncode, 0, second.stderr)
 
 
 if __name__ == '__main__': unittest.main()
