@@ -8,6 +8,12 @@ $trunks = array(
     array('tech'=>'dahdi','channelid'=>'g0'),
     array('tech'=>'dahdi','channelid'=>'12'),
     array('tech'=>'custom','channelid'=>'Local/$OUTNUM$@external-carrier/n'),
+    array('tech'=>'custom','channelid'=>'SIP/fixture-custom-sip/$OUTNUM$'),
+    array('tech'=>'custom','channelid'=>'SIP/$OUTNUM$@fixture-custom-at'),
+    array('tech'=>'custom','channelid'=>'PJSIP/$OUTNUM$@fixture-custom-pj'),
+    array('tech'=>'custom','channelid'=>'IAX2/fixture-custom-iax/$OUTNUM$'),
+    array('tech'=>'custom','channelid'=>'DAHDI/g2/$OUTNUM$'),
+    array('tech'=>'custom','channelid'=>'Zap/g3/$OUTNUM$'),
     array('tech'=>'sip','channelid'=>"literal_%'peer"),
     array('tech'=>'sip','channelid'=>'100'),
 );
@@ -37,6 +43,13 @@ verify_direction('metadata is reused only within the request object', $fake->cal
 $invalidDirection = false;
 try { asternic_mytel_direction_sql($fake, 'outgoing OR 1=1'); } catch (InvalidArgumentException $error) { $invalidDirection = true; }
 verify_direction('unknown direction rejected', $invalidDirection);
+$originalTrunks = $trunks;
+unset($fake);
+$trunks = array(array('tech'=>'sip','channelid'=>'different-fixture-gateway'));
+$different = new DirectionFixtureDB();
+$differentPredicate = asternic_mytel_direction_sql($different, 'outgoing');
+verify_direction('new connection cannot inherit a destroyed connection catalog', $different->calls === 2 && $differentPredicate !== $predicates['outgoing']);
+$trunks = $originalTrunks;
 
 $rows = array();
 function direction_row($id, $changes, $out = false, $in = false, $internal = false) {
@@ -55,6 +68,12 @@ foreach (array(
     'iax-at'=>'IAX2/fixture-user@iax-main/12345,20',
     'dahdi-group'=>'DAHDI/g0/12345,20',
     'custom-local'=>'Local/12345@external-carrier/n,20',
+    'custom-sip'=>'SIP/fixture-custom-sip/712345,20',
+    'custom-sip-at'=>'SIP/+12025550100@fixture-custom-at,20',
+    'custom-pjsip'=>'PJSIP/12345@fixture-custom-pj,20',
+    'custom-iax'=>'IAX2/fixture-custom-iax/912345,20',
+    'custom-dahdi'=>'DAHDI/g2/12345,20',
+    'custom-zap'=>'Zap/g3/12345,20',
     'multiple-targets'=>'SIP/101&SIP/carrier-main/12345,20',
 ) as $name=>$target) direction_row($name, array('lastapp'=>'Dial','lastdata'=>$target,'disposition'=>'FAILED'), true);
 foreach (array('PJSIP/pj-main-00000002','IAX2/iax-main-12345','DAHDI/12-1','Local/12345@external-carrier-00000042;1',"SIP/literal_%'peer-00000002") as $number=>$channel)
@@ -67,9 +86,13 @@ direction_row('internal', array('dstchannel'=>'SIP/101-00000002'), false, false,
 direction_row('unauthorized-internal', array('channel'=>'SIP/101-00000001','dstchannel'=>'SIP/100-00000002'), false, false, true);
 direction_row('internal-name-lookalike', array('dstchannel'=>'SIP/carrier-main-extra-00000002'), false, false, true);
 direction_row('device-trunk-name-collision', array('dstchannel'=>'SIP/100-00000002','lastapp'=>'Dial','lastdata'=>'SIP/100,20'), false, false, true);
+direction_row('blank-device-trunk-name-collision', array('lastapp'=>'Dial','lastdata'=>'SIP/100,20','disposition'=>'FAILED'));
 direction_row('unknown-endpoint', array('dstchannel'=>'SIP/carrier-main-bogus-00000002'));
 direction_row('unknown-failed-dial', array('lastapp'=>'Dial','lastdata'=>'SIP/unknown/12345,20','disposition'=>'FAILED'));
 direction_row('not-a-dial', array('lastapp'=>'Playback','lastdata'=>'SIP/carrier-main/12345'));
+direction_row('null-destination-explicit-dial', array('dstchannel'=>null,'lastapp'=>'Dial','lastdata'=>'SIP/carrier-main/12345,20','disposition'=>'FAILED'), true);
+direction_row('unknown-null-fields', array('channel'=>null,'dstchannel'=>null,'lastapp'=>null,'lastdata'=>null));
+direction_row('incoming-null-application', array('channel'=>'SIP/carrier-main-00000001','dstchannel'=>null,'lastapp'=>null,'lastdata'=>'SIP/carrier-main/12345,20'), false, true);
 direction_row('unknown-local-context', array('dstchannel'=>'Local/12345@external-carrier-extra-00000042;1'));
 direction_row('incoming-internal-callerid', array('channel'=>'SIP/101-00000001','dstchannel'=>'SIP/100-00000002','src'=>'91234567'), false, false, true);
 

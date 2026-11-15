@@ -44,7 +44,7 @@ set -o pipefail
 MYTELLPBX_VERSION="7.6.0"
 MYTELLPBX_BUNDLE="mytelpbx-bundle-7.6.0.tgz"
 # Expected SHA-256 of the bundle asset (filled in by the release builder).
-MYTELLPBX_BUNDLE_SHA256="28f9374d25ff0f7cca4678eb1f62a46abe279acac7be729028f597a8a0f0a4a6"
+MYTELLPBX_BUNDLE_SHA256="RELEASE_BUNDLE_SHA256_PENDING"
 MYTELLPBX_GITHUB="https://github.com/DashSaman/MyTellPBX"
 MYTELLPBX_RELEASE_TAG="v7.6.0"
 MYTELLPBX_BUNDLE_URL="${MYTELL_BUNDLE_URL:-${MYTELLPBX_GITHUB}/releases/download/${MYTELLPBX_RELEASE_TAG}/${MYTELLPBX_BUNDLE}}"
@@ -811,6 +811,17 @@ echo 'brand keys persisted: ' . count($keys) . "\n";
 PHP
 }
 
+repair_optional_asternic_direction() {
+    local module="${WEB_ROOT}/admin/modules/asternic_cdr"
+    if [ ! -e "${module}" ] && [ ! -L "${module}" ]; then
+        log "OPTIONAL ASTERNIC ABSENT: no report module installed or changed"
+        return 0
+    fi
+    [ -f "${BUNDLE_DIR}/admin-fixes/patch-asternic-direction.py" ] || die "Asternic direction repair missing from bundle"
+    "${PY_BIN}" -B "${BUNDLE_DIR}/admin-fixes/patch-asternic-direction.py" --module-root "${module}" >>"$LOG" 2>&1 \
+        || die "optional Asternic direction repair failed; unsupported or changed source requires review"
+}
+
 stage_mytel_layer() {
     stage_done "mytel_layer-${MYTELLPBX_VERSION}" && return 0
     step "نصب قالب و برندسازی مای‌تل"
@@ -908,6 +919,8 @@ PHP
         "${PY_BIN}" "${BUNDLE_DIR}/admin-fixes/install-scoped-repairs.py" --web-root "${WEB_ROOT}" >>"$LOG" 2>&1 \
             || die "scoped Apply/calendar repair failed"
     fi
+    # Optional installed Asternic1.6.6 only; never installs/vendor-copies a module.
+    repair_optional_asternic_direction
 
     # 8) Clear known caches + ownership + validate Apache config
     find "${WEB_ROOT}" -name '*.tplc' -delete 2>/dev/null || true
