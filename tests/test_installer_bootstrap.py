@@ -1,9 +1,12 @@
 """Prove bootstrap preserves existing/unknown data with fake SQL/OS clients."""
+import base64
+import hashlib
 import os
 from pathlib import Path
 import re
 import shutil
 import subprocess
+import sys
 import tempfile
 import unittest
 
@@ -19,6 +22,10 @@ class BootstrapPreservationTests(unittest.TestCase):
         self.source = (ROOT / 'install-mytellpbx.sh').read_text(encoding='utf-8')
         definitions = self.base / 'definitions.sh'; definitions.write_text(self.source.rsplit('\nmain "$@"', 1)[0], encoding='utf-8')
         self.setup = 'source ' + repr(definitions.as_posix()) + '\nLOG=' + repr((self.base / 'log').as_posix()) + '\n'
+        self.setup += 'PY_BIN=' + repr(sys.executable.replace('\\', '/')) + '\n'
+        uid = os.getuid() if hasattr(os, 'getuid') else 989
+        gid = os.getgid() if hasattr(os, 'getgid') else 984
+        self.setup += 'getent(){ case "$1:$2" in passwd:asterisk) printf \'asterisk:x:' + str(uid) + ':' + str(gid) + ':Asterisk:/var/lib/asterisk:/bin/bash\\n\';; group:asterisk) printf \'asterisk:x:' + str(gid) + ':\\n\';; *) return 2;; esac; }\n'
         self.setup += 'FIXTURE_ROOT=' + repr(self.root.as_posix()) + '\nEVENTS=' + repr(self.events.as_posix()) + '\nATTEMPTS=0\n'
         # ALL SQL, password changes, config removal and vendor commands are
         # intercepted. Nothing outside this temporary directory is provisioned.
@@ -63,6 +70,9 @@ normalize_framework_mysql(){ printf 'normalize\\n' >> "$EVENTS"; }
 rm(){ printf 'rm %s\\n' "$*" >> "$EVENTS"; }
 sleep(){ :; }
 '''
+        self.ami = b'Factory123'
+        self.jwt = base64.b64encode(bytes(range(32)))
+        self.factory = b'amiadminpwd=' + self.ami + b'\npbxapijwtsecret=' + self.jwt + b'\n'
         old = re.search(r'    # Framework first-boot install\..*?(?=    # Non-interactive password initialization)', self.source, re.S)
         self.legacy = 'legacy_bootstrap(){\n' + (old.group(0) if old else ':') + '\n}\n'
 
@@ -129,6 +139,66 @@ sleep(){ :; }
         result = subprocess.run([BASH, '--noprofile', '--norc', str(script)], stdin=subprocess.DEVNULL, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
         self.assertNotEqual(result.returncode, 0)
         self.assertTrue(marker.exists(), 'a failed query is not evidence that the completed framework is absent')
+
+    def write_factory(self, content=None):
+        path = self.root / 'etc/issabel.conf'; path.write_bytes(self.factory if content is None else content)
+        path.chmod(0o600)
+        return path
+
+    def test_observed_factory_service_config_is_preserved_during_fresh_bootstrap(self):
+        config = self.write_factory()
+        result, _events = self.run_bootstrap('fresh')
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertEqual(config.read_bytes(), self.factory)
+
+    def test_unknown_duplicate_initialized_or_invalid_factory_keys_are_refused(self):
+        for content in [self.factory + b'unknown=operator\n', self.factory + b'mysqlrootpwd=existing\n',
+                        self.factory + b'amiadminpwd=duplicate\n',
+                        self.factory.replace(self.ami, b'too-short'),
+                        self.factory.replace(self.ami, b'Bad:Secret'),
+                        self.factory.replace(self.jwt, b'!' * 44),
+                        b'amiadminpwd=' + self.ami + b'\npbxapijwtsecret=' + base64.b64encode(b'short') + b'\n']:
+            with self.subTest(content=content):
+                self.write_factory(content)
+                if self.events.exists(): self.events.unlink()
+                result, events = self.run_bootstrap('fresh')
+                self.assertNotEqual(result.returncode, 0); self.assertEqual(events, '')
+
+    def test_native_initialization_receives_factory_ami_then_verifies_both_keys(self):
+        config = self.write_factory(); native = self.base / 'native-input'
+        body = self.setup + 'MODE=fresh\nADMIN_PASS=ChosenPanel!\n'
+        body += 'initialize_framework_passwords(){ printf \'%s\' "$1" > ' + repr(native.as_posix()) + '; printf \'mysqlrootpwd=FixtureDb!\\ncyrususerpwd=FixtureDb!\\n\' >> "$FIXTURE_ROOT/etc/issabel.conf"; }\n'
+        body += 'initialize_preserving_framework_keys "$FIXTURE_ROOT"\n'
+        script = self.base / 'native.sh'; script.write_text(body, encoding='utf-8')
+        result = subprocess.run([BASH, '--noprofile', '--norc', str(script)], stdin=subprocess.DEVNULL, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertEqual(native.read_bytes(), self.ami)
+        self.assertIn(self.factory, config.read_bytes())
+        self.assertNotIn(self.ami, result.stdout + result.stderr); self.assertNotIn(self.jwt, result.stdout + result.stderr)
+
+    def test_native_init_key_rotation_or_unknown_field_is_rejected(self):
+        for change in ['rotate', 'unknown']:
+            with self.subTest(change=change):
+                self.write_factory()
+                body = self.setup + 'ADMIN_PASS=ChosenPanel!\n'
+                if change == 'rotate':
+                    body += "initialize_framework_passwords(){ printf 'amiadminpwd=Changed123\\npbxapijwtsecret=" + self.jwt.decode() + "\\nmysqlrootpwd=FixtureDb!\\ncyrususerpwd=FixtureDb!\\n' > \"$FIXTURE_ROOT/etc/issabel.conf\"; }\n"
+                else:
+                    body += "initialize_framework_passwords(){ printf 'mysqlrootpwd=FixtureDb!\\ncyrususerpwd=FixtureDb!\\nunknown=operator\\n' >> \"$FIXTURE_ROOT/etc/issabel.conf\"; }\n"
+                body += 'initialize_preserving_framework_keys "$FIXTURE_ROOT"\n'
+                script = self.base / 'changed.sh'; script.write_text(body, encoding='utf-8')
+                result = subprocess.run([BASH, '--noprofile', '--norc', str(script)], stdin=subprocess.DEVNULL, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+                self.assertNotEqual(result.returncode, 0)
+
+    @unittest.skipIf(os.name != 'posix', 'Native POSIX private configuration boundary')
+    def test_factory_config_wrong_permissions_symlink_or_owner_is_refused(self):
+        config = self.write_factory(); config.chmod(0o644)
+        result, events = self.run_bootstrap('fresh')
+        self.assertNotEqual(result.returncode, 0); self.assertEqual(events, '')
+        config.unlink(); outside = self.base / 'outside'; outside.write_bytes(self.factory)
+        config.symlink_to(outside)
+        result, events = self.run_bootstrap('fresh')
+        self.assertNotEqual(result.returncode, 0); self.assertEqual(events, '')
 
 
 if __name__ == '__main__': unittest.main()
