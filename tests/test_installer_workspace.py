@@ -126,3 +126,21 @@ command stat -c %a "$WORK_DIR"
             self.assertIn(work, Path(name).parents)
         self.assertFalse(work.exists(), 'The owned fresh workspace must be cleaned on exit')
         self.assertEqual(retained.read_bytes(), b'keep\n')
+
+    def test_all_declared_internal_checksums_are_verified(self):
+        # The outer archive hash is valid. A publisher accidentally ships one
+        # incorrect late manifest entry; sampling the first five misses it.
+        rows = []
+        with tarfile.open(self.archive, 'w:gz') as archive:
+            for number in range(6):
+                expected = ('valid payload %s\n' % number).encode()
+                actual = expected if number < 5 else b'corrupted sixth payload\n'
+                name = 'payload-%s.txt' % number
+                rows.append(hashlib.sha256(expected).hexdigest() + '  ' + name + '\n')
+                member = tarfile.TarInfo('fixture/' + name); member.size = len(actual)
+                archive.addfile(member, io.BytesIO(actual))
+            for name, data in [('manifest.json', b'{}\n'), ('SHA256SUMS', ''.join(rows).encode())]:
+                member = tarfile.TarInfo('fixture/' + name); member.size = len(data)
+                archive.addfile(member, io.BytesIO(data))
+        result = self.execute('verify_bundle')
+        self.assertNotEqual(result.returncode, 0, 'A later invalid internal checksum was accepted')
