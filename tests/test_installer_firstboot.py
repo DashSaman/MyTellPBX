@@ -164,6 +164,7 @@ class FirstBootTests(unittest.TestCase):
         body += '''credential_input_is_tty(){ return 0; }
 preflight(){ :; }; acquire_lock(){ :; }; write_install_source(){ :; }; initialize_workspace(){ :; }; verify_bundle(){ :; }
 ensure_asterisk_identity(){ :; }
+repair_platform_catalog(){ :; }
 stage_packages1(){ :; }; stage_tls(){ :; }; stage_packages2(){ :; }; stage_post_base(){ :; }; stage_framework_init(){ :; }
 stage_mytel_layer(){ :; }; stage_geoip(){ :; }; stage_myteldesk(){ :; }; stage_selfcheck(){ :; }; finish(){ :; }
 '''

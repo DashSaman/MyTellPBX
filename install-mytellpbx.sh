@@ -495,6 +495,24 @@ verify_bundle() {
 # --------------------------------------------------------------------------
 # Stage 1: repositories + PHP module stream
 # --------------------------------------------------------------------------
+repair_platform_catalog() {
+    local mode="${1:-optional}" vendor args=()
+    run_logged "${PY_BIN}" -B "${BUNDLE_DIR}/installer/repair-repository-transport.py" --if-present \
+        || die "repository transport repair failed; existing configuration retained"
+    if [ -e /etc/yum.repos.d/mytelpbx-base.repo ] || [ -L /etc/yum.repos.d/mytelpbx-base.repo ]; then
+        [ "${mode}" = mandatory ] || args+=(--if-present)
+        run_logged "${PY_BIN}" -B "${BUNDLE_DIR}/installer/repair-platform-repositories.py" "${args[@]}" \
+            || die "platform repository repair refused; existing configuration retained (see ${LOG})"
+    else
+        [ "${mode}" != mandatory ] && ! stage_done repos \
+            || die "reviewed platform repository catalog is missing"
+        for vendor in Issabel.repo Issabel5.repo commercial-addons.repo; do
+            [ ! -e "/etc/yum.repos.d/${vendor}" ] && [ ! -L "/etc/yum.repos.d/${vendor}" ] \
+                || die "vendor repositories exist without the reviewed platform catalog"
+        done
+    fi
+}
+
 stage_repos() {
     stage_done repos && return 0
     step "پیکربندی مخازن بسته‌ها"
@@ -509,8 +527,7 @@ stage_repos() {
     # Remi repo + explicit PHP stream selection
     # On a resumed repo stage the RPM may already be present. Repair its
     # transport BEFORE any DNF command attempts metadata from the old HTTP URL.
-    "${PY_BIN}" -B "${BUNDLE_DIR}/installer/repair-repository-transport.py" --if-present >>"$LOG" 2>&1 \
-        || die "repository transport repair failed; review installed vendor repos"
+    repair_platform_catalog
     run_dnf_logged repositories install -y dnf-plugins-core || die "dnf-plugins-core install failed"
     run_dnf_logged repositories install -y https://rpms.remirepo.net/enterprise/remi-release-8.rpm \
         || die "remi-release install failed"
@@ -1285,11 +1302,15 @@ main() {
     # EOF; explicit SQL/PHP pipes and heredocs keep their own input streams.
     exec </dev/null || die "cannot close inherited installer input"
 
+    # Revalidate before stage shortcuts: RPMs can recreate their repository
+    # files during an earlier interrupted package transaction.
+    repair_platform_catalog
     stage_repos
     stage_update
     stage_packages1
     stage_tls
     stage_packages2
+    repair_platform_catalog mandatory
     stage_post_base
     stage_framework_init
     stage_mytel_layer
