@@ -30,8 +30,11 @@ mysql_any(){
     if [ "$MODE" = post-query-fail ] && [ "$ATTEMPTS" -gt 0 ]; then return 7; fi
     case "$query" in
       *information_schema.SCHEMATA*) [ "$MODE" != unknown-schema ] && printf 0 || printf 1;;
+      *TABLE_NAME=*)
+        if [ "$MODE" = fresh ] && [ "$ATTEMPTS" -gt 0 ]; then printf 1; else printf 0; fi;;
       *information_schema.TABLES*|*information_schema.tables*)
-        if [ "$MODE" = populated ] || [ "$MODE" = partial-after ] && [ "$ATTEMPTS" -gt 0 ]; then printf 8
+        if [ "$MODE" = populated ]; then printf 8
+        elif [ "$MODE" = partial-after ] && [ "$ATTEMPTS" -gt 0 ]; then printf 8
         elif [ "$ATTEMPTS" -gt 0 ] && [ "$MODE" = fresh ]; then printf 10
         else printf 0; fi;;
       *asterisk.modules*) [ "$MODE" = fresh ] && [ "$ATTEMPTS" -gt 0 ] && printf 6 || printf 0;;
@@ -115,6 +118,16 @@ sleep(){ :; }
         result = subprocess.run([BASH, '--noprofile', '--norc', str(script)], stdin=subprocess.DEVNULL, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
         self.assertEqual(result.returncode, 0)
         self.assertFalse(self.events.exists())
+
+    def test_selfcheck_query_failure_preserves_completed_framework_marker(self):
+        state = self.base / 'state'; (state / 'stages').mkdir(parents=True)
+        marker = state / 'stages/framework.done'; marker.touch()
+        script = self.base / 'selfcheck.sh'
+        script.write_text(self.setup + 'STATE_DIR=' + repr(state.as_posix()) + '\nMODE=metadata-fail\nensure_credentials(){ :; }\n'
+                          + 'rm(){ command rm "$@"; }\nstage_selfcheck\n', encoding='utf-8')
+        result = subprocess.run([BASH, '--noprofile', '--norc', str(script)], stdin=subprocess.DEVNULL, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+        self.assertNotEqual(result.returncode, 0)
+        self.assertTrue(marker.exists(), 'a failed query is not evidence that the completed framework is absent')
 
 
 if __name__ == '__main__': unittest.main()
