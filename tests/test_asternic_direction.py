@@ -66,7 +66,7 @@ function asternic_getrecords( $MYVARS ,$appconfig) {
             // --- پایان فیلتر خارجی ---
  // Existing ACL/date/BUSY/export material is preserved.
 }
-'''
+''' + (ROOT / 'tests/fixtures/asternic-fancy-table.php').read_text(encoding='utf-8')[len('<?php'):]
 
 
 def installed_fixture(root):
@@ -146,6 +146,21 @@ class AsternicDirectionPatcherTests(unittest.TestCase):
     def test_changed_hour_grid_span_requires_review(self):
         patcher=self.load()
         with self.assertRaises(ValueError):patcher.transform_page(PAGE.replace('colspan=25','colspan=24',1))
+
+    def test_pdf_data_cells_cast_scalars_without_changing_csv_or_format(self):
+        patcher=self.load();candidate=patcher.transform_functions(FUNCTIONS)
+        original="$this->Cell($w[$contador],6,$valor,'LR',0,'C',$fill);"
+        fixed="$this->Cell($w[$contador],6,(string)$valor,'LR',0,'C',$fill);"
+        self.assertTrue(fixed in candidate,'Legacy FPDF must receive string zero at the data-cell boundary')
+        self.assertNotIn(original,candidate)
+        source_pdf=FUNCTIONS.split('class PDF extends FPDF',1)[1]
+        candidate_pdf=candidate.split('class PDF extends FPDF',1)[1]
+        self.assertEqual(candidate_pdf,source_pdf.replace(original,fixed,1))
+        self.assertEqual(candidate,patcher.transform_functions(candidate))
+
+    def test_unknown_pdf_cell_boundary_requires_review(self):
+        patcher=self.load()
+        with self.assertRaises(ValueError):patcher.transform_functions(FUNCTIONS.replace("6,$valor,'LR',0,'C'","6,$valor,'LR',1,'R'",1))
 
     def test_plan_refuses_other_versions_and_unknown_existing_helper(self):
         patcher = self.load()
