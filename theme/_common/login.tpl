@@ -1,6 +1,11 @@
 <!DOCTYPE html>
 <html lang="fa" dir="rtl">
 <head>
+    {assign var=MT_PHONE_ENTRY_ROOT value=$smarty.server.DOCUMENT_ROOT|default:''}
+    {assign var=MT_HAS_STANDALONE_PHONE value=false}
+    {if $MT_PHONE_ENTRY_ROOT && (is_file($MT_PHONE_ENTRY_ROOT|cat:'/Phone/index.html') || is_file($MT_PHONE_ENTRY_ROOT|cat:'/Phone/index.php'))}
+        {assign var=MT_HAS_STANDALONE_PHONE value=true}
+    {/if}
 	<meta charset="utf-8">
 	<meta http-equiv="X-UA-Compatible" content="IE=edge">
 	<meta name="viewport" content="width=device-width, initial-scale=1.0" />
@@ -87,11 +92,19 @@
 
 			</form>
 
+			{if $MT_HAS_STANDALONE_PHONE}
 			<a href="/Phone/" target="_blank" rel="noopener" class="mt-webphone-link">
 				<i class="fa fa-phone"></i>
 				<span>تلفن وب مای‌تل <small>WebPhone</small></span>
 				<i class="fa fa-angle-left mt-arrow"></i>
 			</a>
+			{else}
+			<a href="/MytellDesk/" target="_blank" rel="noopener" class="mt-webphone-link">
+				<i class="fa fa-desktop"></i>
+				<span>مای‌تل دسک <small>Desk</small></span>
+				<i class="fa fa-angle-left mt-arrow"></i>
+			</a>
+			{/if}
 
 			<div class="mt-login-foot">
 				<a href="https://mytel.one" target="_blank" rel="noopener" class="mt-foot-link">

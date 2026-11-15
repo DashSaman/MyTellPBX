@@ -1,6 +1,11 @@
 <!DOCTYPE html>
 <html lang="{$LANG}" dir="{$THEME_DIR}">
   <head>
+    {assign var=MT_PHONE_ENTRY_ROOT value=$smarty.server.DOCUMENT_ROOT|default:''}
+    {assign var=MT_HAS_STANDALONE_PHONE value=false}
+    {if $MT_PHONE_ENTRY_ROOT && (is_file($MT_PHONE_ENTRY_ROOT|cat:'/Phone/index.html') || is_file($MT_PHONE_ENTRY_ROOT|cat:'/Phone/index.php'))}
+        {assign var=MT_HAS_STANDALONE_PHONE value=true}
+    {/if}
     <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>{$BRAND_NAME} | {$BRAND_TAGLINE}</title>
@@ -30,7 +35,7 @@
     <link rel="stylesheet" href="{$WEBPATH}themes/{$THEMENAME}/css/mt-secadv.css?v=752">
     <link rel="stylesheet" href="{$WEBPATH}themes/{$THEMENAME}/css/theme-dark.css?v=760">
     <link rel="stylesheet" href="{$WEBPATH}themes/{$THEMENAME}/css/theme-toggle.css?v=732">
-    <link rel="stylesheet" href="{$WEBPATH}themes/{$THEMENAME}/css/mytelldesk-card.css?v=731">
+    <link rel="stylesheet" href="{$WEBPATH}themes/{$THEMENAME}/css/mytelldesk-card.css?v=761">
     <link rel="stylesheet" media="screen" type="text/css" href="{$WEBPATH}libs/js/sticky_note/sticky_note.css" >
 
     {$HEADER_LIBS_JQUERY}
@@ -96,16 +101,15 @@
     <link rel="stylesheet" href="{$WEBPATH}themes/{$THEMENAME}/css/workspace.css?v=760">
     <link rel="stylesheet" href="{$WEBPATH}themes/{$THEMENAME}/css/mt-calendar.css?v=752">
     </head>
-    <body leftmargin="0" topmargin="0" marginwidth="0" marginheight="0" class="mt-body page-body" {$BODYPARAMS}{if $MT_CAN_ENTER_DESK} data-mt-desk="1"{/if}>
+    <body leftmargin="0" topmargin="0" marginwidth="0" marginheight="0" class="mt-body page-body" {$BODYPARAMS}{if $MT_CAN_ENTER_DESK} data-mt-desk="1"{/if}{if $MT_HAS_STANDALONE_PHONE} data-mt-phone="1"{/if}>
     <a href="#neo-contentbox-maincolumn" class="mt-skip-link">رفتن به محتوای صفحه</a>
     <div class="page-container mt-shell">
 
         {$MENU}
-                    {if $MT_IS_HOMEPAGE}
-                    <!-- MyTellPBX v7.3.1: compact quick links (desk + webphone).
-                         Server renders both; CSS hides the desk card for
-                         non-admins before first paint, theme.js syncs after
-                         ajax refreshes. Single link per card. -->
+                    {if $MT_IS_HOMEPAGE && ($MT_CAN_ENTER_DESK || $MT_HAS_STANDALONE_PHONE)}
+                    <!-- Only advertise the optional standalone phone when its
+                         installed front controller exists. Desk eligibility
+                         remains server-provided; JS restores it after AJAX. -->
                     <div id="mt-home-quicklinks" class="mt-home-quicklinks">
                         <a id="mt-desk-banner"
                            class="mt-home-card mt-home-card--desk"
@@ -121,6 +125,7 @@
                                 <i class="fa fa-angle-left"></i>
                             </span>
                         </a>
+                        {if $MT_HAS_STANDALONE_PHONE}
                         <a id="mt-webphone-card"
                            class="mt-home-card mt-home-card--webphone"
                            href="/Phone/"
@@ -138,6 +143,7 @@
                                 <i class="fa fa-angle-left"></i>
                             </span>
                         </a>
+                        {/if}
                     </div>
                     {/if}
                     {if !empty($mb_message)}
@@ -246,7 +252,7 @@ $(document).ready(function(e) {
         <script src="{$WEBPATH}themes/{$THEMENAME}/js/neon-custom.js"></script>
         <script src="{$WEBPATH}themes/{$THEMENAME}/vendor/echarts/echarts.min.js"></script>
         <script src="{$WEBPATH}themes/{$THEMENAME}/js/mytel-charts.js?v=100"></script>
-        <script src="{$WEBPATH}themes/{$THEMENAME}/js/theme.js?v=760"></script>
+        <script src="{$WEBPATH}themes/{$THEMENAME}/js/theme.js?v=761"></script>
         <script src="{$WEBPATH}themes/{$THEMENAME}/js/calendar-core.js?v=752"></script>
         <script src="{$WEBPATH}themes/{$THEMENAME}/js/calendar-editor.js?v=752"></script>
         <script src="{$WEBPATH}themes/{$THEMENAME}/js/mt-calendar.js?v=752"></script>
