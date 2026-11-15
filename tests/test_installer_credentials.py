@@ -21,6 +21,7 @@ class CredentialTransportTests(unittest.TestCase):
         self.definitions = self.base / 'definitions.sh'; self.definitions.write_text(definitions, encoding='utf-8')
         self.records = self.base / 'calls.jsonl'; self.recorder = self.base / 'record.py'
         self.recorder.write_text("import json,os,sys\na=sys.argv[1:];probe=a==['-N','-e','SELECT 1'];body='' if probe else sys.stdin.read()\nwith open(os.environ['FIXTURE_CALLS'],'a',encoding='utf-8') as f:f.write(json.dumps({'argv':a,'mysql_env':os.environ.get('MYSQL_PWD'),'stdin':body})+'\\n')\nsys.exit(1 if probe else 0)\n", encoding='utf-8')
+        (self.base / 'installer').mkdir(); (self.base / 'installer/password-init.php').write_text('<?php // recording client fixture')
 
     def run_shell(self, body):
         script = self.base / 'run.sh'
@@ -70,6 +71,19 @@ class CredentialTransportTests(unittest.TestCase):
         self.assertNotIn('FixtureDb_123!', ' '.join(calls[0]['argv']))
         self.assertNotIn('Fixture Admin.456=', ' '.join(calls[0]['argv']))
         self.assertEqual(calls[0]['stdin'], 'FixtureDb_123!\nFixture Admin.456=\n')
+
+    def test_saved_mysql_password_check_is_exact_and_rejects_duplicate_keys(self):
+        config = self.base / 'issabel-fixture.conf'
+        legacy = re.search(r'    grep -q "\^mysqlrootpwd=.*?\n        \|\| die [^\n]+', self.source, re.S)
+        for content, expected in [('mysqlrootpwd=Fixture.Db_123!\n', 0),
+                                  ('mysqlrootpwd=FixtureXDb_123!\n', 1),
+                                  ('mysqlrootpwd=Fixture.Db_123!\nmysqlrootpwd=another\n', 1)]:
+            config.write_text(content)
+            old = legacy.group(0).replace('/etc/issabel.conf', repr(config.as_posix())) if legacy else ':'
+            body = "MYSQL_ROOT_PASS='Fixture.Db_123!'\nif declare -F verify_mysql_root_password >/dev/null; then verify_mysql_root_password " + repr(config.as_posix()) + '; else legacy_verify(){\n' + old + '\n}; legacy_verify; fi\n'
+            result, _calls = self.run_shell(body)
+            with self.subTest(content=content):
+                self.assertEqual(result.returncode == 0, expected == 0, result.stderr)
 
 
 if __name__ == '__main__': unittest.main()
