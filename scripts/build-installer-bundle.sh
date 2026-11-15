@@ -38,7 +38,12 @@ copy_path() {
         || { echo "Untracked allowlist input: ${rel}" >&2; exit 1; }
     if [ -f "${src}" ] && [ ! -L "${src}" ]; then
         mkdir -p "$(dirname "${dst}")"
-        cp -a "${src}" "${dst}"
+        # A clean worktree may still use CRLF/smudge-filter output. Ship exact
+        # committed bytes, not a platform-dependent presentation of those bytes.
+        git -C "${REPO_ROOT}" cat-file blob "HEAD:${rel}" >"${dst}"
+        local mode
+        mode="$(git -C "${REPO_ROOT}" ls-files -s -- "${rel}" | cut -d ' ' -f1)"
+        if [ "${mode}" = "100755" ]; then chmod 755 "${dst}"; else chmod 644 "${dst}"; fi
     else
         echo "MISSING allowlist entry: ${rel}" >&2
         exit 1

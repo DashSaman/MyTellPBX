@@ -59,8 +59,16 @@ class InstallerBundleTests(unittest.TestCase):
 
     def test_clean_line_ending_conversion_cannot_change_published_source_bytes(self):
         relative='theme/css/workspace.css';path=self.root/relative
+        with (self.root/'.gitattributes').open('a') as attributes:
+            attributes.write('\n'+relative+' text eol=crlf\n')
+        subprocess.check_call(['git','add','.gitattributes'],cwd=self.root,env=self.env)
+        subprocess.check_call(['git','-c','user.name=Fixture','-c','user.email=fixture@example.test','-c','commit.gpgsign=false','commit','--quiet','-m','fixture CRLF checkout'],cwd=self.root,env=self.env)
+        path.unlink()  # Require a fresh checkout instead of a cached stat match.
+        subprocess.check_call(['git','checkout-index','--force','--index','--',relative],cwd=self.root,env=self.env)
         committed=subprocess.check_output(['git','show','HEAD:'+relative],cwd=self.root,env=self.env)
-        path.write_bytes(committed.replace(b'\n',b'\r\n'))
+        self.assertNotIn(b'\r\n',committed,'the committed fixture must have LF source bytes')
+        self.assertIn(b'\r\n',path.read_bytes(),'Git must perform the CRLF checkout conversion')
+        self.assertEqual(path.read_bytes(),committed.replace(b'\n',b'\r\n'))
         self.assertEqual(subprocess.check_output(['git','status','--porcelain'],cwd=self.root,env=self.env),b'')
         result,archive,prefix=self.build();self.assertEqual(result.returncode,0,result.stdout)
         with tarfile.open(archive) as tar:self.assertEqual(tar.extractfile(prefix+relative).read(),committed)
