@@ -44,6 +44,14 @@ class RepositoryAvailabilityTests(unittest.TestCase):
         self.assertNotEqual(result.returncode,0)
         self.assertEqual(len(calls),2)
 
+    def test_primary_location_requires_href_and_metadata_never_needs_dtd_entities(self):
+        for content in ['<location/>','<location href=""/>','<location href=" "/>']:
+            result,_calls=self.run_metadata('printf %s '+repr('<repomd xmlns="http://linux.duke.edu/metadata/repo"><data type="primary">'+content+'</data></repomd>'))
+            self.assertNotEqual(result.returncode,0,'Missing primary metadata path was accepted')
+        document='<!DOCTYPE repomd [<!ENTITY path "repodata/primary.xml.gz">]><repomd xmlns="http://linux.duke.edu/metadata/repo"><data type="primary"><location href="&path;"/></data></repomd>'
+        result,_calls=self.run_metadata('printf %s '+repr(document))
+        self.assertNotEqual(result.returncode,0,'Unnecessary DTD/entity declaration was accepted')
+
     def test_online_preflight_uses_working_official_https_metadata(self):
         with tempfile.TemporaryDirectory() as temp:
             base=Path(temp);source=(ROOT/'install-mytellpbx.sh').read_text(encoding='utf-8')
