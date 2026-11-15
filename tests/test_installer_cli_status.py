@@ -1,12 +1,14 @@
 """CLI-only vendor status repair; filesystem and PHP fixtures never provision."""
 import hashlib
 import importlib.util
+import io
 import os
 from pathlib import Path
 import shutil
 import subprocess
 import tempfile
 import unittest
+from contextlib import redirect_stdout, redirect_stderr
 from unittest.mock import patch
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -99,6 +101,39 @@ class CliStatusRepair(unittest.TestCase):
         self.assertEqual(self.vendor.read_bytes(), self.before)
         self.assertEqual([p.read_bytes() for p in self.backups.iterdir()], [self.before])
         self.assertFalse(list(self.vendor.parent.glob('.mytel-cli-status-*')))
+
+    def test_known_after_pin_cannot_accept_a_missing_guard_boundary(self):
+        with patch.object(self.module, 'PATCHED_SHA256', hashlib.sha256(self.before).hexdigest()):
+            with self.assertRaises(ValueError): self.module.transform(self.before)
+
+    def test_read_only_cli_check_then_apply_use_only_explicit_fixture_root(self):
+        output = io.StringIO()
+        arguments = ['patch-cli-status.py', '--root', str(self.root), '--backup-root', str(self.backups)]
+        fixture_uid = os.geteuid() if hasattr(os, 'geteuid') else 0
+        def privilege_probe():
+            # Bypass only the CLI entry check; actual file ownership validation
+            # still sees the real isolated fixture owner, including nobody.
+            yield 0
+            while True: yield fixture_uid
+        with patch.object(self.module.os, 'geteuid', side_effect=privilege_probe().__next__, create=True), \
+                patch('sys.argv', arguments + ['--check']), redirect_stdout(output):
+            self.module.main()
+        self.assertIn('would update', output.getvalue())
+        self.assertEqual(self.vendor.read_bytes(), self.before); self.assertFalse(self.backups.exists())
+        with patch.object(self.module.os, 'geteuid', side_effect=privilege_probe().__next__, create=True), \
+                patch('sys.argv', arguments), redirect_stdout(output):
+            self.module.main()
+        self.assertEqual(self.vendor.read_bytes(), self.after)
+        self.assertNotIn(self.before.decode(), output.getvalue())
+
+    def test_cli_nonroot_refuses_before_inspecting_or_writing_vendor(self):
+        with patch.object(self.module.os, 'geteuid', return_value=65534, create=True), \
+                patch('sys.argv', ['patch-cli-status.py']), \
+                patch.object(self.module, 'plan') as planned, \
+                redirect_stderr(io.StringIO()):
+            with self.assertRaises(SystemExit) as raised: self.module.main()
+        self.assertEqual(raised.exception.code, 2); planned.assert_not_called()
+        self.assertEqual(self.vendor.read_bytes(), self.before); self.assertFalse(self.backups.exists())
 
     @unittest.skipIf(os.name != 'posix', 'Native POSIX path/ownership boundary')
     def test_symlink_parent_leaf_and_writable_source_are_refused(self):
