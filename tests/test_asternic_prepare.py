@@ -50,6 +50,11 @@ class AsternicPrepareTests(unittest.TestCase):
         self.checks[0]['rc']=1
         with self.assertRaisesRegex(ValueError,'checks'):self.prepare()
         self.assertFalse(self.output.exists())
+        self.checks[0]['rc']=0
+        module=load('asternic_prepare_invalid_id',REPO/'scripts/ui/prepare-asternic.py')
+        with self.assertRaisesRegex(ValueError,'Git tree'):
+            module.prepare(self.output,self.roots,'main',self.checks,source=self.source)
+        self.assertFalse(self.output.exists())
     def test_served_output_and_existing_artifact_are_rejected(self):
         self.output=self.module/'public-artifact'
         with self.assertRaisesRegex(ValueError,'outside'):self.prepare()
