@@ -28,6 +28,7 @@ tested bytes.
 | Snapshot-derived report preparation | `8f2ac87`,`66b2f7a` | `3c2ff9e`,`9e4265d`,8 preservation/boundary cases |
 | Parent substitution, new-file clobber and rollback unlink | `37c6f9e` | `728ebbd`,5 native FD regressions plus51 prior cases |
 | Populated summary and hourly header obstruction | `28dfe42`,`cf38d6d` | `1a15880`,`10ed7f3`,typed wrappers and16 rendered states |
+| PHP7 numeric zero omitted by legacy PDF Cell | `523622e` | `28389b9`,exact captured renderer and8 native scalar/pagination assertions |
 
 The calendar harness initially required a mini calendar visible on mobile even
 though the intended compact layout hides it, and required scrolling even when all

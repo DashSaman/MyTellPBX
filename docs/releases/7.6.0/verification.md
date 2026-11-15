@@ -145,8 +145,17 @@ was fixed using parent-directory descriptors, no-follow traversal, exclusive
 new-file creation and anchored rollback removal; five native regression cases
 and 51 existing rollout/profile checks passed, preserving mode/mtime/user xattrs.
 
-Presentation and report changes use two independently approved scoped rollouts.
+Presentation and report changes use separate independently approved scoped rollouts.
 The final release receipt records each tree/manifest and binds all current
 payloads to the final tag. It also records the combined-source counts and actual
 installed report observations. Default-route coverage is distinct from populated
 report states and external business integrations.
+
+A final populated-export check found integer-zero cells missing from the legacy
+FPDF output on PHP7.4: its Cell guard loosely compares text with an empty string.
+The exact captured FancyTable method reproduced the loss for integer/float zero;
+one explicit string cast at the data-cell boundary passed all eight native
+scalar/header/pagination controls. Blank/null values stay blank, input arrays and
+formats remain unchanged, and the vendor PDF library is not patched. This uses a
+separately reviewed one-file report repair; its actual PDF text/raster comparison
+is recorded with the final installed observations in the release receipt.
