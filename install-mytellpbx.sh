@@ -513,6 +513,18 @@ repair_platform_catalog() {
     fi
 }
 
+stage_cli_status() {
+    step "آماده‌سازی نمایش وضعیت نصب خودکار"
+    # Package updates may restore the vendor executable. Revalidate its exact
+    # source on every run before framework initialization, including resumes.
+    run_logged "${PY_BIN}" -B "${BUNDLE_DIR}/installer/patch-cli-status.py" \
+        || die "CLI status repair refused; original executable retained (see ${LOG})"
+    if command -v restorecon >/dev/null 2>&1; then
+        run_logged restorecon /usr/bin/issabel-admin-passwords \
+            || die "CLI status executable security context could not be restored"
+    fi
+}
+
 stage_repos() {
     stage_done repos && return 0
     step "پیکربندی مخازن بسته‌ها"
@@ -1311,6 +1323,7 @@ main() {
     stage_tls
     stage_packages2
     repair_platform_catalog mandatory
+    stage_cli_status
     stage_post_base
     stage_framework_init
     stage_mytel_layer
