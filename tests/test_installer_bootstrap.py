@@ -177,18 +177,28 @@ sleep(){ :; }
         self.assertNotIn(self.ami, result.stdout + result.stderr); self.assertNotIn(self.jwt, result.stdout + result.stderr)
 
     def test_native_init_key_rotation_or_unknown_field_is_rejected(self):
-        for change in ['rotate', 'unknown']:
+        for change in ['rotate', 'unknown', 'wrong-cyrus']:
             with self.subTest(change=change):
                 self.write_factory()
                 body = self.setup + 'ADMIN_PASS=ChosenPanel!\n'
                 if change == 'rotate':
                     body += "initialize_framework_passwords(){ printf 'amiadminpwd=Changed123\\npbxapijwtsecret=" + self.jwt.decode() + "\\nmysqlrootpwd=FixtureDb!\\ncyrususerpwd=FixtureDb!\\n' > \"$FIXTURE_ROOT/etc/issabel.conf\"; }\n"
-                else:
+                elif change == 'unknown':
                     body += "initialize_framework_passwords(){ printf 'mysqlrootpwd=FixtureDb!\\ncyrususerpwd=FixtureDb!\\nunknown=operator\\n' >> \"$FIXTURE_ROOT/etc/issabel.conf\"; }\n"
+                else:
+                    body += "initialize_framework_passwords(){ printf 'mysqlrootpwd=FixtureDb!\\ncyrususerpwd=WrongCyrus!\\n' >> \"$FIXTURE_ROOT/etc/issabel.conf\"; }\n"
                 body += 'initialize_preserving_framework_keys "$FIXTURE_ROOT"\n'
                 script = self.base / 'changed.sh'; script.write_text(body, encoding='utf-8')
                 result = subprocess.run([BASH, '--noprofile', '--norc', str(script)], stdin=subprocess.DEVNULL, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
                 self.assertNotEqual(result.returncode, 0)
+
+    def test_service_key_change_between_bootstrap_and_init_stops_before_vendor(self):
+        self.write_factory(self.factory.replace(self.ami, b'Changed123'))
+        digest = hashlib.sha256(self.ami).hexdigest() + ':' + hashlib.sha256(self.jwt).hexdigest()
+        script = self.base / 'before-init.sh'
+        script.write_text(self.setup + 'ADMIN_PASS=ChosenPanel!\ninitialize_preserving_framework_keys "$FIXTURE_ROOT" ' + repr(digest) + '\n', encoding='utf-8')
+        result = subprocess.run([BASH, '--noprofile', '--norc', str(script)], stdin=subprocess.DEVNULL, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+        self.assertNotEqual(result.returncode, 0); self.assertFalse(self.events.exists())
 
     @unittest.skipIf(os.name != 'posix', 'Native POSIX private configuration boundary')
     def test_factory_config_wrong_permissions_symlink_or_owner_is_refused(self):
@@ -199,6 +209,13 @@ sleep(){ :; }
         config.symlink_to(outside)
         result, events = self.run_bootstrap('fresh')
         self.assertNotEqual(result.returncode, 0); self.assertEqual(events, '')
+        config.unlink(); self.write_factory()
+        script = self.base / 'wrong-owner.sh'
+        wrong_uid = os.getuid() + 1
+        body = self.setup + "getent(){ case \"$1:$2\" in passwd:asterisk) printf 'asterisk:x:" + str(wrong_uid) + ':' + str(os.getgid()) + ":Asterisk:/var/lib/asterisk:/bin/bash\\n';; group:asterisk) printf 'asterisk:x:" + str(os.getgid()) + ":\\n';; *) return 2;; esac; }\nMODE=fresh\nbootstrap_empty_framework \"$FIXTURE_ROOT\"\n"
+        script.write_text(body, encoding='utf-8')
+        result = subprocess.run([BASH, '--noprofile', '--norc', str(script)], stdin=subprocess.DEVNULL, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+        self.assertNotEqual(result.returncode, 0); self.assertFalse(self.events.exists())
 
 
 if __name__ == '__main__': unittest.main()

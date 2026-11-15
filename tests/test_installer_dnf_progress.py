@@ -181,7 +181,7 @@ class DnfProgressTests(unittest.TestCase):
         self.assertIn('run_dnf_logged update -y update', source)
         self.assertIn('run_dnf_logged packages -y install "$@"', source)
         self.assertIn('run_logged() { "$@" >>"$LOG" 2>&1; }', source)
-        self.assertIn('printf \'%s\\n%s\\n\' "${MYSQL_ROOT_PASS}" "${ADMIN_PASS}" | run_logged php', source)
+        self.assertIn('printf \'%s\\n%s\\n\' "${MYSQL_ROOT_PASS}" "${web_password}" | run_logged php', source)
         self.assertIn('copy_path "installer/dnf-progress.py"', (ROOT / 'scripts/build-installer-bundle.sh').read_text(encoding='utf-8'))
 
 

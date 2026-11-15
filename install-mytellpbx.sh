@@ -137,7 +137,8 @@ ensure_amp_admin_password() {
 
 initialize_framework_passwords() {
     [ -f "${BUNDLE_DIR}/installer/password-init.php" ] || die "private password initialization adapter missing from bundle"
-    printf '%s\n%s\n' "${MYSQL_ROOT_PASS}" "${ADMIN_PASS}" | run_logged php "${BUNDLE_DIR}/installer/password-init.php" \
+    local web_password="${1:-${ADMIN_PASS}}"
+    printf '%s\n%s\n' "${MYSQL_ROOT_PASS}" "${web_password}" | run_logged php "${BUNDLE_DIR}/installer/password-init.php" \
         || die "password initialization failed (see ${LOG})"
 }
 
@@ -741,15 +742,83 @@ bootstrap_query_count() {
     printf '%s' "${count}"
 }
 
+framework_service_config() {
+    local mode="$1" root="${2:-/}" account group uid primary_gid gid
+    local file="${root%/}/etc/issabel.conf"
+    if [ ! -e "${file}" ] && [ ! -L "${file}" ]; then
+        [ "${mode}" = digest ] || return 1
+        printf absent; return 0
+    fi
+    account=$(getent passwd asterisk) || return 1
+    [[ "${account}" =~ ^asterisk:[^:]*:([0-9]{1,9}):([0-9]{1,9}):[^:]*:/var/lib/asterisk:/bin/bash$ ]] || return 1
+    uid="${BASH_REMATCH[1]}"; primary_gid="${BASH_REMATCH[2]}"
+    group=$(getent group asterisk) || return 1
+    [[ "${group}" =~ ^asterisk:[^:]*:([0-9]{1,9}):[^:]*$ ]] || return 1
+    gid="${BASH_REMATCH[1]}"
+    [ "${gid}" = "${primary_gid}" ] || return 1
+    EXPECTED_MYSQL_PASSWORD="${MYSQL_ROOT_PASS}" "${PY_BIN}" -B - "${file}" "${mode}" "${uid}" "${gid}" <<'PY'
+import base64, binascii, hashlib, os, re, stat, sys
+try:
+    path, mode = sys.argv[1:3]
+    if mode not in ('digest', 'ami', 'initialized-digest'): raise ValueError('mode')
+    meta = os.lstat(path)
+    if not stat.S_ISREG(meta.st_mode) or os.path.realpath(path) != os.path.abspath(path) or meta.st_size > 16384:
+        raise ValueError('file')
+    if os.name == 'posix' and (stat.S_IMODE(meta.st_mode) != 0o600 or meta.st_uid != int(sys.argv[3]) or meta.st_gid != int(sys.argv[4])):
+        raise ValueError('metadata')
+    with open(path, 'rb') as source: raw = source.read(16385)
+    if not raw.endswith(b'\n') or b'\r' in raw: raise ValueError('format')
+    values = {}
+    for line in raw.splitlines():
+        key, separator, value = line.partition(b'=')
+        if not separator or key in values: raise ValueError('keys')
+        values[key] = value
+    expected = {b'amiadminpwd', b'pbxapijwtsecret'}
+    if mode == 'initialized-digest': expected.update((b'mysqlrootpwd', b'cyrususerpwd'))
+    if set(values) != expected: raise ValueError('keys')
+    ami, jwt = values[b'amiadminpwd'], values[b'pbxapijwtsecret']
+    if not re.fullmatch(rb'[A-Za-z0-9 .@=_!\-]{10}', ami) or not ami.strip(): raise ValueError('ami')
+    decoded = base64.b64decode(jwt, validate=True)
+    if len(jwt) != 44 or len(decoded) != 32 or base64.b64encode(decoded) != jwt: raise ValueError('jwt')
+    if mode == 'initialized-digest':
+        chosen = os.environ['EXPECTED_MYSQL_PASSWORD'].encode('utf-8')
+        if values[b'mysqlrootpwd'] != chosen or values[b'cyrususerpwd'] != chosen: raise ValueError('passwords')
+    if mode == 'ami': sys.stdout.write(ami.decode('ascii'))
+    else: sys.stdout.write(hashlib.sha256(ami).hexdigest() + ':' + hashlib.sha256(jwt).hexdigest())
+except (OSError, ValueError, KeyError, binascii.Error):
+    raise SystemExit(1)
+PY
+}
+
+initialize_preserving_framework_keys() {
+    local root="${1:-/}" expected="${2:-}" before after web_password="${ADMIN_PASS}"
+    before=$(framework_service_config digest "${root}") || die "unrecognized service-key configuration retained"
+    [ -z "${expected}" ] || [ "${before}" = "${expected}" ] || die "service keys changed during bootstrap; configuration retained"
+    if [ "${before}" != absent ]; then
+        # The native web step also sets AMI credentials. Give it the existing
+        # AMI value, then set the independently chosen panel password below.
+        web_password=$(framework_service_config ami "${root}") || die "cannot validate existing AMI credentials"
+    fi
+    run_logged /usr/bin/issabel-admin-passwords --ensure-jwt-secret || die "jwt secret init failed"
+    initialize_framework_passwords "${web_password}"
+    if [ "${before}" != absent ]; then
+        after=$(framework_service_config initialized-digest "${root}") || die "initialized service-key configuration is invalid; values retained"
+        [ "${before}" = "${after}" ] || die "AMI/JWT preservation check failed; no automatic restoration attempted"
+        log 'Existing AMI/JWT keys verified unchanged'
+    fi
+}
+
 guard_empty_framework_bootstrap() {
     local root="${1:-/}" path count
     root="${root%/}"
     # An installer receipt is never evidence that an existing PBX is empty.
     # Refuse unknown/partial files, including broken symlinks, without removal.
-    for path in etc/amportal.conf etc/issabelpbx.conf etc/issabel.conf; do
+    for path in etc/amportal.conf etc/issabelpbx.conf; do
         [ ! -e "${root}/${path}" ] && [ ! -L "${root}/${path}" ] \
             || die "existing framework configuration retained; use scoped repair instead of reinitialization"
     done
+    framework_service_config digest "${root}/" >/dev/null \
+        || die "unrecognized initial service-key configuration retained; bootstrap refused"
     count=$(bootstrap_query_count "SELECT COUNT(*) FROM information_schema.SCHEMATA WHERE SCHEMA_NAME NOT IN ('mysql','information_schema','performance_schema','sys','asterisk','asteriskcdrdb');") \
         || die "cannot inventory database schemas; bootstrap refused without changes"
     [ "${count}" = "0" ] || die "unexpected database schema retained; bootstrap refused"
@@ -825,19 +894,15 @@ stage_framework_init() {
     step "راه‌اندازی چارچوب مرکز تماس و رمزها"
 
     ensure_credentials
+    local service_digest
+    service_digest=$(framework_service_config digest) || die "unrecognized initial service-key configuration retained"
     guard_empty_framework_bootstrap
 
-    # install_amp requires a running Asterisk (upstream start_asterisk helper).
-    # Daemons must NOT inherit the installer lock fd — close it in subshells.
-    if ! asterisk -rx 'core show version' >/dev/null 2>&1; then
-        if [ -x /usr/src/issabelPBX/framework/start_asterisk ]; then
-            ( exec 9>&-; run_logged /usr/src/issabelPBX/framework/start_asterisk start ) || true
-        fi
-        ( exec 9>&-; systemctl start asterisk >>"$LOG" 2>&1 ) || true
-        sleep 3
-        asterisk -rx 'core show version' >>"$LOG" 2>&1 \
-            || die "asterisk failed to start for framework init"
-    fi
+    # The supported RPM owns one native systemd unit. Starting a manual
+    # safe_asterisk helper as well can create competing unmanaged processes.
+    ( exec 9>&-; systemctl start asterisk >>"$LOG" 2>&1 ) || die "native asterisk unit failed to start"
+    systemctl is-active --quiet asterisk || die "native asterisk unit is not active"
+    asterisk -rx 'core show version' >>"$LOG" 2>&1 || die "asterisk CLI failed before framework init"
     systemctl enable asterisk >>"$LOG" 2>&1 || die "cannot enable asterisk at boot"
 
     bootstrap_empty_framework
@@ -845,9 +910,7 @@ stage_framework_init() {
     # Non-interactive password initialization (sets MariaDB/Cyrus root,
     # panel admin password, applies pending DB scripts, saves /etc/issabel.conf).
     # The upstream tool can print internal errors yet exit 0 — verify outcomes.
-    run_logged /usr/bin/issabel-admin-passwords --ensure-jwt-secret \
-        || die "jwt secret init failed"
-    initialize_framework_passwords
+    initialize_preserving_framework_keys / "${service_digest}"
     verify_mysql_root_password \
         || die "password init did not persist mysqlrootpwd (upstream tool misreported success)"
     verify_mysql_authentication
