@@ -16,7 +16,8 @@ class PolishScopeTests(unittest.TestCase):
     def test_reviewed_presentation_and_acl_entry_paths_are_supported(self):
         for root,name in [('panel','css/mt-calendar.css'),('panel','_common/index.tpl'),
                           ('admin','assets/mytel/workspace.css'),('admin','views/header.php'),
-                          ('legacy','modules/mytellpbxopdesk/index.php')]:
+                          ('legacy','modules/mytellpbxopdesk/index.php'),
+                          ('legacy','modules/mytellpbxopdesk/launcher-access.php')]:
             with self.subTest(root=root,name=name):
                 self.assertTrue(policy.allowed({'root':root,'path':name},PROFILE))
 
