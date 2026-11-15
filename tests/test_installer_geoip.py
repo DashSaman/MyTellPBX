@@ -244,6 +244,14 @@ class GeoipTests(unittest.TestCase):
         self.assertEqual(json.loads(saved.read_text(encoding='utf-8')), result)
         self.assertFalse(any(key in result for key in ('password', 'key', 'secret', 'root', 'program')))
 
+    def test_actual_publisher_normalizes_prior_fractional_utc_to_the_ui_contract(self):
+        info = self.convert()
+        info.update(month='2026-11', created_utc='2026-11-15T18:00:00.123456Z', source_sha256='a' * 64,
+                    source_url='https://download.db-ip.com/free/dbip-country-lite-2026-11.csv.gz')
+        result = geoip.publish_status(self.base / 'root', info)
+        self.assertEqual(result['updated_utc'], '2026-11-15T18:00:00Z')
+        self.assertRegex(result['updated_utc'], r'^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}Z$')
+
     def test_cron_install_refuses_unknown_source_without_writing(self):
         root = self.base / 'root'
         cron = root / 'etc/cron.daily/geoip_update.sh'
