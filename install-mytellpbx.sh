@@ -88,9 +88,24 @@ die()   {
 }
 
 stage_done() { [ -f "${STATE_DIR}/stages/$1.done" ]; }
-mark_stage() { mkdir -p "${STATE_DIR}/stages"; touch "${STATE_DIR}/stages/$1.done"; log "STAGE-COMPLETE: $1"; }
+mark_stage() {
+    mkdir -p "${STATE_DIR}/stages" || die "cannot create installer stage directory"
+    touch "${STATE_DIR}/stages/$1.done" || die "cannot persist installer stage marker: $1"
+    log "STAGE-COMPLETE: $1" || die "cannot persist installer stage completion log: $1"
+}
 
 run_logged() { "$@" >>"$LOG" 2>&1; }
+
+# DNF alone has a public, rate-limited counter stream. Never pass password
+# initialization or arbitrary commands through this logger.
+run_dnf_logged() {
+    local kind="$1"; shift
+    PYTHONIOENCODING=utf-8 "${PY_BIN}" -u -B "${BUNDLE_DIR}/installer/dnf-progress.py" --log "${LOG}" --kind "${kind}" --check-log 9>&- || return 1
+    LC_ALL=C dnf "$@" 9>&- 2>&1 | PYTHONIOENCODING=utf-8 "${PY_BIN}" -u -B "${BUNDLE_DIR}/installer/dnf-progress.py" --log "${LOG}" --kind "${kind}" 9>&-
+    local statuses=("${PIPESTATUS[@]}")
+    [ "${statuses[0]}" = "0" ] || return "${statuses[0]}"
+    return "${statuses[1]}"
+}
 
 # mysql helper: works whether root is passwordless or already passworded
 # (credentials file is loaded before use; safe to call after ensure_credentials)
@@ -490,18 +505,18 @@ stage_repos() {
     # transport BEFORE any DNF command attempts metadata from the old HTTP URL.
     "${PY_BIN}" -B "${BUNDLE_DIR}/installer/repair-repository-transport.py" --if-present >>"$LOG" 2>&1 \
         || die "repository transport repair failed; review installed vendor repos"
-    run_logged dnf install -y dnf-plugins-core || die "dnf-plugins-core install failed"
-    run_logged dnf install -y https://rpms.remirepo.net/enterprise/remi-release-8.rpm \
+    run_dnf_logged repositories install -y dnf-plugins-core || die "dnf-plugins-core install failed"
+    run_dnf_logged repositories install -y https://rpms.remirepo.net/enterprise/remi-release-8.rpm \
         || die "remi-release install failed"
     "${PY_BIN}" -B "${BUNDLE_DIR}/installer/repair-repository-transport.py" >>"$LOG" 2>&1 \
         || die "repository transport repair failed; review vendor repo files"
-    run_logged dnf module reset -y php || true
-    run_logged dnf module enable -y php:remi-7.4 || die "php:remi-7.4 module enable failed"
+    run_dnf_logged repositories module reset -y php || true
+    run_dnf_logged repositories module enable -y php:remi-7.4 || die "php:remi-7.4 module enable failed"
     run_logged dnf config-manager --set-enabled remi || true
     run_logged dnf config-manager --set-enabled powertools || true
     run_logged dnf config-manager --set-enabled devel || true
 
-    run_logged dnf -q makecache || die "dnf makecache failed"
+    run_dnf_logged repositories -q makecache || die "dnf makecache failed"
     mark_stage repos
 }
 
@@ -514,7 +529,7 @@ stage_update() {
     step "به‌روزرسانی سیستم‌عامل"
     local attempt ok=0
     for attempt in 1 2 3; do
-        if run_logged dnf -y update; then ok=1; break; fi
+        if run_dnf_logged update -y update; then ok=1; break; fi
         warn "به‌روزرسانی ناموفق (تلاش ${attempt}/3) — میرور جایگزین آزمایش می‌شود"
         sleep 5
     done
@@ -523,7 +538,7 @@ stage_update() {
 }
 
 install_pkg() {
-    dnf -y install "$@" >>"$LOG" 2>&1
+    run_dnf_logged packages -y install "$@"
 }
 
 # --------------------------------------------------------------------------

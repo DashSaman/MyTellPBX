@@ -7,7 +7,9 @@ import shutil
 import subprocess
 import sys
 import tempfile
+from types import SimpleNamespace
 import unittest
+from unittest.mock import patch
 
 ROOT = Path(__file__).resolve().parents[1]
 SCRIPT = ROOT / 'installer/dnf-progress.py'
@@ -73,6 +75,44 @@ class DnfProgressTests(unittest.TestCase):
         raw = ShortLog()
         self.assertTrue(self.module.copy_progress(io.BytesIO(fixture), raw, self.reporter()))
         self.assertEqual(raw.getvalue(), fixture)
+
+    def invoke_main(self, source, output=None):
+        log = self.base / 'direct.log'; output = output if output is not None else io.StringIO()
+        with patch.object(sys, 'argv', [str(SCRIPT), '--log', str(log), '--kind', 'update']), \
+             patch.object(sys, 'stdin', SimpleNamespace(buffer=source)), \
+             patch.object(sys, 'stdout', output), patch.object(sys, 'stderr', io.StringIO()):
+            status = self.module.main()
+        return status, log, output
+
+    def test_main_check_log_never_reads_input_or_prints_progress(self):
+        class UnreadInput:
+            def read(self, _size): raise AssertionError('check-log must never read stdin')
+        output = io.StringIO(); log = self.base / 'check.log'
+        with patch.object(sys, 'argv', [str(SCRIPT), '--log', str(log), '--kind', 'packages', '--check-log']), \
+             patch.object(sys, 'stdin', SimpleNamespace(buffer=UnreadInput())), patch.object(sys, 'stdout', output):
+            self.assertEqual(self.module.main(), 0)
+        self.assertEqual(log.read_bytes(), b''); self.assertEqual(output.getvalue(), '')
+
+    def test_main_success_keeps_full_raw_log_and_only_safe_public_progress(self):
+        fixture = b'RawSecret URL=https://private.invalid\r\n(176/200): private-package'
+        status, log, output = self.invoke_main(io.BytesIO(fixture))
+        self.assertEqual(status, 0); self.assertEqual(log.read_bytes(), fixture)
+        self.assertIn('176 از 200', output.getvalue()); self.assertNotIn('RawSecret', output.getvalue())
+        self.assertNotIn('private-package', output.getvalue())
+
+    def test_main_open_and_console_failures_drain_then_return_failure(self):
+        class BrokenConsole:
+            def write(self, _data): raise BrokenPipeError('fixture')
+            def flush(self): pass
+        fixture = b'(1/200): first\n' + b'x' * 70000 + b'\n(200/200): last'
+        source = io.BytesIO(fixture)
+        with patch.object(self.module, 'open_private_log', side_effect=OSError('fixture open error')):
+            status, _log, _output = self.invoke_main(source)
+        self.assertEqual(status, 1); self.assertEqual(source.tell(), len(fixture))
+        source = io.BytesIO(fixture)
+        status, log, _output = self.invoke_main(source, BrokenConsole())
+        self.assertEqual(status, 1); self.assertEqual(source.tell(), len(fixture))
+        self.assertEqual(log.read_bytes(), fixture)
 
     def test_invalid_counts_unknown_output_and_oversized_records_are_not_printed(self):
         reporter = self.reporter(); raw = io.BytesIO()

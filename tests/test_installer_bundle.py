@@ -40,7 +40,7 @@ class InstallerBundleTests(unittest.TestCase):
         result,archive,prefix=self.build();self.assertEqual(result.returncode,0,result.stdout)
         with tarfile.open(archive) as tar:
             names=set(tar.getnames())
-            for name in ['installer/install-myteldesk.py','installer/myteldesk-release.json','installer/password-init.php','installer/repair-repository-transport.py','modules/mytellpbxopdesk/index.php','modules/mytellpbxopdesk/launcher-access.php','admin-theme/patch-login-branding.py','admin-fixes/patch-asternic-direction.py','admin-fixes/asternic-direction.php','admin-fixes/licenses/GPL-3.0.txt','LICENSE']:
+            for name in ['installer/install-myteldesk.py','installer/myteldesk-release.json','installer/password-init.php','installer/repair-repository-transport.py','installer/dnf-progress.py','modules/mytellpbxopdesk/index.php','modules/mytellpbxopdesk/launcher-access.php','admin-theme/patch-login-branding.py','admin-fixes/patch-asternic-direction.py','admin-fixes/asternic-direction.php','admin-fixes/licenses/GPL-3.0.txt','LICENSE']:
                 with self.subTest(name=name):
                     self.assertIn(prefix+name,names)
                     if prefix+name in names:self.assertEqual(tar.extractfile(prefix+name).read(),(self.root/name).read_bytes())
