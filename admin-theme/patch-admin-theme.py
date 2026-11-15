@@ -19,11 +19,11 @@ SKIN_END = "/* MyTellPBX legacy coverage v740 END */"
 START = "/* MyTellPBX workspace v740 BEGIN */"
 END = "/* MyTellPBX workspace v740 END */"
 HEAD = """/* MyTellPBX workspace v740 BEGIN */
-$html .= '<script src="assets/mytel/workspace.js?v=760"></script>';
+$html .= '<script src="assets/mytel/workspace.js?v=761"></script>';
 /* MyTellPBX workspace v740 END */
 """
 STYLE = """/* MyTellPBX workspace v740 BEGIN */
-$html .= '<link rel="stylesheet" href="assets/mytel/workspace.css?v=760">';
+$html .= '<link rel="stylesheet" href="assets/mytel/workspace.css?v=761">';
 /* MyTellPBX workspace v740 END */
 """
 ASSET_START = '/* MyTellPBX asset query v761 BEGIN */'
@@ -97,9 +97,9 @@ def transform_asset_url(text, key):
 
 
 def remove_current(text):
-    for version in ('740', '752', '760'):
-        text = text.replace("\n" + HEAD.replace('?v=760', '?v=' + version), "")
-        text = text.replace(STYLE.replace('?v=760', '?v=' + version), "")
+    for version in ('740', '752', '760', '761'):
+        text = text.replace("\n" + HEAD.replace('?v=761', '?v=' + version), "")
+        text = text.replace(STYLE.replace('?v=761', '?v=' + version), "")
     if START in text or END in text:
         raise ValueError("Workspace PHP marker changed; refusing to discard edits")
     return text

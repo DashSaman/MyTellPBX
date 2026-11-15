@@ -12,24 +12,23 @@ HEADER="<?php\n$html='';\n$html .= '<head>';\n// owner customization\n$html .= '
 class HeaderAssetVersionTests(unittest.TestCase):
     def test_new_header_fetches_new_workspace_presentation(self):
         result=patch.transform_header(HEADER)
-        self.assertEqual(result.count('workspace.css?v=760'),1)
-        self.assertEqual(result.count('workspace.js?v=760'),1)
+        self.assertEqual(result.count('workspace.css?v=761'),1)
+        self.assertEqual(result.count('workspace.js?v=761'),1)
         self.assertIn('// owner customization',result)
 
     def test_previous_known_versions_upgrade_without_changing_apply_controllers(self):
         fresh=patch.transform_header(HEADER)
-        for version in ['740','752','760']:
-            old=fresh.replace('workspace.css?v=752','workspace.css?v='+version).replace('workspace.js?v=752','workspace.js?v='+version)
-            old=old.replace('workspace.css?v=760','workspace.css?v='+version).replace('workspace.js?v=760','workspace.js?v='+version)
+        for version in ['740','752','760','761']:
+            old=fresh.replace('workspace.css?v=761','workspace.css?v='+version).replace('workspace.js?v=761','workspace.js?v='+version)
             with self.subTest(version=version):
                 result=patch.transform_header(old)
-                self.assertEqual(result.count('workspace.css?v=760'),1)
-                self.assertEqual(result.count('workspace.js?v=760'),1)
+                self.assertEqual(result.count('workspace.css?v=761'),1)
+                self.assertEqual(result.count('workspace.js?v=761'),1)
                 self.assertEqual(result.count('assets/mytel/save.js?v=753'),1)
                 self.assertEqual(patch.transform_header(result),result)
 
     def test_unrecognized_workspace_url_is_preserved_by_refusal(self):
-        old=patch.transform_header(HEADER).replace('workspace.css?v=752','workspace.css?v=operator').replace('workspace.css?v=760','workspace.css?v=operator')
+        old=patch.transform_header(HEADER).replace('workspace.css?v=761','workspace.css?v=operator')
         with self.assertRaisesRegex(ValueError,'marker changed'):patch.transform_header(old)
 
 
