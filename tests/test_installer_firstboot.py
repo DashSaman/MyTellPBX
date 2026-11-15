@@ -155,5 +155,24 @@ class FirstBootTests(unittest.TestCase):
         self.assertEqual(result.returncode, 0, result.stderr)
         self.assertTrue((self.base / 'state/stages/healthy.done').is_file())
 
+    def test_main_consumes_two_passwords_then_vendor_sees_eof_but_explicit_pipe_works(self):
+        inherited = self.base / 'vendor-input'; explicit = self.base / 'explicit-input'
+        body = 'STATE_DIR=' + repr((self.base / 'state').as_posix()) + '\n'
+        # Every provisioning/host interaction is replaced; only the real main,
+        # credential collector and writes inside this temporary fixture run.
+        body += '''credential_input_is_tty(){ return 0; }
+preflight(){ :; }; acquire_lock(){ :; }; write_install_source(){ :; }; initialize_workspace(){ :; }; verify_bundle(){ :; }
+stage_packages1(){ :; }; stage_packages2(){ :; }; stage_post_base(){ :; }; stage_framework_init(){ :; }
+stage_mytel_layer(){ :; }; stage_myteldesk(){ :; }; stage_selfcheck(){ :; }; finish(){ :; }
+'''
+        body += 'stage_repos(){ if IFS= read -r answer; then printf inherited > ' + repr(inherited.as_posix()) + '; else printf EOF > ' + repr(inherited.as_posix()) + '; fi; }\n'
+        body += 'fixture_vendor(){ IFS= read -r value && printf \'%s\' "$value" > ' + repr(explicit.as_posix()) + '; }\n'
+        body += "stage_update(){ printf 'ExplicitPipeInput\\n' | fixture_vendor; }\nmain\n"
+        result = self.run_shell(body, 'ChosenPanel!\nChosenDatabase=\nMustNotReachVendor\n')
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertEqual(self.load_values(), {'ADMIN_PASS': 'ChosenPanel!', 'MYSQL_ROOT_PASS': 'ChosenDatabase='})
+        self.assertEqual(inherited.read_text(), 'EOF')
+        self.assertEqual(explicit.read_text(), 'ExplicitPipeInput')
+
 
 if __name__ == '__main__': unittest.main()
