@@ -17,13 +17,39 @@ def data_table_fixture(name, arguments, columns):
             '    echo "</tbody>\\n";\n    echo "</table>\\n";\n\n    $cover_pdf = \'export remains outside\';\n}\n')
 
 
+HOUR_TABLES = '''function asternic_distribution($appconfig) {
+    if($appconfig['period']>1) {
+        foreach ($dur as $chann=>$vel) {
+            echo "<table>\\n<thead>";
+            echo "<tr><th></th><th colspan=25>"._('Hour of day (8 means 08h00 - 08h59)')."</th></tr>\\n";
+            echo "<tr><th>Date</th>";
+            for ($hour=0;$hour<24;$hour++) {
+                echo "<th>$hour</th>";
+            }
+            echo "<th>Total</th></tr></thEAD><TBODY>\\n";
+            echo "</tbody></table>";
+        }
+    } else {
+      echo "<table>\\n<thead>";
+      echo "<tr><th></th><th colspan=25>"._('Hour of day (8 means 08h00 - 08h59)')."</th></tr>\\n";
+      echo "<tr><th>User</th>";
+      for ($hour=0;$hour<24;$hour++) {
+         echo "<th>$hour</th>";
+      }
+      echo "<th>"._('total')."</th></tr></thead><tbody>\\n";
+      echo "</table>";
+    }
+}
+'''
+
+
 PAGE = '''<?php
 require_once(dirname(__FILE__) . '/functions.inc.php');
 // Owner material is preserved.
 ''' + '\n'.join('$query .= "AND ' + condition + ' ";' for condition in ("dst LIKE '9%'", "src REGEXP '^[0-9]{7,11}$'") for _ in range(3)) + '''
 $extra_where = " AND dst LIKE '9%'";
 $extra_where = " AND src REGEXP '^[0-9]{7,11}$'";
-''' + data_table_fixture('inbound_outbound','$type,$appconfig',12) + data_table_fixture('asternic_report','$typereport,$appconfig',10) + '''
+''' + HOUR_TABLES + data_table_fixture('inbound_outbound','$type,$appconfig',12) + data_table_fixture('asternic_report','$typereport,$appconfig',10) + '''
 function asternic_home($appconfig) {
  $sql = "SELECT if(j1.dial is not null and j2.dial is null,'outbound',''),if(j1.dial is null and j2.dial is not null,'inbound',''),if(j1.dial is not null and j2.dial is not null,'internal','')";
 }
@@ -98,8 +124,8 @@ class AsternicDirectionPatcherTests(unittest.TestCase):
         for width,columns in ((960,12),(800,10)):
             self.assertTrue('min-width: '+str(width)+'px' in candidate,'Native header count must determine intrinsic width')
             self.assertTrue("data-mt-cdr-columns='"+str(columns)+"'" in candidate)
-        self.assertEqual(candidate.count("tabindex='0' role='region'"),2)
-        self.assertEqual(candidate.count('<th>'),22)
+        self.assertEqual(candidate.count("mt-cdr-data-scroll' tabindex='0' role='region'"),2)
+        self.assertEqual(candidate.count('<th>fixture-'),22)
         self.assertEqual(candidate.count("<a name='1'></a>"),2)
         self.assertEqual(candidate.count('echo "</div>\\n";\n\n    $cover_pdf'),2,'Exports stay outside the data scroll region')
         self.assertEqual(candidate,patcher.transform_page(candidate))
@@ -107,6 +133,19 @@ class AsternicDirectionPatcherTests(unittest.TestCase):
     def test_changed_native_header_count_requires_review(self):
         patcher=self.load()
         with self.assertRaises(ValueError):patcher.transform_page(PAGE.replace('<th>fixture-12</th>','',1))
+
+    def test_hour_data_grids_have_twenty_six_column_scroll_regions_in_both_branches(self):
+        patcher=self.load();candidate=patcher.transform_page(PAGE)
+        self.assertEqual(candidate.count('mt-cdr-hour-scroll'),2)
+        self.assertEqual(candidate.count("data-mt-cdr-columns='26'"),2)
+        self.assertEqual(candidate.count('min-width: 1040px'),2)
+        self.assertEqual(candidate.count("mt-cdr-hour-scroll' tabindex='0' role='region'"),2)
+        self.assertEqual(candidate.count('colspan=25'),2)
+        self.assertEqual(candidate,patcher.transform_page(candidate))
+
+    def test_changed_hour_grid_span_requires_review(self):
+        patcher=self.load()
+        with self.assertRaises(ValueError):patcher.transform_page(PAGE.replace('colspan=25','colspan=24',1))
 
     def test_plan_refuses_other_versions_and_unknown_existing_helper(self):
         patcher = self.load()
