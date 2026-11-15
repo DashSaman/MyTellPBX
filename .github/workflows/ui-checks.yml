@@ -30,7 +30,7 @@ jobs:
       - name: JavaScript syntax
         shell: bash
         run: |
-          for file in theme/js/theme.js theme/js/mytel-charts.js theme/js/workspace.js theme/js/appearance.js theme/js/mt-calendar.js theme/js/calendar-core.js theme/js/calendar-editor.js admin-theme/workspace.js admin-theme/apply.js admin-theme/feedback.js admin-theme/save.js webphone/theme.js tests/ui/audit.cjs tests/ui/interactions.cjs tests/ui/apply-flow.cjs tests/ui/calendar-flow.cjs tests/ui/security-switch.cjs tests/ui/toast-lifecycle.cjs tests/ui/save-flow.cjs; do
+          for file in theme/js/theme.js theme/js/mytel-charts.js theme/js/workspace.js theme/js/appearance.js theme/js/mt-calendar.js theme/js/calendar-core.js theme/js/calendar-editor.js admin-theme/workspace.js admin-theme/apply.js admin-theme/feedback.js admin-theme/save.js webphone/theme.js tests/ui/audit.cjs tests/ui/interactions.cjs tests/ui/apply-flow.cjs tests/ui/calendar-flow.cjs tests/ui/security-switch.cjs tests/ui/toast-lifecycle.cjs tests/ui/save-flow.cjs tests/ui/polish-controls.cjs tests/ui/polish-navigation.cjs tests/ui/polish-dashboard.cjs; do
             node --check "$file"
           done
       - name: Installer shell syntax
