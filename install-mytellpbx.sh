@@ -7,7 +7,7 @@
 #   - telephony base (Asterisk 20, MariaDB, Apache, PHP 7.4, framework)
 #   - Persian RTL panel navigation with the PBX technical settings console LTR
 #   - full MyTel branding, dark/light themes, Persian language
-#   - pinned MytelDesk 1.1.0 with automatic verified CPU VAD
+#   - pinned MytelDesk 1.1.1 with automatic verified CPU VAD
 #
 # Quick start (download, review, run — never pipe straight into bash):
 #   curl -fsSL -o install-mytellpbx.sh \
@@ -877,6 +877,18 @@ framework_bootstrap_healthy() {
     [ "${mod_count}" -gt 5 ] && [ -f "${root%/}/etc/amportal.conf" ]
 }
 
+fresh_pjsip_websocket() {
+    local phase="${1:-}"
+    case "${phase}" in prepare|activate) ;; *) die "invalid fresh WebSocket phase" ;; esac
+    [ -f "${BUNDLE_DIR}/installer/prepare-pjsip-websocket.py" ] \
+        && [ -f "${BUNDLE_DIR}/installer/pjsip-websocket-native.php" ] \
+        || die "fresh PJSIP WebSocket bootstrap missing from bundle"
+    run_logged "${PY_BIN}" -B "${BUNDLE_DIR}/installer/prepare-pjsip-websocket.py" "${phase}" \
+        --state-dir "${STATE_DIR}" --version "${MYTELLPBX_VERSION}" \
+        --bundle-sha256 "${MYTELLPBX_BUNDLE_SHA256}" \
+        || die "fresh PJSIP WebSocket ${phase} failed; native settings retained"
+}
+
 bootstrap_empty_framework() {
     local root="${1:-/}" attempt installer_ok
     guard_empty_framework_bootstrap "${root}"
@@ -890,7 +902,9 @@ bootstrap_empty_framework() {
         run_logged /usr/src/issabelPBX/framework/install_amp --dbuser=root --installdb --scripted --language="${LANG_SEL}" && installer_ok=1
         if framework_bootstrap_healthy "${root}"; then
             [ "${installer_ok}" = "1" ] || die "initializer reported failure; generated data retained for scoped repair"
+            fresh_pjsip_websocket prepare
             run_logged /var/lib/asterisk/bin/retrieve_conf || die "retrieve_conf failed; generated data retained"
+            fresh_pjsip_websocket activate
             return 0
         fi
         # Retry only if successful metadata proves that this invocation has
@@ -1194,12 +1208,18 @@ PHP
 # The separate product owns its runtime, database, accounts and reversible
 # service activation. Do not run old /opt/opdesk patchers over its release.
 stage_geoip() {
-    stage_done geoip && return 0
     step "نصب و اعتبارسنجی خودکار پایگاه دادهٔ کشورها (بدون نیاز به کلید)"
     [ -f "${BUNDLE_DIR}/installer/geoip-update.py" ] || die "GeoIP updater missing from bundle"
-    "${PY_BIN}" -B "${BUNDLE_DIR}/installer/geoip-update.py" --install \
-        --status-module "${BUNDLE_DIR}/modules/mytellpbxgeoip/index.php" 2>&1 | tee -a "${LOG}" \
-        || die "country database verification failed; review the reported stage"
+    [ -f "${BUNDLE_DIR}/installer/prepare-geoip-module.py" ] || die "GeoIP kernel preparation missing from bundle"
+    if ! stage_done geoip; then
+        "${PY_BIN}" -B "${BUNDLE_DIR}/installer/geoip-update.py" --install \
+            --status-module "${BUNDLE_DIR}/modules/mytellpbxgeoip/index.php" 2>&1 | tee -a "${LOG}" \
+            || die "country database verification failed; review the reported stage"
+    fi
+    # Revalidate the current boot even when the dataset stage was completed.
+    # This loads only the verified module; it never rewrites firewall rules.
+    run_logged "${PY_BIN}" -B "${BUNDLE_DIR}/installer/prepare-geoip-module.py" \
+        || die "GeoIP kernel consumer verification failed; firewall rules retained"
     mark_stage geoip
 }
 
