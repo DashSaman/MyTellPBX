@@ -56,6 +56,38 @@ def validate_result(text, expected):
         raise ValueError('Legacy Asternic direction gate remains')
 
 
+def transform_report_tables(text):
+    """Keep populated native columns readable inside their own scroll area."""
+    regions = (
+        ('function inbound_outbound($type,$appconfig) {', 'function asternic_report($typereport,$appconfig) {', 12, 'جدول گزارش ترکیبی تماس‌ها'),
+        ('function asternic_report($typereport,$appconfig) {', 'function asternic_home($appconfig) {', 10, 'جدول گزارش تماس‌های ورودی و خروجی'),
+    )
+    opener = "        <a name='1'></a>\n        <table width='99%' cellpadding=3 cellspacing=3 border=0 >"
+    closer = '    echo "</tbody>\\n";\n    echo "</table>\\n";\n\n    $cover_pdf'
+    for start, end, columns, label in regions:
+        if text.count(start) != 1 or text.count(end) != 1:
+            raise ValueError('Unknown Asternic report table region')
+        before, tail = text.split(start, 1)
+        section, after = tail.split(end, 1)
+        marker = "data-mt-cdr-columns='" + str(columns) + "'"
+        scroll = ("        <a name='1'></a>\n        <div class='mt-admin-table-scroll mt-cdr-data-scroll' tabindex='0' role='region' aria-label='" + label
+                  + "' " + marker + ">\n        <table width='99%' cellpadding=3 cellspacing=3 border=0 style='min-width: "
+                  + str(columns * 80) + "px; table-layout: auto;'>")
+        close_scroll = closer.replace('\n\n    $cover_pdf', '\n    echo "</div>\\n";\n\n    $cover_pdf')
+        if 'mt-cdr-data-scroll' not in section:
+            section = replace_exact(section, opener, scroll, 1)
+            section = replace_exact(section, closer, close_scroll, 1)
+        elif section.count(marker) != 1 or section.count(scroll) != 1 or section.count(close_scroll) != 1:
+            raise ValueError('Unknown existing Asternic table scroll markup')
+        header = section.split(scroll, 1)[1].split('<thead>', 1)
+        if len(header) != 2 or '</thead>' not in header[1]:
+            raise ValueError('Unknown Asternic data header')
+        if len(re.findall(r'<th(?:\s|>)', header[1].split('</thead>', 1)[0])) != columns:
+            raise ValueError('Asternic data column count changed')
+        text = before + start + section + end + after
+    return text
+
+
 def transform_page(text):
     newline = '\r\n' if '\r\n' in text else '\n'
     text = text.replace('\r\n', '\n')
@@ -80,6 +112,7 @@ def transform_page(text):
         text = before + anchor + home
     for old, new in DIRECTION_COMMENTS.items():
         text = text.replace(old, new)
+    text = transform_report_tables(text)
     validate_result(text, expected)
     return text.replace('\n', newline)
 
