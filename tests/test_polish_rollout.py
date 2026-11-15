@@ -30,6 +30,11 @@ class PolishScopeTests(unittest.TestCase):
             with self.subTest(root=root,name=name):
                 self.assertFalse(policy.allowed({'root':root,'path':name},PROFILE))
 
+    def test_acl_dependency_is_installed_before_its_entrypoint(self):
+        helper={'root':'legacy','path':'modules/mytellpbxopdesk/launcher-access.php'}
+        entry={'root':'legacy','path':'modules/mytellpbxopdesk/index.php'}
+        self.assertLess(policy.priority(helper),policy.priority(entry))
+
     def fixture(self):
         temp=tempfile.TemporaryDirectory();self.addCleanup(temp.cleanup);base=Path(temp.name)
         roots={name:base/name for name in policy.ROOTS}
