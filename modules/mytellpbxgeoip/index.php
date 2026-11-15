@@ -27,7 +27,45 @@ function mytellGeoipValidStatus($value)
     return $date !== false && $date->format('Y-m-d\TH:i:s\Z') === $value['updated_utc'];
 }
 
-function mytellGeoipReadStatus($path)
+function mytellGeoipValidModuleStatus($value)
+{
+    $keys = array('schema','owner','module','state','running_kernel','target_kernel','loaded','persistent','module_sha256');
+    if (!is_array($value) || count($value) !== count($keys)
+        || count(array_diff_key($value, array_fill_keys($keys, true))) !== 0) return false;
+    if ($value['schema'] !== 'mytellpbx-geoip-module/1' || $value['owner'] !== 'MyTellPBX'
+        || $value['module'] !== 'xt_geoip'
+        || !in_array($value['state'], array('ready','pending-reboot','unavailable'), true)
+        || !is_bool($value['loaded']) || !is_bool($value['persistent'])) return false;
+    foreach (array('running_kernel','target_kernel') as $key) {
+        if ($key === 'target_kernel' && $value[$key] === null) continue;
+        if (!is_string($value[$key]) || !preg_match('/\A[A-Za-z0-9][A-Za-z0-9._+-]{1,127}\z/', $value[$key])) return false;
+    }
+    if ($value['module_sha256'] !== null && (!is_string($value['module_sha256'])
+        || !preg_match('/\A[a-f0-9]{64}\z/', $value['module_sha256']))) return false;
+    if ($value['state'] === 'ready') return $value['loaded'] && $value['persistent']
+        && $value['target_kernel'] === $value['running_kernel'] && $value['module_sha256'] !== null;
+    if ($value['state'] === 'pending-reboot') return !$value['loaded'] && $value['persistent']
+        && $value['target_kernel'] !== null && $value['target_kernel'] !== $value['running_kernel']
+        && $value['module_sha256'] !== null;
+    return true;
+}
+
+function mytellGeoipConsumerState($status, $kernel, $loaded)
+{
+    if (!mytellGeoipValidModuleStatus($status) || !is_bool($loaded) || !is_string($kernel)
+        || !preg_match('/\A[A-Za-z0-9][A-Za-z0-9._+-]{1,127}\z/', $kernel)) return 'unknown';
+    if ($status['state'] === 'unavailable') return 'unavailable';
+    if ($loaded) {
+        // A pending receipt can become ready after the exact verified target
+        // kernel boots. Country-data readiness is never a module-load proof.
+        return $status['target_kernel'] === $kernel ? 'ready' : 'unknown';
+    }
+    if ($status['state'] === 'pending-reboot' && $status['running_kernel'] === $kernel
+        && $status['target_kernel'] !== $kernel) return 'pending-reboot';
+    return 'unavailable';
+}
+
+function mytellGeoipReadStatus($path, $module = false)
 {
     // This is a public, non-secret receipt. Refuse writable or redirected inputs.
     $parent = dirname($path);
@@ -41,10 +79,11 @@ function mytellGeoipReadStatus($path)
     $raw = @file_get_contents($path, false, null, 0, 8193);
     if ($raw === false || strlen($raw) > 8192) return null;
     $value = json_decode($raw, true);
-    return mytellGeoipValidStatus($value) ? $value : null;
+    $valid = $module === true ? mytellGeoipValidModuleStatus($value) : mytellGeoipValidStatus($value);
+    return $valid ? $value : null;
 }
 
-function mytellGeoipRender($status, $persian)
+function mytellGeoipRender($status, $persian, $consumer = null, $kernel = null, $loaded = false)
 {
     $title = $persian ? 'پایگاه دادهٔ کشورها' : 'IP country database';
     $description = $persian ? 'داده‌های کشورها به‌صورت خودکار به‌روز می‌شوند و به کلید یا ثبت‌نام نیاز ندارند.'
@@ -65,6 +104,22 @@ function mytellGeoipRender($status, $persian)
         }
         $html .= '</dl>';
     }
+    $state = mytellGeoipConsumerState($consumer, $kernel, $loaded);
+    $labels = $persian
+        ? array('ready'=>'آماده','pending-reboot'=>'نیاز به راه‌اندازی مجدد','unavailable'=>'در دسترس نیست','unknown'=>'وضعیت تأیید نشده')
+        : array('ready'=>'Ready','pending-reboot'=>'Restart required','unavailable'=>'Unavailable','unknown'=>'Not verified');
+    $details = $persian ? array(
+        'ready'=>'تشخیص کشور فعال است. سیاست دسترسی را در بخش فایروال تنظیم کنید.',
+        'pending-reboot'=>'برای فعال شدن تشخیص کشور، سیستم را با کرنل نصب‌شده راه‌اندازی مجدد کنید.',
+        'unavailable'=>'تشخیص کشور برای سیستم فعلی آماده نیست. وضعیت نصب را بررسی کنید.',
+        'unknown'=>'آمادگی تشخیص کشور برای سیستم فعلی هنوز تأیید نشده است.') : array(
+        'ready'=>'Country matching is available. Configure access rules in Firewall.',
+        'pending-reboot'=>'Restart into the verified installed kernel to enable country matching.',
+        'unavailable'=>'Country matching is unavailable for the current system. Check installation status.',
+        'unknown'=>'Country matching for the current system has not been verified.');
+    $html .= '<div role="status" data-geoip-consumer-state="' . $state . '"><strong>'
+        . ($persian ? 'تشخیص کشور ترافیک' : 'Traffic country matching') . ': </strong>'
+        . $labels[$state] . '<p>' . $details[$state] . '</p></div>';
     $html .= '<p>' . ($persian ? 'داده‌های کشور IP: ' : 'IP country data: ')
         . '<a href="https://db-ip.com" target="_blank" rel="noopener noreferrer">DB-IP Country Lite</a>'
         . ' · <a href="https://creativecommons.org/licenses/by/4.0/" target="_blank" rel="noopener noreferrer">CC BY 4.0</a>'
@@ -75,5 +130,7 @@ function mytellGeoipRender($status, $persian)
 function _moduleContent(&$smarty, $module_name)
 {
     $persian = !function_exists('get_language') || get_language() === 'fa';
-    return mytellGeoipRender(mytellGeoipReadStatus('/usr/share/mytellpbx-geoip/status.json'), $persian);
+    return mytellGeoipRender(mytellGeoipReadStatus('/usr/share/mytellpbx-geoip/status.json'), $persian,
+        mytellGeoipReadStatus('/usr/share/mytellpbx-geoip/module-status.json', true),
+        php_uname('r'), is_dir('/sys/module/xt_geoip'));
 }
