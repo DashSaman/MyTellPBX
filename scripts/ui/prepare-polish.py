@@ -41,7 +41,8 @@ def prepare(output,roots,source_id,checks,source=REPO):
     # These native dependencies stay read-only. They must be present before any
     # artifact output is created, and their hashes participate in rollout guards.
     inputs=[]
-    for name in ['assets/js/pbxlib.js','libraries/ampuser.class.php']:
+    for name in ['assets/js/pbxlib.js','libraries/ampuser.class.php','assets/mytel/apply.js',
+                 'assets/mytel/feedback.js','assets/mytel/save.js','assets/mytel/apply.css']:
         digest=policy.digest(policy.within(roots['admin'],name))
         if digest is None:raise ValueError('Missing native dependency guard: '+name)
         inputs.append({'root':'admin','path':name,'sha256':digest})
