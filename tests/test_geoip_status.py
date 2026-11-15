@@ -71,7 +71,7 @@ class GeoipStatusTests(unittest.TestCase):
               'echo json_encode(array("valid"=>function_exists("mytellGeoipValidModuleStatus")?mytellGeoipValidModuleStatus($v["module"]):false,'
               '"html"=>mytellGeoipRender($v["data"],$v["persian"],$v["module"],$v["kernel"],$v["loaded"])));')
         value=dict(data=self.fixture(),module=module,kernel=kernel,loaded=loaded,persian=persian)
-        result=subprocess.run(['php','-n','-r',code,str(MODULE)],input=json.dumps(value).encode(),
+        result=subprocess.run(['php','-d','auto_prepend_file=','-d','auto_append_file=','-r',code,str(MODULE)],input=json.dumps(value).encode(),
                               stdout=subprocess.PIPE,stderr=subprocess.PIPE,timeout=15)
         self.assertEqual(result.returncode,0,result.stderr.decode('utf-8','replace'))
         return json.loads(result.stdout.decode())
