@@ -10,6 +10,7 @@ tested bytes.
 | Calendar/search/selected-control contrast | `e3a9081` | `c2ce6c2`,28 browser cases |
 | Narrow sidebar, Chosen input and mobile keyboard | `eae3b68` | `89d04fc`,12 browser cases |
 | Desktop dropdown focus and viewport edges | `e96bc68` | `ff9f78a`,16 cases plus transform/resize proof |
+| Dashboard failures, empty/partial feeds, text safety and request ownership | `bfa4fba` | 44 browser cases, native formatted-number and delayed-response fixtures |
 | New rollout scope | `a28d859` | `b7a3ae1`,Python policy tests |
 | Optional legacy Desk/Phone roots | `d572fd9` | `0495ec4`,exact active roots required |
 | ACL dependency and ordering | `e4e214b`,`c7ae5ce` | `e1375ae`,`eea49ba` |
@@ -18,7 +19,8 @@ tested bytes.
 | Save/Apply dependency guards | `9d2f676` | `bc66b84`,guard rejection before output |
 | Predictable root temporary workspace | `1509eee`,`88d2d1b` | installer private-workspace integration tests |
 | Missing helpers, ignored-secret packaging and dirty input | `1294d19` | `c3d138c`,actual Linux bundle tests |
-| Clean checkout line-ending drift | `2878914` | actual Git-blob bundle comparison |
+| Clean checkout line-ending drift | `2878914` | `653baa3`,actual Git-blob bundle comparison |
+| Missing first-boot credential adapter in archive | `ecd55e9` | `81ea87b`,actual archive payload comparison |
 | Desk pin/state/cache integration | `431c2fd`,`6243f01`,`4aa864f`,`13cb3c2`,`3bc5ed8` | `7a43190`,`b027398` |
 | Credential transport and exact verification | `3f9ec17`,`b51074b` | `5a1edf7`,actual Bash recording clients and native PHP adapter |
 

@@ -25,6 +25,11 @@ Focused executed checks additionally cover:
 - The mobile Asterisk information sidebar and Chosen search-field width.
 - Native menu keyboard focus, Space/Escape behavior, focus return, desktop child
   links and dropdown containment at 390, 700, 701, 768, 1023, 1024 and 1440px.
+- Forty-four dashboard cases cover server/login-HTML failures, empty/partial
+  feeds, recovery, unchanged readings, native formatted numbers, delayed and
+  out-of-order responses, replaced dashboard/grid ownership, missing applets,
+  bounded loading, literal system text and unrelated disk responses. Feedback
+  observes existing native polls; it does not create retries or call actions.
 - Repeated fitting/resizing without changing the original native transform or
   vertical translate. The PBX technical console remains LTR.
 - Native Save/Apply feedback through intercepted requests: real native forms and
@@ -32,6 +37,10 @@ Focused executed checks additionally cover:
 - Existing Jalali calendar algorithms and browser navigation. Gregorian storage,
   Tehran dates and native event semantics are retained; this release corrects
   presentation rather than replacing the stored calendar.
+- Forty-four calendar browser cases run with Tehran and Los Angeles browser
+  timezones against an explicit Berlin server-civil fixture. Four additional
+  standalone Phone login/UI states were read-only: no signaling, microphone,
+  registration or audio capability is inferred from that UI check.
 
 Webmail returns a separate authentication challenge; that is conditional access,
 not proof of a working mailbox. Unconfigured external SMTP, fax delivery, CRM and
