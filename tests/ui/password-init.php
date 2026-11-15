@@ -25,7 +25,10 @@ function fixture_run($wrapper, $input, $extra = array()) {
 }
 try {
     $input = "FixtureDb_123!\nFixture Admin.456=\n";
-    $result = fixture_run($wrapper, $input); $data=json_decode($result[1], true);
+    $result = fixture_run($wrapper, $input);
+    // Requiring the distribution's executable PHP file emits its shebang.
+    $output = preg_replace('/\A#![^\r\n]*\r?\n/', '', $result[1], 1);
+    $data=json_decode($output, true);
     $tests['vendor accepts equivalent global arguments'] = $result[0] === 0 && is_array($data)
         && $data['argv'] === array($vendor,'--cli','init','FixtureDb_123!','Fixture Admin.456=');
     $tests['server argv and argc match vendor expectations'] = is_array($data) && $data['server_argv'] === $data['argv'] && $data['argc'] === 5;

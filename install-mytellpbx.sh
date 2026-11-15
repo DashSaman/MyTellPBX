@@ -92,11 +92,48 @@ run_logged() { "$@" >>"$LOG" 2>&1; }
 # mysql helper: works whether root is passwordless or already passworded
 # (credentials file is loaded before use; safe to call after ensure_credentials)
 mysql_any() {
-    if mysql -N -e "SELECT 1" >/dev/null 2>&1; then
+    if mysql -N -e "SELECT 1" </dev/null >/dev/null 2>&1; then
         mysql "$@"
     else
-        mysql -p"${MYSQL_ROOT_PASS:-}" "$@"
+        mysql_with_password "${MYSQL_ROOT_PASS:-}" "$@"
     fi
+}
+
+mysql_with_password() {
+    local password="$1"; shift
+    MYSQL_PWD="${password}" mysql "$@"
+}
+
+normalize_framework_mysql() {
+    local tmp_pwd
+    tmp_pwd=$(openssl rand -hex 12)
+    printf "SET PASSWORD FOR 'root'@'localhost' = PASSWORD('%s');\n" "${tmp_pwd}" | mysql >>"$LOG" 2>&1 || true
+    printf "SET PASSWORD FOR 'root'@'localhost' = PASSWORD('');\n" | mysql_with_password "${tmp_pwd}" >>"$LOG" 2>&1 \
+        || die "mariadb root password normalization failed"
+}
+
+ensure_amp_admin_password() {
+    printf "UPDATE asterisk.ampusers SET password_sha1=SHA1('%s') WHERE username='admin';\n" "${ADMIN_PASS}" | mysql_any -N >>"$LOG" 2>&1 \
+        || die "cannot update ampusers admin password"
+}
+
+initialize_framework_passwords() {
+    [ -f "${BUNDLE_DIR}/installer/password-init.php" ] || die "private password initialization adapter missing from bundle"
+    printf '%s\n%s\n' "${MYSQL_ROOT_PASS}" "${ADMIN_PASS}" | run_logged php "${BUNDLE_DIR}/installer/password-init.php" \
+        || die "password initialization failed (see ${LOG})"
+}
+
+verify_mysql_root_password() {
+    local config="${1:-/etc/issabel.conf}"
+    MYSQL_EXPECTED_PASSWORD="${MYSQL_ROOT_PASS}" "${PY_BIN}" -B - "${config}" <<'PY'
+import os, sys
+try:
+    with open(sys.argv[1], encoding='utf-8') as source:
+        values = [line.rstrip('\r\n').split('=', 1)[1] for line in source if line.startswith('mysqlrootpwd=')]
+    valid = len(values) == 1 and values[0] == os.environ['MYSQL_EXPECTED_PASSWORD']
+except (OSError, ValueError): valid = False
+raise SystemExit(0 if valid else 1)
+PY
 }
 
 # Whole-string validation (grep is line-oriented and would accept values
@@ -504,11 +541,7 @@ stage_post_base() {
     # Normalize MariaDB root access for the framework initializer:
     # set a temporary random password, then clear it (upstream-tested flow,
     # with a random temp instead of a shipped constant).
-    local tmp_pwd
-    tmp_pwd=$(openssl rand -hex 12)
-    mysql -e "SET PASSWORD FOR 'root'@'localhost' = PASSWORD('${tmp_pwd}')" >>"$LOG" 2>&1 || true
-    mysql -p"${tmp_pwd}" -e "SET PASSWORD FOR 'root'@'localhost' = PASSWORD('')" >>"$LOG" 2>&1 \
-        || die "mariadb root password normalization failed"
+    normalize_framework_mysql
 
     # Framework marker: remove any stale config so the initializer writes fresh
     rm -f /etc/issabel.conf
@@ -566,12 +599,7 @@ EOF
 ensure_admin_credentials() {
     # Admin console (FreePBX ampusers, sha1) + panel login (acl.db acl_user,
     # md5 + administrator membership). Idempotent: safe on every run.
-    local my_args=()
-    if ! mysql -N -e "SELECT 1" >/dev/null 2>&1; then
-        my_args=(-p"${MYSQL_ROOT_PASS}")
-    fi
-    mysql "${my_args[@]}" -N -e "UPDATE asterisk.ampusers SET password_sha1=SHA1('${ADMIN_PASS}') WHERE username='admin';" >>"$LOG" 2>&1 \
-        || die "cannot update ampusers admin password"
+    ensure_amp_admin_password
     ADMIN_PASS="${ADMIN_PASS}" php <<'PHP' >>"$LOG" 2>&1 || die "cannot ensure acl admin user"
 <?php
 $md5 = md5(getenv('ADMIN_PASS'));
@@ -626,8 +654,7 @@ stage_framework_init() {
     if [ "${need_install}" = "1" ]; then
         # install_amp's first-boot flow needs passwordless MariaDB root
         if ! mysql -N -e "SELECT 1" >/dev/null 2>&1; then
-            mysql -p"${MYSQL_ROOT_PASS}" -N \
-                -e "SET PASSWORD FOR 'root'@'localhost' = PASSWORD('')" >>"$LOG" 2>&1 \
+            printf "SET PASSWORD FOR 'root'@'localhost' = PASSWORD('');\n" | mysql_with_password "${MYSQL_ROOT_PASS}" -N >>"$LOG" 2>&1 \
                 || die "cannot normalize mariadb root access"
         fi
         # Upstream flake: install_amp can exit 0 with an EMPTY modules table
@@ -663,10 +690,8 @@ stage_framework_init() {
     # The upstream tool can print internal errors yet exit 0 — verify outcomes.
     run_logged /usr/bin/issabel-admin-passwords --ensure-jwt-secret \
         || die "jwt secret init failed"
-    run_logged /usr/bin/issabel-admin-passwords --cli init \
-        "${MYSQL_ROOT_PASS}" "${ADMIN_PASS}" \
-        || die "password initialization failed (see ${LOG})"
-    grep -q "^mysqlrootpwd=${MYSQL_ROOT_PASS}$" /etc/issabel.conf 2>/dev/null \
+    initialize_framework_passwords
+    verify_mysql_root_password \
         || die "password init did not persist mysqlrootpwd (upstream tool misreported success)"
 
     # The upstream --cli init skips its whole web-password step when its key
