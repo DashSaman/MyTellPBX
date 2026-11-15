@@ -25,7 +25,7 @@ Focused executed checks additionally cover:
 - The mobile Asterisk information sidebar and Chosen search-field width.
 - Native menu keyboard focus, Space/Escape behavior, focus return, desktop child
   links and dropdown containment at 390, 700, 701, 768, 1023, 1024 and 1440px.
-- Forty-four dashboard cases cover server/login-HTML failures, empty/partial
+- Forty-six dashboard cases cover server/login-HTML failures, empty/partial
   feeds, recovery, unchanged readings, native formatted numbers, delayed and
   out-of-order responses, replaced dashboard/grid ownership, missing applets,
   bounded loading, literal system text and unrelated disk responses. Feedback
@@ -55,7 +55,7 @@ files/recording commands and tests the Python Desk adapter, source ownership,
 download integrity, cache permissions, resume guards and rollback policies.
 The final installer-source checkpoint passed 135 Python tests with zero skips,
 62 native PHP assertions and Bash syntax checks. The chart/calendar Node suite
-passed 16 tests; JavaScript syntax passed for 35 source and browser-test files.
+passed 16 tests; JavaScript syntax passed for 36 source and browser-test files.
 Bundle assembly runs with actual GNU tools and Git, including clean CRLF checkout
 versus committed-source bytes. Ignored secrets and dirty tracked sources are
 rejected. The private workspace regression reproduces the former predictable

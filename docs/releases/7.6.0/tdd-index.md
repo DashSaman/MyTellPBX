@@ -10,7 +10,7 @@ tested bytes.
 | Calendar/search/selected-control contrast | `e3a9081` | `c2ce6c2`,28 browser cases |
 | Narrow sidebar, Chosen input and mobile keyboard | `eae3b68` | `89d04fc`,12 browser cases |
 | Desktop dropdown focus and viewport edges | `e96bc68` | `ff9f78a`,16 cases plus transform/resize proof |
-| Dashboard failures, empty/partial feeds, text safety and request ownership | `bfa4fba` | 44 browser cases, native formatted-number and delayed-response fixtures |
+| Dashboard failures, empty/partial feeds, text safety and request ownership | `bfa4fba` | `fa8540e`,46 browser cases, native formatted-number and delayed-response fixtures |
 | New rollout scope | `a28d859` | `b7a3ae1`,Python policy tests |
 | Optional legacy Desk/Phone roots | `d572fd9` | `0495ec4`,exact active roots required |
 | ACL dependency and ordering | `e4e214b`,`c7ae5ce` | `e1375ae`,`eea49ba` |
