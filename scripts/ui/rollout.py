@@ -122,7 +122,9 @@ def valid_hash(value, nullable=False):
 
 def validate(artifact, manifest, roots, expected="before"):
     outside_served(artifact, roots)
-    if set(roots) != set(ROOTS) or any(not root.is_dir() for root in roots.values()):
+    profile = manifest.get('profile')
+    required_roots = {'panel', 'admin', 'legacy'} if profile == POLISH_PROFILE else set(ROOTS)
+    if set(roots) != set(ROOTS) or any(not roots[name].is_dir() for name in required_roots):
         raise ValueError("All installed UI roots are required")
     if expected not in ("before", "after"):
         raise ValueError("Unknown validation phase")
@@ -130,7 +132,6 @@ def validate(artifact, manifest, roots, expected="before"):
         raise ValueError("Unsupported or empty UI manifest")
     if not re.fullmatch(r"[0-9a-f]{40}|[0-9a-f]{64}", manifest.get("source_id", "")):
         raise ValueError("An exact Git tree ID is required")
-    profile = manifest.get('profile')
     if profile not in (None, SCOPED_PROFILE, SUBMIT_PROFILE, POLISH_PROFILE):
         raise ValueError('Unknown release profile')
     records = manifest.get("checks", [])
