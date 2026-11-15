@@ -7,11 +7,13 @@ $root = $options['fixture'];
 $web = $root . '/web';
 mkdir($web, 0700, true);
 $case = $options['case'];
-if ($case !== 'absent') mkdir($web . '/Phone', 0700);
-if ($case === 'html') file_put_contents($web . '/Phone/index.html', 'synthetic installed entry');
-if ($case === 'php') file_put_contents($web . '/Phone/index.php', '<?php /* fixture, never executed */');
-if ($case === 'assets') file_put_contents($web . '/Phone/workspace.css', '/* polish without a product */');
-if ($case === 'dangling') symlink($root . '/missing-entry', $web . '/Phone/index.html');
+$canDesk = strpos($case, '-guest') === false;
+$entry = str_replace('-guest', '', $case);
+if ($entry !== 'absent') mkdir($web . '/Phone', 0700);
+if ($entry === 'html') file_put_contents($web . '/Phone/index.html', 'synthetic installed entry');
+if ($entry === 'php') file_put_contents($web . '/Phone/index.php', '<?php /* fixture, never executed */');
+if ($entry === 'assets') file_put_contents($web . '/Phone/workspace.css', '/* polish without a product */');
+if ($entry === 'dangling') symlink($root . '/missing-entry', $web . '/Phone/index.html');
 $_SERVER['DOCUMENT_ROOT'] = $web;
 chdir($web);
 $templates = dirname(__DIR__, 2) . '/theme/_common';
@@ -31,7 +33,7 @@ foreach (array('login.tpl', 'index.tpl') as $name) {
     $smarty->error_reporting = E_ALL & ~E_DEPRECATED;
     $smarty->assign(array_merge($defaults, array(
         'LANG'=>'fa', 'THEME_DIR'=>'rtl', 'WEBPATH'=>'/', 'THEMENAME'=>'mytel',
-        'BRAND_NAME'=>'MyTel', 'BRAND_TAGLINE'=>'Fixture', 'MT_CAN_ENTER_DESK'=>true,
+        'BRAND_NAME'=>'MyTel', 'BRAND_TAGLINE'=>'Fixture', 'MT_CAN_ENTER_DESK'=>$canDesk,
         'MT_IS_HOMEPAGE'=>true, 'ISSABEL_PANELS'=>false,
         'NOTIFICATIONS'=>array(), 'arrMainMenu'=>array(), 'BREADCRUMB'=>array(),
     )));
@@ -41,6 +43,7 @@ foreach (array('login.tpl', 'index.tpl') as $name) {
         'phone_cards'=>substr_count($html, 'id="mt-webphone-card"'),
         'desk_links'=>substr_count($html, 'href="/MytellDesk/"'),
         'desk_cards'=>substr_count($html, 'id="mt-desk-banner"'),
+        'quicklink_rows'=>substr_count($html, 'id="mt-home-quicklinks"'),
         'unexpanded'=>strpos($html, '{$') !== false,
     );
 }

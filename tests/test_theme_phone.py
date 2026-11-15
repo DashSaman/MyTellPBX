@@ -54,6 +54,18 @@ class OptionalPhoneTests(unittest.TestCase):
     def test_dangling_phone_entry_is_not_advertised(self):
         self.absent('dangling')
 
+    def test_existing_phone_does_not_render_a_denied_desk_card(self):
+        rendered = self.render('html-guest')
+        self.assertEqual(rendered['index.tpl']['phone_cards'], 1)
+        self.assertEqual(rendered['index.tpl']['desk_cards'], 0, 'Denied Desk links must not be rendered before JS')
+        self.assertEqual(rendered['login.tpl']['phone_links'], 1)
+
+    def test_nonadmin_without_a_phone_has_no_empty_quicklink_row(self):
+        rendered = self.render('absent-guest')
+        self.assertEqual(rendered['index.tpl']['phone_cards'], 0)
+        self.assertEqual(rendered['index.tpl']['desk_cards'], 0)
+        self.assertEqual(rendered['index.tpl']['quicklink_rows'], 0)
+
 
 if __name__ == '__main__':
     unittest.main()
