@@ -1,65 +1,74 @@
 # MyTellPBX base telephony repositories (functional upstream identities).
-# Repository IDs, mirror endpoints and signing keys are preserved as-is:
-# they are functional package identities required for dependency resolution.
+# Keep repository/package identities and signature policy. Prefer the official
+# HTTPS US mirror, with the official primary as a second package source.
 [issabel-base]
 name=Base RPM Repository (telephony base 4)
-mirrorlist=http://mirror.issabel.org/?release=4&arch=$basearch&repo=base
+baseurl=https://repo.us.issabel.org/issabel/4/base/$basearch/
+        https://repo.issabel.org/issabel/4/base/$basearch/
 gpgcheck=0
 enabled=1
-gpgkey=http://repo.issabel.org/issabel/RPM-GPG-KEY-Issabel
+gpgkey=https://repo.us.issabel.org/issabel/RPM-GPG-KEY-Issabel
 
 [issabel-updates]
 name=Updates RPM Repository (telephony base 4)
-mirrorlist=http://mirror.issabel.org/?release=4&arch=$basearch&repo=updates
+baseurl=https://repo.us.issabel.org/issabel/4/updates/$basearch/
+        https://repo.issabel.org/issabel/4/updates/$basearch/
 gpgcheck=0
 enabled=1
-gpgkey=http://repo.issabel.org/issabel/RPM-GPG-KEY-Issabel
+gpgkey=https://repo.us.issabel.org/issabel/RPM-GPG-KEY-Issabel
 
 [issabel-cinco]
 name=Base RPM Repository for MyTellPBX 5
-mirrorlist=http://mirror.issabel.org/?release=5&arch=$basearch&repo=base
+baseurl=https://repo.us.issabel.org/issabel/5/base/$basearch/
+        https://repo.issabel.org/issabel/5/base/$basearch/
 gpgcheck=1
 enabled=1
-gpgkey=http://repo.issabel.org/issabel/RPM-GPG-KEY-Issabel
+gpgkey=https://repo.us.issabel.org/issabel/RPM-GPG-KEY-Issabel
 
 [issabel-cinco-noarch]
 name=Base RPM Repository for MyTellPBX 5 (noarch)
-mirrorlist=http://mirror.issabel.org/?release=5&arch=noarch&repo=base
+baseurl=https://repo.us.issabel.org/issabel/5/base/noarch/
+        https://repo.issabel.org/issabel/5/base/noarch/
 gpgcheck=1
 enabled=1
-gpgkey=http://repo.issabel.org/issabel/RPM-GPG-KEY-Issabel
+gpgkey=https://repo.us.issabel.org/issabel/RPM-GPG-KEY-Issabel
 
 [issabel-cinco-updates]
 name=Updates RPM Repository for MyTellPBX 5
-mirrorlist=http://mirror.issabel.org/?release=5&arch=$basearch&repo=updates
+baseurl=https://repo.us.issabel.org/issabel/5/updates/$basearch/
+        https://repo.issabel.org/issabel/5/updates/$basearch/
 gpgcheck=1
 enabled=1
-gpgkey=http://repo.issabel.org/issabel/RPM-GPG-KEY-Issabel
+gpgkey=https://repo.us.issabel.org/issabel/RPM-GPG-KEY-Issabel
 
 [issabel-cinco-updates-noarch]
 name=Updates RPM Repository for MyTellPBX 5 (noarch)
-mirrorlist=http://mirror.issabel.org/?release=5&arch=noarch&repo=updates
+baseurl=https://repo.us.issabel.org/issabel/5/updates/noarch/
+        https://repo.issabel.org/issabel/5/updates/noarch/
 gpgcheck=1
 enabled=1
-gpgkey=http://repo.issabel.org/issabel/RPM-GPG-KEY-Issabel
+gpgkey=https://repo.us.issabel.org/issabel/RPM-GPG-KEY-Issabel
 
 [issabel-cinco-extras]
 name=Extras RPM Repository for MyTellPBX 5
-mirrorlist=http://mirror.issabel.org/?release=5&arch=$basearch&repo=extras
+baseurl=https://repo.us.issabel.org/issabel/5/extras/$basearch/
+        https://repo.issabel.org/issabel/5/extras/$basearch/
 gpgcheck=1
 enabled=1
-gpgkey=http://repo.issabel.org/issabel/RPM-GPG-KEY-Issabel
+gpgkey=https://repo.us.issabel.org/issabel/RPM-GPG-KEY-Issabel
 
 [issabel-cinco-extras-noarch]
 name=Extras RPM Repository for MyTellPBX 5 (noarch)
-mirrorlist=http://mirror.issabel.org/?release=5&arch=noarch&repo=extras
+baseurl=https://repo.us.issabel.org/issabel/5/extras/noarch/
+        https://repo.issabel.org/issabel/5/extras/noarch/
 gpgcheck=1
 enabled=1
-gpgkey=http://repo.issabel.org/issabel/RPM-GPG-KEY-Issabel
+gpgkey=https://repo.us.issabel.org/issabel/RPM-GPG-KEY-Issabel
 
 [commercial-addons]
 name=Operator-Panel Addon Repository (base platform component)
-mirrorlist=http://mirror.issabel.org/?release=5&arch=$basearch&repo=commercial_addons
+baseurl=https://repo.us.issabel.org/issabel/5/commercial_addons/$basearch/
+        https://repo.issabel.org/issabel/5/commercial_addons/$basearch/
 gpgcheck=1
 enabled=1
-gpgkey=http://repo.issabel.org/issabel/RPM-GPG-KEY-Issabel
+gpgkey=https://repo.us.issabel.org/issabel/RPM-GPG-KEY-Issabel

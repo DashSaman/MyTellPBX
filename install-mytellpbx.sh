@@ -212,6 +212,28 @@ finally:
 PY
 }
 
+repository_metadata_reachable() {
+    # Use an official HTTPS repository directly. A dead mirror-list service
+    # must not veto a healthy package mirror; HTML/empty 200s are not metadata.
+    local origin
+    for origin in https://repo.us.issabel.org https://repo.issabel.org; do
+        if curl -fsSL --proto '=https' --proto-redir '=https' \
+            --connect-timeout 8 --max-time 20 --max-filesize 1048576 \
+            "${origin}/issabel/5/base/x86_64/repodata/repomd.xml" 2>>"$LOG" \
+            | "${PY_BIN}" -c 'import sys, xml.etree.ElementTree as ET
+try:
+    root = ET.fromstring(sys.stdin.read(1048577))
+    ns = "{http://linux.duke.edu/metadata/repo}"
+    valid = root.tag == ns + "repomd" and any(item.get("type") == "primary" and item.find(ns + "location") is not None for item in root.findall(ns + "data"))
+except (ValueError, ET.ParseError):
+    valid = False
+raise SystemExit(0 if valid else 1)' >/dev/null; then
+            return 0
+        fi
+    done
+    return 1
+}
+
 check_network_prerequisites() {
     # An offline bundle or already completed base package stages must not be
     # rejected merely because an unrelated legacy mirror is unavailable.
@@ -226,9 +248,7 @@ check_network_prerequisites() {
             || die "release bundle not reachable (HTTP ${http_code})"
     fi
     if ! stage_done packages1 || ! stage_done packages2; then
-        curl -fsS --max-time 30 -o /dev/null \
-            "http://mirror.issabel.org/?release=5&arch=x86_64&repo=base" \
-            || die "telephony base repository mirror unreachable"
+        repository_metadata_reachable || die "official HTTPS telephony repositories unreachable or invalid"
     fi
     if ! stage_done repos; then
         curl -fsSI --max-time 30 -o /dev/null \
