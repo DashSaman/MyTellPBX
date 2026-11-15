@@ -20,7 +20,7 @@ class InstallerBundleTests(unittest.TestCase):
         # checkout. Only the disposable fixture needs Git metadata.
         shutil.copytree(REPO/'theme',self.root/'theme',ignore=shutil.ignore_patterns('cache','*.tplc','__pycache__','.env*'))
         paths=re.findall(r'^copy_path "([^"]+)"', (REPO/'scripts/build-installer-bundle.sh').read_text(),re.M)
-        for name in set(paths+['VERSION','LICENSE']):
+        for name in set(paths+['VERSION','LICENSE','.gitattributes']):
             p=self.root/name;p.parent.mkdir(parents=True,exist_ok=True);p.write_bytes((REPO/name).read_bytes())
         for name in ['installer/install-myteldesk.py','installer/myteldesk-release.json','modules/mytellpbxopdesk/launcher-access.php']:
             p=self.root/name;p.parent.mkdir(parents=True,exist_ok=True);p.write_bytes(b'fixture corresponding source: '+name.encode())
@@ -56,6 +56,14 @@ class InstallerBundleTests(unittest.TestCase):
         self.assertNotEqual(result.returncode,0,'unreviewed source was packaged')
         self.assertIn('clean',result.stdout.lower())
         self.assertFalse(archive.exists())
+
+    def test_clean_line_ending_conversion_cannot_change_published_source_bytes(self):
+        relative='theme/css/workspace.css';path=self.root/relative
+        committed=subprocess.check_output(['git','show','HEAD:'+relative],cwd=self.root,env=self.env)
+        path.write_bytes(committed.replace(b'\n',b'\r\n'))
+        self.assertEqual(subprocess.check_output(['git','status','--porcelain'],cwd=self.root,env=self.env),b'')
+        result,archive,prefix=self.build();self.assertEqual(result.returncode,0,result.stdout)
+        with tarfile.open(archive) as tar:self.assertEqual(tar.extractfile(prefix+relative).read(),committed)
 
 
 if __name__=='__main__':unittest.main()
