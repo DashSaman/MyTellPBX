@@ -46,7 +46,7 @@ def prepare(output,roots,source_id,checks,source=REPO):
     proposed={prefix+'mytell-direction.php':helper}
     for name,transform in [('page.asternic_cdr.php',patch.transform_page),('functions.inc.php',patch.transform_functions)]:
         path=policy.within(roots['admin'],prefix+name)
-        proposed[prefix+name]=transform(path.read_text(encoding='utf-8')).encode('utf-8')
+        proposed[prefix+name]=transform(path.read_bytes().decode('utf-8')).encode('utf-8')
     records=[]
     for name,data in sorted(proposed.items()):
         target=policy.within(roots['admin'],name)
