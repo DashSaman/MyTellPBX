@@ -162,6 +162,7 @@ class FirstBootTests(unittest.TestCase):
         # credential collector and writes inside this temporary fixture run.
         body += '''credential_input_is_tty(){ return 0; }
 preflight(){ :; }; acquire_lock(){ :; }; write_install_source(){ :; }; initialize_workspace(){ :; }; verify_bundle(){ :; }
+ensure_asterisk_identity(){ :; }
 stage_packages1(){ :; }; stage_packages2(){ :; }; stage_post_base(){ :; }; stage_framework_init(){ :; }
 stage_mytel_layer(){ :; }; stage_myteldesk(){ :; }; stage_selfcheck(){ :; }; finish(){ :; }
 '''
