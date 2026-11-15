@@ -61,6 +61,60 @@ class GeoipStatusTests(unittest.TestCase):
             value[key] = bad
             self.assertFalse(self.run_php(value)['valid'], (key, bad))
 
+    def module_fixture(self, state='ready'):
+        running='4.18.0-553.184.1.el8_10.x86_64'
+        return dict(schema='mytellpbx-geoip-module/1',owner='MyTellPBX',module='xt_geoip',state=state,
+                    running_kernel=running,target_kernel=running,loaded=True,persistent=True,module_sha256='b'*64)
+
+    def run_consumer(self, module, kernel='4.18.0-553.184.1.el8_10.x86_64', loaded=True, persian=False):
+        code=('require $argv[1]; $v=json_decode(stream_get_contents(STDIN),true); '
+              'echo json_encode(array("valid"=>function_exists("mytellGeoipValidModuleStatus")?mytellGeoipValidModuleStatus($v["module"]):false,'
+              '"html"=>mytellGeoipRender($v["data"],$v["persian"],$v["module"],$v["kernel"],$v["loaded"])));')
+        value=dict(data=self.fixture(),module=module,kernel=kernel,loaded=loaded,persian=persian)
+        result=subprocess.run(['php','-n','-r',code,str(MODULE)],input=json.dumps(value).encode(),
+                              stdout=subprocess.PIPE,stderr=subprocess.PIPE,timeout=15)
+        self.assertEqual(result.returncode,0,result.stderr.decode('utf-8','replace'))
+        return json.loads(result.stdout.decode())
+
+    def test_data_ready_is_separate_from_missing_consumer_receipt(self):
+        html=self.run_consumer(None)['html']
+        self.assertIn('DB-IP Country Lite',html)
+        self.assertIn('data-geoip-consumer-state="unknown"',html)
+        self.assertIn('Not verified',html)
+
+    def test_ready_consumer_requires_live_loaded_module_and_same_kernel(self):
+        value=self.module_fixture()
+        self.assertTrue(self.run_consumer(value)['valid'])
+        self.assertIn('data-geoip-consumer-state="ready"',self.run_consumer(value)['html'])
+        self.assertIn('data-geoip-consumer-state="unavailable"',self.run_consumer(value,loaded=False)['html'])
+        self.assertIn('data-geoip-consumer-state="unknown"',self.run_consumer(value,kernel='4.18.0-other.x86_64')['html'])
+
+    def test_pending_restart_is_truthful_and_can_promote_only_on_target_boot(self):
+        value=self.module_fixture('pending-reboot');value['running_kernel']='4.18.0-553.134.1.el8_10.x86_64';value['loaded']=False
+        html=self.run_consumer(value,kernel=value['running_kernel'],loaded=False)['html']
+        self.assertIn('data-geoip-consumer-state="pending-reboot"',html);self.assertIn('Restart required',html)
+        self.assertIn('data-geoip-consumer-state="ready"',self.run_consumer(value)['html'])
+        self.assertIn('data-geoip-consumer-state="unknown"',self.run_consumer(value,kernel='4.18.0-other.x86_64')['html'])
+
+    def test_unavailable_metadata_never_becomes_ready_from_data_or_loaded_flag(self):
+        value=self.module_fixture('unavailable');value['module_sha256']=None;value['target_kernel']=None;value['loaded']=False
+        for loaded in [True,False]:
+            self.assertIn('data-geoip-consumer-state="unavailable"',self.run_consumer(value,loaded=loaded)['html'])
+
+    def test_consumer_schema_types_identity_and_markup_are_strict(self):
+        base=self.module_fixture()
+        for key,value in [('schema',1),('owner','operator'),('loaded',1),('persistent','yes'),('module_sha256','<script>'),
+                          ('target_kernel','../escape'),('state','owner'),('running_kernel','<script>')]:
+            changed=dict(base);changed[key]=value;result=self.run_consumer(changed)
+            self.assertFalse(result['valid'],(key,value));self.assertNotIn('<script>',result['html'])
+            self.assertIn('data-geoip-consumer-state="unknown"',result['html'])
+        self.assertFalse(self.run_consumer(dict(base,extra='unknown'))['valid'])
+
+    def test_persian_consumer_copy_stays_separate_from_country_data(self):
+        html=self.run_consumer(None,persian=True)['html']
+        self.assertIn('تشخیص کشور ترافیک',html);self.assertIn('وضعیت تأیید نشده',html)
+        self.assertIn('پایگاه داده',html)
+
 
 if __name__ == '__main__':
     unittest.main()
