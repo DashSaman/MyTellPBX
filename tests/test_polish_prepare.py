@@ -27,7 +27,8 @@ class PolishPrepareTests(unittest.TestCase):
         for name in ['index.php','launcher-access.php']:
             self.write(self.source/'modules/mytellpbxopdesk'/name,b'<?php // new '+name.encode())
         self.write(self.roots['legacy']/'modules/mytellpbxopdesk/index.php',b'<?php // old launcher')
-        for name in ['assets/js/pbxlib.js','libraries/ampuser.class.php']:
+        for name in ['assets/js/pbxlib.js','libraries/ampuser.class.php','assets/mytel/apply.js',
+                     'assets/mytel/feedback.js','assets/mytel/save.js','assets/mytel/apply.css']:
             self.write(self.roots['admin']/name,b'guarded native dependency')
 
     @staticmethod
@@ -55,6 +56,11 @@ class PolishPrepareTests(unittest.TestCase):
     def test_header_drift_fails_before_creating_artifact(self):
         (self.roots['admin']/'views/header.php').write_text('unknown owner header')
         with self.assertRaisesRegex(ValueError,'anchor'):self.prepare()
+        self.assertFalse(self.output.exists())
+
+    def test_save_apply_runtime_dependencies_participate_in_the_review(self):
+        missing=self.roots['admin']/'assets/mytel/feedback.js';missing.unlink()
+        with self.assertRaisesRegex(ValueError,'guard|dependency'):self.prepare()
         self.assertFalse(self.output.exists())
 
     def test_existing_artifact_is_never_overwritten(self):
