@@ -119,9 +119,10 @@ class FirstBootTests(unittest.TestCase):
                 self.assertTrue(all(line.startswith('--no-defaults --user=root --protocol=socket ') for line in calls.read_text().splitlines()))
 
     def test_asterisk_inactive_disabled_or_unresponsive_is_fatal(self):
-        for state, expected in [('healthy', 0), ('inactive', 1), ('disabled', 1), ('cli-failed', 1)]:
+        for state, expected in [('healthy', 0), ('inactive', 1), ('disabled', 1), ('cli-failed', 1),
+                                ('static', 1), ('generated', 1), ('enabled-runtime', 1)]:
             with self.subTest(state=state):
-                body = 'STATE=' + repr(state) + '\nsystemctl(){ case "$1:$STATE" in is-active:inactive|is-enabled:disabled) return 1;; *) return 0;; esac; }\nasterisk(){ [ "$STATE" != cli-failed ]; }\nverify_asterisk_service\n'
+                body = 'STATE=' + repr(state) + '\nsystemctl(){ case "$1:$STATE" in is-active:inactive|is-enabled:disabled) return 1;; is-enabled:static|is-enabled:generated|is-enabled:enabled-runtime) printf \'%s\\n\' "$STATE";; is-enabled:*) printf \'enabled\\n\';; *) return 0;; esac; }\nasterisk(){ [ "$STATE" != cli-failed ]; }\nverify_asterisk_service\n'
                 result = self.run_shell(body)
                 self.assertEqual(result.returncode == 0, expected == 0, result.stderr)
 
