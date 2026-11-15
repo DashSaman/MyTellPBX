@@ -183,7 +183,12 @@ verify_amp_admin_password() {
 
 verify_asterisk_service() {
     systemctl is-active --quiet asterisk || die "self-check: asterisk is not active"
-    systemctl is-enabled --quiet asterisk || die "self-check: asterisk is not enabled at boot"
+    # The supported Asterisk20 RPM provides a native multi-user.target unit.
+    # Exit 0 also covers static/generated/runtime states, which are not proof
+    # that this installed service will be enabled after a cold reboot.
+    local enabled_state
+    enabled_state=$(systemctl is-enabled asterisk 2>>"$LOG") || die "self-check: asterisk is not enabled at boot"
+    [ "${enabled_state}" = "enabled" ] || die "self-check: asterisk requires persistent enabled state"
     asterisk -rx 'core show version' >>"$LOG" 2>&1 || die "self-check: asterisk CLI is not responding"
 }
 
@@ -555,9 +560,38 @@ install_with_retry() {
     [ "${ok}" = "1" ] || die "${label} failed after retries (see ${LOG})"
 }
 
+ensure_asterisk_identity() {
+    local group_entry group_status account_entry account_status group_gid account_uid account_gid
+    local group_pattern='^asterisk:[^:]*:([0-9]{1,9}):[^:]*$'
+    local account_pattern='^asterisk:[^:]*:([0-9]{1,9}):([0-9]{1,9}):[^:]*:/var/lib/asterisk:/bin/bash$'
+    group_entry=$(getent group asterisk); group_status=$?
+    account_entry=$(getent passwd asterisk); account_status=$?
+    case "${group_status}:${account_status}" in 0:0|0:2|2:2) ;; *) die "cannot inventory a compatible Asterisk service identity";; esac
+    if [ "${group_status}" = "2" ]; then
+        run_logged /usr/sbin/groupadd -r asterisk || die "cannot create Asterisk service group"
+        group_entry=$(getent group asterisk) || die "Asterisk service group missing after creation"
+    fi
+    case "${group_entry}" in *$'\n'*) die "ambiguous Asterisk service group";; esac
+    [[ "${group_entry}" =~ ${group_pattern} ]] || die "incompatible Asterisk service group"
+    group_gid="${BASH_REMATCH[1]}"
+    (( 10#${group_gid} > 0 && 10#${group_gid} < 1000 )) || die "Asterisk group conflicts with a non-service identity"
+    if [ "${account_status}" = "2" ]; then
+        run_logged /usr/sbin/useradd -r -g asterisk -c "Asterisk PBX" -s /bin/bash -d /var/lib/asterisk asterisk \
+            || die "cannot create Asterisk service account"
+        account_entry=$(getent passwd asterisk) || die "Asterisk service account missing after creation"
+    fi
+    case "${account_entry}" in *$'\n'*) die "ambiguous Asterisk service account";; esac
+    [[ "${account_entry}" =~ ${account_pattern} ]] || die "incompatible Asterisk service account; existing account preserved"
+    account_uid="${BASH_REMATCH[1]}"; account_gid="${BASH_REMATCH[2]}"
+    (( 10#${account_uid} > 0 && 10#${account_uid} < 1000 && 10#${account_gid} == 10#${group_gid} )) \
+        || die "Asterisk account conflicts with a non-service identity; existing account preserved"
+}
+
 stage_packages1() {
     stage_done packages1 && return 0
     step "نصب بسته‌های پایه (Asterisk 20 / MariaDB / Apache / PHP)"
+    # RPMs assign file ownership during extraction, before post-base setup.
+    ensure_asterisk_identity
     local list="${BUNDLE_DIR}/installer/packages/rocky8-stage1.txt"
     [ -f "${list}" ] || die "stage-1 package list missing from bundle"
     local pkgs
@@ -584,10 +618,7 @@ stage_post_base() {
     stage_done post_base && return 0
     step "پیکربندی اولیهٔ سرویس‌های پایه"
 
-    /usr/sbin/groupadd -f -r asterisk >/dev/null 2>&1 || true
-    if ! grep -q 'asterisk:' /etc/passwd; then
-        /usr/sbin/useradd -r -g asterisk -c "Asterisk PBX" -s /bin/bash -d /var/lib/asterisk asterisk >/dev/null 2>&1 || true
-    fi
+    ensure_asterisk_identity
 
     systemctl enable mariadb.service >>"$LOG" 2>&1 || die "mariadb enable failed"
     systemctl start  mariadb           >>"$LOG" 2>&1 || die "mariadb start failed"

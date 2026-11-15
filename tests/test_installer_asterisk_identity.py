@@ -91,7 +91,7 @@ stage_packages1
 '''
         result = self.run_shell(body)
         self.assertEqual(result.returncode, 0, result.stderr)
-        self.assertEqual(self.calls.read_text().splitlines(), ['identity', 'rpm'])
+        self.assertEqual(self.calls.read_text().splitlines() if self.calls.exists() else [], ['identity', 'rpm'])
 
     def test_postbase_rechecks_same_identity_instead_of_silent_account_creation(self):
         postbase = self.source.split('stage_post_base() {', 1)[1].split('\n# ----', 1)[0]
