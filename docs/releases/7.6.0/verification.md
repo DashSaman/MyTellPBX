@@ -145,8 +145,8 @@ was fixed using parent-directory descriptors, no-follow traversal, exclusive
 new-file creation and anchored rollback removal; five native regression cases
 and 51 existing rollout/profile checks passed, preserving mode/mtime/user xattrs.
 
-UI9 was independently approved/deployed before this later report request; the
-final release receipt records the separate report3 rollout and binds all current
-payloads to the final tag. The full combined-source counts and installed report
-observations are recorded in that receipt. No default-route sweep is represented
-as proof of every populated report or external business integration.
+Presentation and report changes use two independently approved scoped rollouts.
+The final release receipt records each tree/manifest and binds all current
+payloads to the final tag. It also records the combined-source counts and actual
+installed report observations. Default-route coverage is distinct from populated
+report states and external business integrations.
