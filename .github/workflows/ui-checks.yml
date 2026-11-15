@@ -43,8 +43,10 @@ jobs:
           php -l modules/mytellpbxopdesk/launcher-access.php
           php -l modules/mytellpbxopdesk/index.php
           php -l installer/password-init.php
+          php -l admin-fixes/asternic-direction.php
           php tests/ui/reload-guard.php admin-fixes/reload-guard.php
           php tests/ui/save-result.php admin-fixes/patch-submit.py
           php tests/ui/sip-save-transaction.php admin-fixes/sip-save-transaction.php
           php tests/ui/desk-launcher.php modules/mytellpbxopdesk/launcher-access.php
           php tests/ui/password-init.php installer/password-init.php
+          php tests/ui/asternic-direction.php admin-fixes/asternic-direction.php
