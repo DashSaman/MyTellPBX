@@ -26,6 +26,7 @@ class BootstrapPreservationTests(unittest.TestCase):
 mysql_any(){
     local query="$*"
     case "$*" in *-e*) ;; *) query=$(cat);; esac
+    case "$MODE" in invalid-count) printf NaN; return 0;; duplicate-count) printf '0\\n0'; return 0;; esac
     if [ "$MODE" = metadata-fail ]; then return 7; fi
     if [ "$MODE" = post-query-fail ] && [ "$ATTEMPTS" -gt 0 ]; then return 7; fi
     case "$query" in
@@ -81,7 +82,7 @@ sleep(){ :; }
         self.assertEqual(config.read_bytes(), b'operator config\n')
 
     def test_metadata_failure_or_unknown_schema_cannot_trigger_reset(self):
-        for mode in ['metadata-fail', 'unknown-schema', 'populated']:
+        for mode in ['metadata-fail', 'invalid-count', 'duplicate-count', 'unknown-schema', 'populated']:
             with self.subTest(mode=mode):
                 if self.events.exists(): self.events.unlink()
                 result, events = self.run_bootstrap(mode)

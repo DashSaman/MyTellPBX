@@ -648,14 +648,6 @@ stage_post_base() {
         warn "firewalld not present; ports not configured"
     fi
 
-    # Normalize MariaDB root access for the framework initializer:
-    # set a temporary random password, then clear it (upstream-tested flow,
-    # with a random temp instead of a shipped constant).
-    normalize_framework_mysql
-
-    # Framework marker: remove any stale config so the initializer writes fresh
-    rm -f /etc/issabel.conf
-
     # Asterisk config patches (upstream flow)
     grep -q 'noload => cdr_mysql.so' /etc/asterisk/modules_additional.conf 2>/dev/null \
         || echo "noload => cdr_mysql.so" >> /etc/asterisk/modules_additional.conf
@@ -742,6 +734,69 @@ EOF
 # --------------------------------------------------------------------------
 # Stage 6: framework first-boot initialization + passwords
 # --------------------------------------------------------------------------
+bootstrap_query_count() {
+    local count
+    count=$(printf '%s\n' "$1" | mysql_any -N -B 2>>"$LOG") || return 1
+    [[ "${count}" =~ ^[0-9]{1,9}$ ]] || return 1
+    printf '%s' "${count}"
+}
+
+guard_empty_framework_bootstrap() {
+    local root="${1:-/}" path count
+    root="${root%/}"
+    # An installer receipt is never evidence that an existing PBX is empty.
+    # Refuse unknown/partial files, including broken symlinks, without removal.
+    for path in etc/amportal.conf etc/issabelpbx.conf etc/issabel.conf; do
+        [ ! -e "${root}/${path}" ] && [ ! -L "${root}/${path}" ] \
+            || die "existing framework configuration retained; use scoped repair instead of reinitialization"
+    done
+    count=$(bootstrap_query_count "SELECT COUNT(*) FROM information_schema.SCHEMATA WHERE SCHEMA_NAME NOT IN ('mysql','information_schema','performance_schema','sys','asterisk','asteriskcdrdb');") \
+        || die "cannot inventory database schemas; bootstrap refused without changes"
+    [ "${count}" = "0" ] || die "unexpected database schema retained; bootstrap refused"
+    count=$(bootstrap_query_count "SELECT COUNT(*) FROM information_schema.TABLES WHERE TABLE_SCHEMA IN ('asterisk','asteriskcdrdb');") \
+        || die "cannot inventory framework objects; bootstrap refused without changes"
+    [ "${count}" = "0" ] || die "existing framework/CDR objects retained; use scoped repair instead of reinitialization"
+}
+
+framework_bootstrap_healthy() {
+    local root="${1:-/}" modules_present users_present mod_count
+    modules_present=$(bootstrap_query_count "SELECT COUNT(*) FROM information_schema.TABLES WHERE TABLE_SCHEMA='asterisk' AND TABLE_NAME='modules';") \
+        || die "cannot inspect framework module metadata; partial data retained"
+    users_present=$(bootstrap_query_count "SELECT COUNT(*) FROM information_schema.TABLES WHERE TABLE_SCHEMA='asterisk' AND TABLE_NAME='ampusers';") \
+        || die "cannot inspect framework account metadata; partial data retained"
+    [ "${modules_present}" = "1" ] && [ "${users_present}" = "1" ] || return 1
+    mod_count=$(bootstrap_query_count 'SELECT COUNT(*) FROM asterisk.modules;') \
+        || die "cannot read framework modules; partial data retained"
+    [ "${mod_count}" -gt 5 ] && [ -f "${root%/}/etc/amportal.conf" ]
+}
+
+bootstrap_empty_framework() {
+    local root="${1:-/}" attempt installer_ok
+    guard_empty_framework_bootstrap "${root}"
+    normalize_framework_mysql
+    # Only this boot marker is disposable. No database or framework config is
+    # dropped/removed, even when an initializer fails or a query is unavailable.
+    rm -f "${root%/}/installamp" || die "cannot clear fresh bootstrap marker"
+    for attempt in 1 2 3; do
+        guard_empty_framework_bootstrap "${root}"
+        installer_ok=0
+        run_logged /usr/src/issabelPBX/framework/install_amp --dbuser=root --installdb --scripted --language="${LANG_SEL}" && installer_ok=1
+        if framework_bootstrap_healthy "${root}"; then
+            [ "${installer_ok}" = "1" ] || die "initializer reported failure; generated data retained for scoped repair"
+            run_logged /var/lib/asterisk/bin/retrieve_conf || die "retrieve_conf failed; generated data retained"
+            return 0
+        fi
+        # Retry only if successful metadata proves that this invocation has
+        # created no objects/configuration. Any partial progress is preserved.
+        guard_empty_framework_bootstrap "${root}"
+        if [ "${attempt}" -lt 3 ]; then
+            warn "راه‌اندازی چارچوب پیشرفتی نداشت؛ تلاش ${attempt}/3"
+            sleep 2
+        fi
+    done
+    die "framework bootstrap made no progress after 3 attempts; no databases were dropped"
+}
+
 ensure_admin_credentials() {
     # Admin console (FreePBX ampusers, sha1) + panel login (acl.db acl_user,
     # md5 + administrator membership). Idempotent: safe on every run.
@@ -770,6 +825,7 @@ stage_framework_init() {
     step "راه‌اندازی چارچوب مرکز تماس و رمزها"
 
     ensure_credentials
+    guard_empty_framework_bootstrap
 
     # install_amp requires a running Asterisk (upstream start_asterisk helper).
     # Daemons must NOT inherit the installer lock fd — close it in subshells.
@@ -784,53 +840,7 @@ stage_framework_init() {
     fi
     systemctl enable asterisk >>"$LOG" 2>&1 || die "cannot enable asterisk at boot"
 
-    # Framework first-boot install. Run when flagged OR when the framework
-    # is verifiably absent — a previously failed run removes the flag file
-    # before install_amp succeeds, so the flag alone is not resume-safe.
-    local need_install=0
-    [ -f /installamp ] && need_install=1
-    [ -f /etc/amportal.conf ] || need_install=1
-    if ! mysql_any -N -e "SHOW TABLES FROM asterisk LIKE 'ampusers'" 2>/dev/null | grep -q ampusers; then
-        need_install=1
-    fi
-    # a half-finished framework install (DB briefly down during install_amp)
-    # can leave the modules table empty — that must re-run too
-    local mod_count=0
-    mod_count=$(mysql_any -N -e "SELECT COUNT(*) FROM asterisk.modules" 2>/dev/null | tr -d '[:space:]')
-    [ -n "${mod_count}" ] && [ "${mod_count}" -gt 5 ] || need_install=1
-    if [ "${need_install}" = "1" ]; then
-        # install_amp's first-boot flow needs passwordless MariaDB root
-        if ! mysql -N -e "SELECT 1" >/dev/null 2>&1; then
-            printf "SET PASSWORD FOR 'root'@'localhost' = PASSWORD('');\n" | mysql_with_password "${MYSQL_ROOT_PASS}" -N >>"$LOG" 2>&1 \
-                || die "cannot normalize mariadb root access"
-        fi
-        # Upstream flake: install_amp can exit 0 with an EMPTY modules table
-        # (internal "DB Error: connect failed" flood), and a re-run over the
-        # leftover half-state then skips module registration entirely. Fix:
-        # verify modules after each attempt; on failure drop the partial DBs
-        # and retry from a clean slate (bounded attempts).
-        local amp_attempt=0 amp_ok=0
-        for amp_attempt in 1 2 3; do
-            if [ "${amp_attempt}" -gt 1 ]; then
-                warn "framework ناقص (ماژول=${mod_count:-0}) — پاک‌سازی نیمه‌نصب و تلاش ${amp_attempt}/3"
-                mysql -N -e "DROP DATABASE IF EXISTS asterisk; DROP DATABASE IF EXISTS asteriskcdrdb;" >>"$LOG" 2>&1
-            fi
-            rm -f /installamp /etc/amportal.conf /etc/issabelpbx.conf
-            run_logged /usr/src/issabelPBX/framework/install_amp \
-                --dbuser=root --installdb --scripted --language="${LANG_SEL}" || true
-            mod_count=$(mysql_any -N -e "SELECT COUNT(*) FROM asterisk.modules" 2>/dev/null | tr -d '[:space:]')
-            if [ -n "${mod_count}" ] && [ "${mod_count}" -gt 5 ] && [ -f /etc/amportal.conf ]; then
-                amp_ok=1; break
-            fi
-        done
-        [ "${amp_ok}" = "1" ] \
-            || die "framework install_amp left modules table empty after 3 attempts (see ${LOG})"
-        mysql_any -N -e "SHOW TABLES FROM asterisk LIKE 'ampusers'" 2>>"$LOG" | grep -q ampusers \
-            || die "framework database missing ampusers after install_amp"
-        # generate device/dialplan configs from the freshly registered modules
-        run_logged /var/lib/asterisk/bin/retrieve_conf \
-            || die "retrieve_conf failed after framework install"
-    fi
+    bootstrap_empty_framework
 
     # Non-interactive password initialization (sets MariaDB/Cyrus root,
     # panel admin password, applies pending DB scripts, saves /etc/issabel.conf).
@@ -1105,7 +1115,8 @@ stage_selfcheck() {
     # catch it here and clear the framework marker so a re-run repairs it.
     ensure_credentials
     local mod_count=""
-    mod_count=$(mysql_any -N -e "SELECT COUNT(*) FROM asterisk.modules" 2>/dev/null | tr -d '[:space:]')
+    mod_count=$(bootstrap_query_count 'SELECT COUNT(*) FROM asterisk.modules;') \
+        || die "self-check: cannot read framework modules; existing stage marker retained"
     if ! { [ -n "${mod_count}" ] && [ "${mod_count}" -gt 5 ]; } || [ ! -f /etc/asterisk/pjsip_additional.conf ]; then
         rm -f "${STATE_DIR}/stages/framework.done"
         die "framework incomplete (modules=${mod_count:-0}); run the installer again to repair"
