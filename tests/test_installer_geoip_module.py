@@ -1,10 +1,13 @@
 """Only disposable files/fake metadata commands; never load a kernel module."""
 import importlib.util
+import io
 import json
 import os
 from pathlib import Path
 import subprocess
+import stat
 import tempfile
+from types import SimpleNamespace
 import unittest
 from unittest import mock
 
@@ -62,6 +65,9 @@ class GeoIPModuleTests(unittest.TestCase):
         self.assertEqual(json.loads((self.root / self.m.STATUS).read_text()), status)
         self.assertEqual([x for x in self.calls if x[0].endswith('modprobe')], [['/usr/sbin/modprobe', 'xt_geoip']])
         self.assertFalse(any(any(word in arg for word in ['iptables', 'systemctl', 'firewall']) for x in self.calls for arg in x))
+        if os.name == 'posix':
+            for relative in [self.m.LOADER,self.m.STATUS]:
+                self.assertEqual(stat.S_IMODE((self.root/relative).stat().st_mode),0o644)
 
     def test_pending_reboot_uses_verified_default_boot_module_without_loading_old_kernel(self):
         status = self.prepare(OLD)
@@ -144,6 +150,33 @@ class GeoIPModuleTests(unittest.TestCase):
         self.assertEqual(kwargs['stdin'], subprocess.DEVNULL)
         self.assertLessEqual(kwargs['timeout'], 15)
         self.assertEqual(set(kwargs['env']), {'PATH','LANG','LC_ALL'})
+
+    def test_timeout_is_a_sanitized_failure_not_pending_success(self):
+        with mock.patch.object(self.m.subprocess, 'run', side_effect=subprocess.TimeoutExpired('fixture',15)):
+            with self.assertRaisesRegex(ValueError, 'timed out'):
+                self.m.run_command(['/usr/sbin/modprobe','xt_geoip'])
+
+    def test_public_status_validator_rejects_unknown_types_and_impossible_states(self):
+        good=self.prepare(); self.assertTrue(self.m.valid_status(good))
+        for key,value in [('loaded',1),('persistent','yes'),('module_sha256',7),('target_kernel','../escape'),
+                          ('state','owner'),('target_kernel',None),('owner','operator')]:
+            item=dict(good); item[key]=value
+            with self.subTest(key=key,value=value):self.assertFalse(self.m.valid_status(item))
+        self.assertFalse(self.m.valid_status(dict(good,extra='unknown')))
+        self.assertFalse(self.m.valid_status(None))
+
+    def test_cli_root_boundary_and_pending_notice_use_no_real_commands(self):
+        denied=SimpleNamespace(name='posix',geteuid=lambda:65534)
+        with mock.patch.object(self.m,'os',denied),mock.patch.object(self.m,'prepare') as prepare:
+            with self.assertRaisesRegex(ValueError,'Linux root'):self.m.main()
+            prepare.assert_not_called()
+        allowed=SimpleNamespace(name='posix',geteuid=lambda:0,uname=lambda:SimpleNamespace(release=OLD))
+        stdout,stderr=io.StringIO(),io.StringIO()
+        with mock.patch.object(self.m,'os',allowed),mock.patch.object(self.m,'prepare',return_value={'state':'pending-reboot'}) as prepare, \
+             mock.patch.object(self.m.sys,'stdout',stdout),mock.patch.object(self.m.sys,'stderr',stderr):
+            self.m.main()
+        self.assertEqual(json.loads(stdout.getvalue())['state'],'pending-reboot')
+        self.assertIn('restart',stderr.getvalue());self.assertEqual(prepare.call_args[0][1],OLD)
 
 
 if __name__ == '__main__': unittest.main()
