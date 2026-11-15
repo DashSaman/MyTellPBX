@@ -14,8 +14,10 @@ import json
 import os
 import pathlib
 import re
+import secrets
 import shutil
 import socket
+import stat
 import tempfile
 
 ROOTS = {"panel": "/var/www/html/themes/mytel", "admin": "/var/www/html/admin",
@@ -213,7 +215,105 @@ def sync_file(path):
             os.fsync(stream.fileno())
 
 
+def open_parent(path):
+    """Walk real directory objects; an untrusted parent cannot redirect a write."""
+    absolute = pathlib.Path(os.path.abspath(str(path)))
+    flags = os.O_RDONLY | os.O_DIRECTORY | os.O_NOFOLLOW
+    descriptor = os.open(absolute.anchor, flags)
+    try:
+        for part in absolute.parent.parts[1:]:
+            next_directory = os.open(part, flags, dir_fd=descriptor)
+            os.close(descriptor)
+            descriptor = next_directory
+        return descriptor, absolute.name
+    except Exception:
+        os.close(descriptor)
+        raise
+
+
+def same_parent(path, descriptor):
+    current, _ = open_parent(path)
+    try:
+        before, after = os.fstat(descriptor), os.fstat(current)
+        if (before.st_dev, before.st_ino) != (after.st_dev, after.st_ino):
+            raise ValueError("Destination parent changed during atomic update")
+    finally:
+        os.close(current)
+
+
 def atomic_bytes(target, data, metadata=None, preserve_mtime=False):
+    if os.name != "posix":
+        # Windows is used for disposable offline fixtures, never PBX rollout.
+        return atomic_bytes_fixture(target, data, metadata, preserve_mtime)
+    parent, name = open_parent(target)
+    temporary = ".mt-ui-" + secrets.token_hex(12)
+    descriptor = previous_fd = metadata_parent = None
+    try:
+        previous = os.fstat(parent)
+        if metadata is not None:
+            metadata_parent, metadata_name = open_parent(metadata)
+            previous_fd = os.open(metadata_name, os.O_RDONLY | os.O_NOFOLLOW | os.O_NONBLOCK, dir_fd=metadata_parent)
+            previous = os.fstat(previous_fd)
+            if not stat.S_ISREG(previous.st_mode):
+                raise ValueError("Non-regular atomic metadata source")
+        descriptor = os.open(temporary, os.O_WRONLY | os.O_CREAT | os.O_EXCL | os.O_NOFOLLOW, 0o600, dir_fd=parent)
+        with os.fdopen(descriptor, "wb", closefd=False) as stream:
+            stream.write(data)
+            stream.flush()
+        os.fchown(descriptor, previous.st_uid, previous.st_gid)
+        os.fchmod(descriptor, stat.S_IMODE(previous.st_mode) if previous_fd is not None else 0o644)
+        if previous_fd is not None and hasattr(os, "listxattr"):
+            for attribute in os.listxattr(previous_fd):
+                os.setxattr(descriptor, attribute, os.getxattr(previous_fd, attribute))
+        if preserve_mtime and previous_fd is not None:
+            os.utime(descriptor, ns=(previous.st_atime_ns, previous.st_mtime_ns))
+        else:
+            os.utime(descriptor, None)
+        os.fsync(descriptor)
+        same_parent(target, parent)
+        if metadata is None:
+            # A first-install helper/journal must never overwrite a file that
+            # appeared after preflight. Hard-link creation is atomic/exclusive.
+            os.link(temporary, name, src_dir_fd=parent, dst_dir_fd=parent, follow_symlinks=False)
+            os.unlink(temporary, dir_fd=parent)
+        else:
+            os.replace(temporary, name, src_dir_fd=parent, dst_dir_fd=parent)
+        os.fsync(parent)
+        same_parent(target, parent)
+    finally:
+        if descriptor is not None: os.close(descriptor)
+        if previous_fd is not None: os.close(previous_fd)
+        if metadata_parent is not None: os.close(metadata_parent)
+        try: os.unlink(temporary, dir_fd=parent)
+        except FileNotFoundError: pass
+        os.close(parent)
+
+
+def atomic_remove(target, expected):
+    """Remove only the reviewed new file, without following a changed parent."""
+    if os.name != "posix":
+        if digest(target) != expected: raise ValueError("Rollback content changed")
+        target.unlink()
+        return
+    parent, name = open_parent(target)
+    try:
+        descriptor = os.open(name, os.O_RDONLY | os.O_NOFOLLOW | os.O_NONBLOCK, dir_fd=parent)
+        with os.fdopen(descriptor, "rb") as stream:
+            identity = os.fstat(stream.fileno())
+            if not stat.S_ISREG(identity.st_mode) or hashlib.sha256(stream.read()).hexdigest() != expected:
+                raise ValueError("Rollback content changed")
+        visible = os.stat(name, dir_fd=parent, follow_symlinks=False)
+        if (identity.st_dev, identity.st_ino) != (visible.st_dev, visible.st_ino):
+            raise ValueError("Rollback target replaced")
+        same_parent(target, parent)
+        os.unlink(name, dir_fd=parent)
+        os.fsync(parent)
+        same_parent(target, parent)
+    finally:
+        os.close(parent)
+
+
+def atomic_bytes_fixture(target, data, metadata=None, preserve_mtime=False):
     if not target.parent.is_dir():
         raise ValueError("Destination parent does not exist: " + str(target.parent))
     fd, temporary = tempfile.mkstemp(prefix=".mt-ui-", dir=str(target.parent))
@@ -280,8 +380,7 @@ def rollback(backup, roots):
         if current != item["after"]:
             raise ValueError("Live drift during rollback: " + item["path"])
         if item["before"] is None:
-            target.unlink()  # Exact new manifest file only; no directory removal.
-            sync_directory(target.parent)
+            atomic_remove(target, item["after"])  # Exact file only; no directory removal.
         else:
             atomic_bytes(target, data, original, preserve_mtime=True)
         if digest(target) != item["before"]:
@@ -330,7 +429,7 @@ def apply(artifact, roots, backup, review):
             target = within(roots[item["root"]], item["path"])
             if digest(target) != item["before"]:
                 raise ValueError("Live file changed during deployment")
-            atomic_bytes(target, data, target if target.exists() else None)
+            atomic_bytes(target, data, target if item["before"] is not None else None)
         validate(artifact, manifest, roots, "after")
         journal["state"] = "DEPLOYED_AWAITING_BROWSER_VERIFICATION"
         journal_write(backup, journal)
