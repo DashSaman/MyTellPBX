@@ -10,12 +10,20 @@ import unittest
 
 ROOT = Path(__file__).resolve().parents[1]
 PATH = ROOT / 'admin-fixes/patch-asternic-direction.py'
+def data_table_fixture(name, arguments, columns):
+    return ('function '+name+'('+arguments+') {\n?>\n'
+            "        <a name='1'></a>\n        <table width='99%' cellpadding=3 cellspacing=3 border=0 >\n"
+            '<thead><tr>'+''.join('<th>fixture-'+str(number)+'</th>' for number in range(1,columns+1))+'</tr></thead>\n<?php\n'
+            '    echo "</tbody>\\n";\n    echo "</table>\\n";\n\n    $cover_pdf = \'export remains outside\';\n}\n')
+
+
 PAGE = '''<?php
 require_once(dirname(__FILE__) . '/functions.inc.php');
 // Owner material is preserved.
 ''' + '\n'.join('$query .= "AND ' + condition + ' ";' for condition in ("dst LIKE '9%'", "src REGEXP '^[0-9]{7,11}$'") for _ in range(3)) + '''
 $extra_where = " AND dst LIKE '9%'";
 $extra_where = " AND src REGEXP '^[0-9]{7,11}$'";
+''' + data_table_fixture('inbound_outbound','$type,$appconfig',12) + data_table_fixture('asternic_report','$typereport,$appconfig',10) + '''
 function asternic_home($appconfig) {
  $sql = "SELECT if(j1.dial is not null and j2.dial is null,'outbound',''),if(j1.dial is null and j2.dial is not null,'inbound',''),if(j1.dial is not null and j2.dial is not null,'internal','')";
 }
@@ -83,6 +91,22 @@ class AsternicDirectionPatcherTests(unittest.TestCase):
             candidate = transform(source)
             with self.assertRaises(ValueError): transform(candidate.replace(patcher.END, 'unrecognized marker', 1))
             with self.assertRaises(ValueError): transform(candidate.replace("direction_sql($db, 'incoming')", "direction_sql($db, 'unknown')", 1))
+
+    def test_only_native_data_tables_get_accessible_intrinsic_width_scroll_regions(self):
+        patcher=self.load();candidate=patcher.transform_page(PAGE)
+        self.assertEqual(candidate.count('mt-cdr-data-scroll'),2,'Populated native data tables need local scroll regions')
+        for width,columns in ((960,12),(800,10)):
+            self.assertTrue('min-width: '+str(width)+'px' in candidate,'Native header count must determine intrinsic width')
+            self.assertTrue("data-mt-cdr-columns='"+str(columns)+"'" in candidate)
+        self.assertEqual(candidate.count("tabindex='0' role='region'"),2)
+        self.assertEqual(candidate.count('<th>'),22)
+        self.assertEqual(candidate.count("<a name='1'></a>"),2)
+        self.assertEqual(candidate.count('echo "</div>\\n";\n\n    $cover_pdf'),2,'Exports stay outside the data scroll region')
+        self.assertEqual(candidate,patcher.transform_page(candidate))
+
+    def test_changed_native_header_count_requires_review(self):
+        patcher=self.load()
+        with self.assertRaises(ValueError):patcher.transform_page(PAGE.replace('<th>fixture-12</th>','',1))
 
     def test_plan_refuses_other_versions_and_unknown_existing_helper(self):
         patcher = self.load()
