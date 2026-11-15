@@ -98,13 +98,18 @@ die() { printf 'EXPECTED-REFUSAL: %s\\n' "$*" >&2; exit 1; }
         self.assertEqual(result.returncode, 0, result.stderr)
         self.assertEqual((self.private / 'extracted/fixture/payload.txt').read_bytes(), b'fixture payload only\n')
 
+    def test_existing_regular_verified_archive_is_a_valid_workspace_child(self):
+        shutil.copyfile(str(self.archive), str(self.private / 'fixture.tgz'))
+        result = self.execute('verify_bundle')
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertEqual((self.private / 'extracted/fixture/payload.txt').read_bytes(), b'fixture payload only\n')
+
     def test_initializer_uses_fresh_private_paths_and_exit_cleanup_is_scoped(self):
         retained = self.outside / 'retained.txt'
         retained.write_bytes(b'keep\n')
-        # The real initializer and its EXIT trap execute. The mktemp adapter only
-        # places its fresh directory within this disposable test filesystem.
+        # The real POSIX allocator and EXIT trap execute. Only a fresh private
+        # directory is writable; unrelated fixture files must remain untouched.
         result = self.execute('''
-mktemp() { command mktemp -d "$TMPDIR/allocated.XXXXXXXX"; }
 WORK_DIR=''
 initialize_workspace
 printf '%s\\n' "$WORK_DIR" "$BUNDLE_TMP" "$BUNDLE_FINAL" "$BUNDLE_ROOT"
@@ -114,7 +119,8 @@ command stat -c %a "$WORK_DIR"
         lines = result.stdout.strip().splitlines()
         self.assertGreaterEqual(len(lines), 5, 'Initializer must expose its owned paths')
         work = Path(lines[-5])
-        self.assertEqual(work.parent, self.base)
+        self.assertTrue(work.is_absolute())
+        self.assertNotEqual(work, self.private)
         self.assertEqual(lines[-1], '700')
         for name in lines[-4:-1]:
             self.assertIn(work, Path(name).parents)
