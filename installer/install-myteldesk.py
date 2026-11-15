@@ -254,7 +254,35 @@ def record_attempt(cache, pin, state_path, phase):
 
 
 def run_command(argv):
-    subprocess.run(argv, check=True, timeout=2700)
+    # Only the pinned Desk installer and doctor use this runner. Keep their
+    # output inherited, and show elapsed time without echoing argv or secrets.
+    process = subprocess.Popen(argv, stdin=subprocess.DEVNULL, stdout=None, stderr=None)
+    started = time.monotonic(); next_notice = started + 30
+    output_available = True
+    try:
+        while True:
+            remaining = 2700 - (time.monotonic() - started)
+            if remaining <= 0:
+                raise subprocess.TimeoutExpired(argv, 2700)
+            try:
+                returncode = process.wait(timeout=min(30, remaining))
+                break
+            except subprocess.TimeoutExpired:
+                now = time.monotonic()
+                if now - started >= 2700:
+                    raise subprocess.TimeoutExpired(argv, 2700)
+                if output_available and now >= next_notice:
+                    try:
+                        print('[MyTellPBX] MytelDesk operation still running; elapsed: {} seconds.'.format(int(now - started)), flush=True)
+                    except (OSError, ValueError):
+                        output_available = False  # Never interrupt active work for a cosmetic output failure.
+                    next_notice = now + 30
+    except BaseException:
+        # Match the existing subprocess.run(timeout=2700) cleanup contract.
+        process.kill(); process.wait()
+        raise
+    if returncode:
+        raise subprocess.CalledProcessError(returncode, argv)
 
 
 def install_launcher(source, web_root, expected_uid=0):
