@@ -50,7 +50,7 @@ class AdminPatcherTests(unittest.TestCase):
         new = ADMIN.transform_header(old)
         self.assertNotIn('workspace.js?v=740', new)
         self.assertEqual(new.count('workspace.js?v=760'), 1)
-        footer = "$html .= '<script src=\"' . $amp_conf['BRAND_ALT_JS'] . $version_tag . '\"></script>';"
+        footer = "<?php\n$html .= '<script src=\"' . $amp_conf['BRAND_ALT_JS'] . $version_tag . '\"></script>';"
         self.assertIn('&mt-ui=761', ADMIN.transform_footer(footer))
         self.assertEqual(ADMIN.transform_footer(footer), ADMIN.transform_footer(ADMIN.transform_footer(footer)))
 

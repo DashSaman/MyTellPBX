@@ -91,8 +91,9 @@ def transform_asset_url(text, key):
         raise ValueError('Unknown branded asset helper call')
     # Each view also works in isolation; the guarded function is defined only
     # once when the normal request includes both header and footer.
-    insertion = 5 if text.startswith('<?php') else 0
-    return text[:insertion] + ASSET_HELPER + text[insertion:]
+    if not text.startswith('<?php'):
+        raise ValueError('Unknown branded asset PHP view prefix')
+    return text[:5] + ASSET_HELPER + text[5:]
 
 
 def remove_current(text):
