@@ -39,6 +39,17 @@ are preserved verbatim.
   dependencies are supplied by that separate release/runtime, not relicensed by
   the PBX theme. See [the VAD notices](https://github.com/DashSaman/MytelDesk/blob/main/docs/vad-third-party.md).
 
+## Optional Asternic report integration
+
+- **Asternic CDR Reports Open Source 1.6.6** is a separately installed GPLv3
+  IssabelPBX module, distinct from the vendor's commercial standalone product.
+  [Official download/license statement](https://www.asternic.net/cdrreports/download.php),
+  [upstream source](https://github.com/asternic/asternic-cdr-module).
+- The direction helper and scoped source patcher in `admin-fixes/` are GPLv3;
+  retain [the accompanying license](admin-fixes/licenses/GPL-3.0.txt). The full
+  customized module and any production records are not bundled here. The
+  integration does not change the license of the separately maintained theme.
+
 ## Fonts
 
 - **Vazirmatn** — SIL Open Font License 1.1, by Saber Rastikerdar.
