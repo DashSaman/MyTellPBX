@@ -6,13 +6,12 @@ view, configuration, authentication, database, service or network code runs.
 """
 from html.parser import HTMLParser
 import importlib.util
-import json
 from pathlib import Path
 import shutil
 import subprocess
 import tempfile
 import unittest
-from urllib.parse import parse_qsl, urlsplit
+from urllib.parse import parse_qsl, urlencode, urlsplit
 
 ROOT = Path(__file__).resolve().parents[1]
 SPEC = importlib.util.spec_from_file_location('asset_query_patch', str(ROOT / 'admin-theme/patch-admin-theme.py'))
@@ -71,10 +70,10 @@ class BrandAssetQueries(unittest.TestCase):
 
     def render(self, kind, url, tag='?load_version=2.12.0.3'):
         transform, source = (PATCH.transform_header, HEADER) if kind == 'css' else (PATCH.transform_footer, FOOTER)
-        prelude = "<?php\n$input=json_decode(stream_get_contents(STDIN),true);\n$amp_conf=array('BRAND_CSS_CUSTOM'=>$input['url'],'BRAND_ALT_JS'=>$input['url']);\n$version_tag=$input['tag'];\n?>"
+        prelude = "<?php\n$input=array(); parse_str(stream_get_contents(STDIN),$input);\n$amp_conf=array('BRAND_CSS_CUSTOM'=>$input['url'],'BRAND_ALT_JS'=>$input['url']);\n$version_tag=$input['tag'];\n?>"
         with tempfile.TemporaryDirectory() as temporary:
             path = Path(temporary) / 'fixture.php'; path.write_text(prelude + transform(source), encoding='utf-8')
-            result = subprocess.run([PHP, '-n', str(path)], input=json.dumps({'url':url,'tag':tag}).encode(),
+            result = subprocess.run([PHP, '-n', str(path)], input=urlencode({'url':url,'tag':tag}).encode('ascii'),
                 stdout=subprocess.PIPE, stderr=subprocess.STDOUT, timeout=30)
         output = result.stdout.decode('utf-8', 'replace')
         self.assertEqual(result.returncode, 0, output)
