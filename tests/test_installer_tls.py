@@ -1,5 +1,7 @@
 """Generate disposable certificates with real OpenSSL; never touch host TLS paths."""
 import importlib.util
+import datetime
+import io
 import os
 from pathlib import Path
 import shutil
@@ -153,6 +155,64 @@ class TLSPreparationTests(unittest.TestCase):
             self.assertIs(options.get('stdin'), subprocess.DEVNULL)
             self.assertGreater(options.get('timeout', 0), 0)
             self.assertFalse(options.get('shell', False))
+
+    def test_expired_or_not_yet_valid_certificate_is_preserved_and_refused(self):
+        self.make_pair()
+        before = self.cert.read_bytes()
+        original = datetime.datetime
+        for year in [2000, 2050]:
+            class Clock(original):
+                @classmethod
+                def utcnow(cls):
+                    return original(year, 1, 1)
+            with mock.patch.object(self.module.datetime, 'datetime', Clock):
+                with self.assertRaises(ValueError):
+                    self.prepare()
+        self.assertEqual(self.cert.read_bytes(), before)
+
+    def test_rollback_never_removes_a_replaced_owner_file(self):
+        def replace_then_fail(_paths):
+            self.key.unlink()
+            self.key.write_bytes(b'owner replacement key')
+            raise OSError('fixture relabel failure')
+        with self.assertRaises(OSError):
+            self.prepare(relabel=replace_then_fail)
+        self.assertEqual(self.key.read_bytes(), b'owner replacement key')
+        self.assertFalse(self.cert.exists())
+
+    def test_command_timeout_or_missing_tool_fails_with_sanitized_error(self):
+        for error in [OSError('private tool detail'), subprocess.TimeoutExpired('private command detail', 30)]:
+            with mock.patch.object(self.module.subprocess, 'run', side_effect=error):
+                with self.assertRaisesRegex(ValueError, 'unavailable or timed out'):
+                    self.module.run_command(['fixture-tool'])
+        self.assertFalse(self.cert.exists())
+
+    def test_cli_rejects_non_root_and_passes_only_validated_requested_identities(self):
+        with mock.patch.object(self.module.os, 'geteuid', return_value=1000, create=True):
+            with mock.patch('sys.stderr', io.StringIO()):
+                with self.assertRaises(SystemExit):
+                    self.module.main([])
+        with mock.patch.object(self.module.os, 'geteuid', return_value=0, create=True):
+            with mock.patch.object(self.module, 'prepare', return_value='created') as prepare:
+                with mock.patch('sys.stdout', io.StringIO()):
+                    self.assertEqual(self.module.main(['--hostname', 'pbx.example.test', '--ip', '192.0.2.15']), 0)
+                prepare.assert_called_once_with('/', ['pbx.example.test'], ['192.0.2.15'])
+            with mock.patch.object(self.module, 'local_identities', return_value=(['local.test'], ['192.0.2.16'])):
+                with mock.patch.object(self.module, 'prepare', side_effect=ValueError('fixture invalid pair')):
+                    with mock.patch('sys.stderr', io.StringIO()):
+                        self.assertEqual(self.module.main([]), 1)
+
+    def test_local_discovery_uses_only_local_interface_output_and_restorecon_fixed_paths(self):
+        with mock.patch.object(self.module.socket, 'gethostname', return_value='pbx.example.test'):
+            with mock.patch.object(self.module, 'run_command', return_value=b'2: eth0 inet 192.0.2.10/24 scope global\n2: eth0 inet6 2001:db8::10/64 scope global\n') as run:
+                names, addresses = self.module.local_identities()
+                self.assertIn('pbx.example.test', names)
+                self.assertIn('192.0.2.10', addresses)
+                self.assertIn('2001:db8::10', addresses)
+                run.assert_called_once_with(['/usr/sbin/ip', '-o', 'address', 'show'])
+        with mock.patch.object(self.module, 'run_command') as run:
+            self.module.restore_context([self.cert, self.key])
+            run.assert_called_once_with(['/usr/sbin/restorecon', '--', str(self.cert), str(self.key)])
 
 
 if __name__ == '__main__':
