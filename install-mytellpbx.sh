@@ -19,8 +19,11 @@
 #   MYTELL_LANG            Panel language; only "fa" is supported.
 #   MYTELL_REBOOT          1 = reboot automatically after success (default 0).
 #   MYTELL_MYSQL_ROOT_PASS Predefined MariaDB root password (allowed chars:
-#                          A-Z a-z 0-9 space . @ = _ ! - ; generated if unset).
+#                          A-Z a-z 0-9 space . @ = _ ! -).
 #   MYTELL_ADMIN_PASS      Predefined panel admin password (same rules).
+#                          Missing passwords are requested once on a terminal;
+#                          Enter generates a password. Unattended runs generate
+#                          missing values. Saved credentials are never rotated.
 #   MYTELL_SKIP_UPDATE     1 = skip the initial OS update step.
 #   MYTELL_DESK_PUBLIC_URL HTTPS origin for the desk (optional; defaults to
 #                          the server address, preserves an owned Desk URL).
@@ -136,6 +139,39 @@ raise SystemExit(0 if valid else 1)
 PY
 }
 
+verify_mysql_authentication() {
+    # Ignore option files and inherited passwords: a saved config value alone
+    # does not prove authentication, and unix_socket can silently ignore a key.
+    printf 'SELECT 1;\n' | MYSQL_PWD="${MYSQL_ROOT_PASS}" mysql --no-defaults --user=root --protocol=socket -N \
+        >/dev/null 2>&1 || die "chosen MariaDB root password does not authenticate"
+    if printf 'SELECT 1;\n' | MYSQL_PWD='' mysql --no-defaults --user=root --protocol=socket -N >/dev/null 2>&1; then
+        die "MariaDB root still accepts an empty password"
+    fi
+    local wrong_password
+    wrong_password=$(openssl rand -hex 24) || die "cannot generate authentication negative control"
+    [ -n "${wrong_password}" ] && [ "${wrong_password}" != "${MYSQL_ROOT_PASS}" ] \
+        || die "invalid authentication negative control"
+    if printf 'SELECT 1;\n' | MYSQL_PWD="${wrong_password}" mysql --no-defaults --user=root --protocol=socket -N >/dev/null 2>&1; then
+        die "MariaDB root accepts an incorrect password"
+    fi
+}
+
+verify_amp_admin_password() {
+    local amp_ok='' try
+    for try in 1 2 3 4 5; do
+        amp_ok=$(printf "SELECT COUNT(*) FROM asterisk.ampusers WHERE username='admin' AND password_sha1=SHA1('%s');\n" "${ADMIN_PASS}" | mysql_any -N 2>/dev/null || true)
+        [ "${amp_ok}" = "1" ] && return 0
+        sleep 2
+    done
+    die "admin password not in force on ampusers"
+}
+
+verify_asterisk_service() {
+    systemctl is-active --quiet asterisk || die "self-check: asterisk is not active"
+    systemctl is-enabled --quiet asterisk || die "self-check: asterisk is not enabled at boot"
+    asterisk -rx 'core show version' >>"$LOG" 2>&1 || die "self-check: asterisk CLI is not responding"
+}
+
 # Whole-string validation (grep is line-oriented and would accept values
 # whose FIRST line is valid; a negated glob class matches one character
 # anywhere in the string, so a single bad character fails the check).
@@ -222,9 +258,11 @@ repository_metadata_reachable() {
             "${origin}/issabel/5/base/x86_64/repodata/repomd.xml" 2>>"$LOG" \
             | "${PY_BIN}" -c 'import sys, xml.etree.ElementTree as ET
 try:
-    root = ET.fromstring(sys.stdin.read(1048577))
+    document = sys.stdin.read(1048577)
+    if "<!DOCTYPE" in document.upper() or "<!ENTITY" in document.upper(): raise ValueError("DTD not allowed")
+    root = ET.fromstring(document)
     ns = "{http://linux.duke.edu/metadata/repo}"
-    valid = root.tag == ns + "repomd" and any(item.get("type") == "primary" and item.find(ns + "location") is not None for item in root.findall(ns + "data"))
+    valid = root.tag == ns + "repomd" and any(item.get("type") == "primary" and item.find(ns + "location") is not None and item.find(ns + "location").get("href", "").strip() for item in root.findall(ns + "data"))
 except (ValueError, ET.ParseError):
     valid = False
 raise SystemExit(0 if valid else 1)' >/dev/null; then
@@ -582,35 +620,71 @@ stage_post_base() {
 # --------------------------------------------------------------------------
 # Credentials (created BEFORE framework init; never rotated on rerun)
 # --------------------------------------------------------------------------
+credential_input_is_tty() { [ -t 0 ] && [ -t 2 ]; }
+
+choose_password() {
+    local variable="$1" selected="$2" prompt="$3"
+    if [ -z "${selected}" ] && credential_input_is_tty; then
+        printf '%s (Enter = تولید خودکار): ' "${prompt}" >&2
+        IFS= read -r -s selected || { printf '\n' >&2; die "password input interrupted; no credentials saved"; }
+        printf '\n' >&2
+    fi
+    if [ -z "${selected}" ]; then
+        selected=$(openssl rand -hex 24) || die "cannot generate password"
+    fi
+    valid_password "${selected}" || die "password contains unsupported characters; no credentials saved"
+    printf -v "${variable}" '%s' "${selected}"
+}
+
 ensure_credentials() {
-    if [ -s "${CRED_FILE}" ]; then
+    if [ -e "${CRED_FILE}" ] || [ -L "${CRED_FILE}" ]; then
+        # Validate the exact data grammar before sourcing. Unknown commands,
+        # duplicate keys, symlinks and non-private files are never executed.
+        "${PY_BIN}" -B - "${CRED_FILE}" <<'PY' || die "saved credentials are invalid or not private; no changes made"
+import os, re, stat, sys
+try:
+    path = sys.argv[1]
+    meta = os.lstat(path)
+    valid = stat.S_ISREG(meta.st_mode)
+    if os.name == 'posix':
+        valid = valid and meta.st_uid == os.geteuid() and stat.S_IMODE(meta.st_mode) == 0o600
+    if not valid: raise ValueError('unsafe credentials')
+    values = {}
+    with open(path, encoding='utf-8', newline='') as source:
+        for raw in source:
+            line = raw.rstrip('\n')
+            if not line or line.startswith('#'): continue
+            match = re.fullmatch(r"(MYSQL_ROOT_PASS|ADMIN_PASS)='([A-Za-z0-9 ._@=!\-]+)'", line)
+            if not match or match.group(1) in values: valid = False; break
+            values[match.group(1)] = match.group(2)
+    valid = valid and set(values) == {'MYSQL_ROOT_PASS', 'ADMIN_PASS'}
+except (OSError, ValueError): valid = False
+raise SystemExit(0 if valid else 1)
+PY
         say "رمزهای موجود حفظ شد (اجرای مجدد)"
         # shellcheck disable=SC1090
         . "${CRED_FILE}"
         return 0
     fi
-    # shellcheck disable=SC2154
-    MYSQL_ROOT_PASS="${MYTELL_MYSQL_ROOT_PASS:-$(openssl rand -hex 24)}"
-    ADMIN_PASS="${MYTELL_ADMIN_PASS:-$(openssl rand -hex 24)}"
-    local orig_mysql="${MYSQL_ROOT_PASS}" orig_admin="${ADMIN_PASS}"
-    (
-        umask 077
-        # single-quoted assignments: the allowed charset (alnum, space,
-        # .@=_!-) never contains a single quote, so this is inject-safe
-        cat > "${CRED_FILE}" <<EOF
+    # Collect and validate both before creating any final credential file.
+    # At most two hidden reads; supplied environment values skip their prompt.
+    choose_password ADMIN_PASS "${MYTELL_ADMIN_PASS:-}" 'رمز مدیر پنل'
+    choose_password MYSQL_ROOT_PASS "${MYTELL_MYSQL_ROOT_PASS:-}" 'رمز MariaDB'
+    local credential_tmp
+    credential_tmp=$(umask 077; mktemp "${CRED_FILE}.tmp.XXXXXXXX") || die "cannot create private credential file"
+    if ! (umask 077; cat > "${credential_tmp}" <<EOF
 # MyTellPBX credentials - $(date '+%Y-%m-%d %H:%M:%S')
 # Keep this file secret (mode 0600, root only).
 MYSQL_ROOT_PASS='${MYSQL_ROOT_PASS}'
 ADMIN_PASS='${ADMIN_PASS}'
 EOF
-        chmod 600 "${CRED_FILE}"
-    )
-    # round-trip verification: sourcing must restore the exact originals
-    unset MYSQL_ROOT_PASS ADMIN_PASS
-    . "${CRED_FILE}"
-    [ "${MYSQL_ROOT_PASS}" = "${orig_mysql}" ] && [ "${ADMIN_PASS}" = "${orig_admin}" ] \
-        || die "credential file round-trip verification failed"
-    [ -s "${CRED_FILE}" ] || die "credential file creation failed"
+        [ "$?" = "0" ] || exit 1
+        chmod 600 "${credential_tmp}"
+    ) || ! ln -- "${credential_tmp}" "${CRED_FILE}"; then
+        rm -f -- "${credential_tmp}"
+        die "cannot atomically save credentials; existing file preserved"
+    fi
+    rm -f -- "${credential_tmp}"
 }
 
 # --------------------------------------------------------------------------
@@ -656,6 +730,7 @@ stage_framework_init() {
         asterisk -rx 'core show version' >>"$LOG" 2>&1 \
             || die "asterisk failed to start for framework init"
     fi
+    systemctl enable asterisk >>"$LOG" 2>&1 || die "cannot enable asterisk at boot"
 
     # Framework first-boot install. Run when flagged OR when the framework
     # is verifiably absent — a previously failed run removes the flag file
@@ -713,6 +788,7 @@ stage_framework_init() {
     initialize_framework_passwords
     verify_mysql_root_password \
         || die "password init did not persist mysqlrootpwd (upstream tool misreported success)"
+    verify_mysql_authentication
 
     # The upstream --cli init skips its whole web-password step when its key
     # file already exists ("Password configuration already present"), which
@@ -722,13 +798,7 @@ stage_framework_init() {
     ensure_admin_credentials
 
     # hard verification: the admin password must actually be in force
-    local amp_ok=""
-    for try in 1 2 3 4 5; do
-        amp_ok=$(mysql_any -N -e "SELECT COUNT(*) FROM asterisk.ampusers WHERE username='admin' AND password_sha1=SHA1('${ADMIN_PASS}')" 2>/dev/null || true)
-        [ "${amp_ok}" = "1" ] && break
-        sleep 2
-    done
-    [ "${amp_ok}" = "1" ] || die "admin password not in force on ampusers"
+    verify_amp_admin_password
     ADMIN_PASS="${ADMIN_PASS}" php <<'PHP' >>"$LOG" 2>&1 || die "acl admin verify failed"
 <?php
 $md5 = md5(getenv('ADMIN_PASS'));
@@ -942,6 +1012,11 @@ PHP
     # Optional installed Asternic1.6.6 only; never installs/vendor-copies a module.
     repair_optional_asternic_direction
 
+    # Update presentation only; the vendor login script must never be executed
+    # here because it also contains service and network first-boot actions.
+    "${PY_BIN}" -B "${BUNDLE_DIR}/admin-theme/patch-login-branding.py" >>"$LOG" 2>&1 \
+        || die "login branding source changed; review before continuing"
+
     # 8) Clear known caches + ownership + validate Apache config
     find "${WEB_ROOT}" -name '*.tplc' -delete 2>/dev/null || true
     rm -rf "${WEB_ROOT}/themes/mytel/cache" 2>/dev/null || true
@@ -988,7 +1063,8 @@ stage_selfcheck() {
     systemctl is-active --quiet httpd   || die "self-check: httpd not active"
     /usr/local/sbin/myteldesk doctor || die "self-check: MytelDesk or CPU voice analysis not ready"
     sleep 8
-    systemctl is-active --quiet asterisk || warn "asterisk unit not active yet (may start on first config load)"
+    verify_asterisk_service
+    verify_mysql_authentication
 
     local body
     body=$(curl -fsSkL --max-time 30 "http://127.0.0.1/" 2>>"$LOG" || true)
@@ -1020,12 +1096,7 @@ finish() {
     echo "   نام کاربری:     admin"
     echo "   میز کار:        https://${ip}/MytellDesk/ (ورود با حساب پنل)"
     echo "   مدیر محلی میز کار: /etc/myteldesk/initial-admin.txt (فقط root)"
-    if [ -t 1 ]; then
-        echo "   رمز پنل:        ${ADMIN_PASS}"
-        echo "   رمز MariaDB:    ${MYSQL_ROOT_PASS}"
-    else
-        echo "   رمز‌ها:          ${CRED_FILE} (فقط root)"
-    fi
+    echo "   رمز‌ها:          ${CRED_FILE} (فقط root)"
     echo "   مستندات:        github.com/DashSaman/MyTellPBX"
     echo "   پشتیبانی:       mytel.one"
     echo "=============================================================="
@@ -1064,6 +1135,7 @@ main() {
     echo "MyTellPBX ${MYTELLPBX_VERSION} installer — $(date)" >>"${LOG}"
 
     verify_bundle
+    ensure_credentials
 
     stage_repos
     stage_update

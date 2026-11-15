@@ -34,14 +34,17 @@ class FirstBootTests(unittest.TestCase):
         child_env = dict(os.environ)
         child_env.pop('MYTELL_ADMIN_PASS', None); child_env.pop('MYTELL_MYSQL_ROOT_PASS', None)
         child_env.update(env or {})
-        return subprocess.run([BASH, '--noprofile', '--norc', str(script)], input=input_text,
-                              stdout=subprocess.PIPE, stderr=subprocess.PIPE, encoding='utf-8', env=child_env)
+        result = subprocess.run([BASH, '--noprofile', '--norc', str(script)], input=input_text.encode('utf-8'),
+                                stdout=subprocess.PIPE, stderr=subprocess.PIPE, env=child_env)
+        result.stdout = result.stdout.decode('utf-8', errors='replace')
+        result.stderr = result.stderr.decode('utf-8', errors='replace')
+        return result
 
     def load_values(self):
         return dict(re.findall(r"^(MYSQL_ROOT_PASS|ADMIN_PASS)='([^']*)'$", self.credentials.read_text(), re.M))
 
     def test_interactive_two_hidden_reads_preserve_literal_passwords(self):
-        result = self.run_shell("credential_input_is_tty(){ return 0; }\nread(){ printf '%s\\n' \"$*\" >> \"${CRED_FILE}.reads\"; builtin read \"$@\"; }\nensure_credentials\n", 'Panel Secret_12!\nDatabase Secret_34=\n')
+        result = self.run_shell("credential_input_is_tty(){ return 0; }\nread(){ { printf '%s ' \"$@\"; printf '\\n'; } >> \"${CRED_FILE}.reads\"; builtin read \"$@\"; }\nensure_credentials\n", 'Panel Secret_12!\nDatabase Secret_34=\n')
         self.assertEqual(result.returncode, 0, result.stderr)
         self.assertEqual(self.load_values(), {'ADMIN_PASS': 'Panel Secret_12!', 'MYSQL_ROOT_PASS': 'Database Secret_34='})
         reads = Path(str(self.credentials) + '.reads').read_text().splitlines()
@@ -126,6 +129,8 @@ class FirstBootTests(unittest.TestCase):
         result = self.run_shell("ADMIN_PASS='NeverPrintAdmin'; MYSQL_ROOT_PASS='NeverPrintDb'; REBOOT_AFTER=0; hostname(){ printf 127.0.0.1; }; finish\n")
         self.assertEqual(result.returncode, 0, result.stderr)
         self.assertNotIn('NeverPrintAdmin', result.stdout); self.assertNotIn('NeverPrintDb', result.stdout)
+        finish = self.source.split('finish() {', 1)[1].split('\n# ----', 1)[0]
+        self.assertNotIn('${ADMIN_PASS}', finish); self.assertNotIn('${MYSQL_ROOT_PASS}', finish)
 
     def test_framework_and_selfcheck_use_hard_verifiers(self):
         framework = self.source.split('stage_framework_init() {', 1)[1].split('\n# ----', 1)[0]
