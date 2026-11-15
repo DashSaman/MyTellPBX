@@ -16,6 +16,10 @@ authorization role or business transaction.
 
 Focused executed checks additionally cover:
 
+- Sixteen read-only existing-record views: a configured PJSIP extension, trunk,
+  queue and ringgroup, each at both sizes and in both themes. The installed PHP
+  source was reviewed before allowing their no-action `extdisplay` GET requests.
+  No configured SIP/IVR edit link was available for this extra sample.
 - Selection styling, contrast, calendar Today/hover states, native search-icon
   clearance and the selected AMI-manager radio label.
 - The mobile Asterisk information sidebar and Chosen search-field width.

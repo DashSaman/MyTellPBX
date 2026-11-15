@@ -15,9 +15,7 @@
 </div>
 
 ```bash
-curl -fsSL -o install-mytellpbx.sh \
-  https://github.com/DashSaman/MyTellPBX/releases/download/v7.6.0/install-mytellpbx.sh
-bash install-mytellpbx.sh
+curl -fsSL -o install-mytellpbx.sh https://github.com/DashSaman/MyTellPBX/releases/download/v7.6.0/install-mytellpbx.sh && bash install-mytellpbx.sh
 ```
 
 <div dir="rtl">
