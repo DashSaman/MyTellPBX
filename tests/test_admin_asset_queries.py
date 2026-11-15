@@ -62,16 +62,21 @@ class BrandAssetQueries(unittest.TestCase):
         with self.assertRaises(ValueError): PATCH.transform_footer(FOOTER.replace('&mt-ui=752', '&mt-ui=owner'))
 
     def test_unknown_php_view_prefix_is_refused_instead_of_emitting_helper_text(self):
-        for source, transform in [(' \n' + HEADER, PATCH.transform_header),
-                                  (FOOTER.replace('<?php', '<?PHP', 1), PATCH.transform_footer)]:
+        cases = [(' \n' + HEADER, PATCH.transform_header),
+                 (FOOTER.replace('<?php', '<?PHP', 1), PATCH.transform_footer)]
+        for source, transform in [(HEADER, PATCH.transform_header), (FOOTER, PATCH.transform_footer)]:
+            for boundary in ['', '\u00a0', '\u2003']:
+                cases.append((source.replace('<?php\n', '<?php' + boundary, 1), transform))
+        for source, transform in cases:
             with self.subTest(source=source[:12]), self.assertRaises(ValueError): transform(source)
 
     def test_transforms_are_idempotent_and_keep_owner_content(self):
         for source, transform in [(HEADER, PATCH.transform_header), (FOOTER, PATCH.transform_footer)]:
-            once = transform(source)
-            self.assertEqual(transform(once), once)
-            self.assertIn('// Owner ', once)
-            self.assertTrue(once.endswith('echo $html;\n'))
+            for boundary in ['\n', ' ', '\t', '\r\n']:
+                once = transform(source.replace('<?php\n', '<?php' + boundary, 1))
+                self.assertEqual(transform(once), once)
+                self.assertIn('// Owner ', once)
+                self.assertTrue(once.endswith('echo $html;\n'))
 
     def render(self, kind, url, tag='?load_version=2.12.0.3'):
         transform, source = (PATCH.transform_header, HEADER) if kind == 'css' else (PATCH.transform_footer, FOOTER)
