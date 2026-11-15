@@ -26,6 +26,73 @@ STYLE = """/* MyTellPBX workspace v740 BEGIN */
 $html .= '<link rel="stylesheet" href="assets/mytel/workspace.css?v=760">';
 /* MyTellPBX workspace v740 END */
 """
+ASSET_START = '/* MyTellPBX asset query v761 BEGIN */'
+ASSET_END = '/* MyTellPBX asset query v761 END */'
+ASSET_HELPER = """
+/* MyTellPBX asset query v761 BEGIN */
+if (!function_exists('mytell_asset_attr_v761')) {
+    function mytell_asset_attr_v761($url, $version_tag) {
+        $fragment = '';
+        $hash = strpos($url, '#');
+        if ($hash !== false) {
+            $fragment = substr($url, $hash);
+            $url = substr($url, 0, $hash);
+        }
+        $keys = array();
+        $question = strpos($url, '?');
+        if ($question !== false) {
+            foreach (explode('&', substr($url, $question + 1)) as $part) {
+                $pair = explode('=', $part, 2);
+                if ($pair[0] !== '') $keys[rawurldecode($pair[0])] = true;
+            }
+        }
+        foreach (explode('&', ltrim($version_tag, '?&') . '&mt-ui=761') as $part) {
+            $pair = explode('=', $part, 2);
+            $key = rawurldecode($pair[0]);
+            if ($key === '' || isset($keys[$key])) continue;
+            $last = substr($url, -1);
+            $url .= strpos($url, '?') === false ? '?' : (($last === '?' || $last === '&') ? '' : '&');
+            $url .= $part;
+            $keys[$key] = true;
+        }
+        return htmlspecialchars($url . $fragment, ENT_QUOTES, 'UTF-8');
+    }
+}
+/* MyTellPBX asset query v761 END */
+"""
+
+
+def transform_asset_url(text, key):
+    """Change only the two known brand renderer expressions, never settings."""
+    if text.count(ASSET_HELPER) > 1:
+        raise ValueError('Duplicate branded asset helper blocks')
+    text = text.replace(ASSET_HELPER, '')
+    if ASSET_START in text or ASSET_END in text:
+        raise ValueError('Branded asset helper block drift; preserve owner edits')
+    raw = r"\$amp_conf\['" + re.escape(key) + r"'\]\s*\.\s*\$version_tag"
+    if key == 'BRAND_ALT_JS':
+        # Only the previously owned suffix is migrated. Unknown additions to
+        # this statement need review instead of duplicate cache parameters.
+        text = re.sub('(' + raw + r")\s*\.\s*'&mt-ui=752(?=\")", lambda m: m.group(1) + " . '", text)
+        if re.search(raw + r"\s*\.\s*'&mt-ui=", text):
+            raise ValueError('Unknown branded script cache suffix')
+    expression = "mytell_asset_attr_v761($amp_conf['" + key + "'], $version_tag)"
+    old_count = len(re.findall(raw, text))
+    new_count = text.count(expression)
+    if old_count + new_count == 0:
+        if key in text or 'mytell_asset_attr_v761' in text:
+            raise ValueError('Unknown branded asset rendering expression')
+        return text
+    if old_count + new_count != 1:
+        raise ValueError('Duplicate branded asset rendering expression')
+    if old_count:
+        text = re.sub(raw, lambda _match: expression, text, count=1)
+    if text.count('mytell_asset_attr_v761') != 1:
+        raise ValueError('Unknown branded asset helper call')
+    # Each view also works in isolation; the guarded function is defined only
+    # once when the normal request includes both header and footer.
+    insertion = 5 if text.startswith('<?php') else 0
+    return text[:insertion] + ASSET_HELPER + text[insertion:]
 
 
 def remove_current(text):
@@ -62,6 +129,7 @@ def strip_legacy_header(text):
 
 def transform_header(text):
     text = strip_legacy_header(remove_current(text))
+    text = transform_asset_url(text, 'BRAND_CSS_CUSTOM')
     for anchor in ("$html .= '<head>';", "$html .= '</head>'; "):
         if anchor.rstrip() not in text:
             raise ValueError("Missing header anchor: " + anchor.rstrip())
@@ -87,9 +155,7 @@ def transform_footer(text):
     # v7.3.0 footer script only. Preserve all other footer content verbatim.
     pattern = r"<script>/\* MyTellPBX standalone theme toggle[^*]*\*/.*?</script>\r?\n?"
     text = re.sub(pattern, "", text, flags=re.DOTALL)
-    text = text.replace("$amp_conf['BRAND_ALT_JS'] . $version_tag . '\"></script>';",
-                        "$amp_conf['BRAND_ALT_JS'] . $version_tag . '&mt-ui=752\"></script>';")
-    return text
+    return transform_asset_url(text, 'BRAND_ALT_JS')
 
 
 def plan(admin):
