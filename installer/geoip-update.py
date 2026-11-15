@@ -139,7 +139,7 @@ def download_month(output, month, runner=subprocess.run):
     result = runner(['/usr/bin/curl', '--fail', '--silent', '--show-error', '--proto', '=https',
                      '--connect-timeout', '15', '--max-time', '90', '--max-filesize', str(MAX_COMPRESSED),
                      '--output', str(output), '--write-out', '%{http_code}', url],
-                    stdout=subprocess.PIPE, stderr=subprocess.PIPE, universal_newlines=True, timeout=95)
+                    stdin=subprocess.DEVNULL, stdout=subprocess.PIPE, stderr=subprocess.PIPE, universal_newlines=True, timeout=95)
     if result.returncode or result.stdout.strip() != '200':
         raise ValueError('Public country download failed; previous data retained')
     regular(output)
@@ -324,7 +324,7 @@ def update(root):
             info = convert_csv(source, legacy)
             compiled.mkdir()
             result = subprocess.run(['/usr/bin/perl', str(builder), '-D', str(compiled), str(legacy)],
-                                    stdout=subprocess.DEVNULL, stderr=subprocess.PIPE, timeout=120)
+                                    stdin=subprocess.DEVNULL, stdout=subprocess.DEVNULL, stderr=subprocess.PIPE, timeout=120)
             if result.returncode:
                 raise ValueError('Installed country builder failed; previous data retained')
             validate_build(compiled, info['files'])
