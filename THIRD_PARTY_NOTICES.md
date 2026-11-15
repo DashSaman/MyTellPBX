@@ -23,10 +23,21 @@ are preserved verbatim.
   upstream end-of-life in November 2022; it is retained here solely because
   the telephony framework requires it. See docs/INSTALL.en.md for the
   security implications.
-- **FOP2** — Flash Operator Panel 2 (commercial license, free for two
-  operators), installed as part of the base platform.
+- **FOP2** — Flash Operator Panel 2 (commercial license; free/demo mode exposes
+  up to 15 configured buttons), installed as part of the base platform.
+  [Vendor licensing/installation reference](https://www.fop2.com/docs/installation.php).
 - **Roundcube** — GPLv3+, webmail included with the base platform.
 - **certbot** — Apache/GPLv2, for Let's Encrypt certificates.
+
+## Separately installed operator workspace
+
+- **MytelDesk 1.1.0**, a GPLv3 derivative of OpDesk, is installed as an independent
+  service from its checksum-pinned [public release](https://github.com/DashSaman/MytelDesk/releases/tag/v1.1.0).
+  That release includes its complete corresponding source and dependency notices.
+- Its CPU VAD component retains the Silero model's MIT notice and the notices of
+  the locked NumPy, ONNXRuntime, WebRTC VAD and other Python wheels. The model and
+  dependencies are supplied by that separate release/runtime, not relicensed by
+  the PBX theme. See [the VAD notices](https://github.com/DashSaman/MytelDesk/blob/main/docs/vad-third-party.md).
 
 ## Fonts
 
