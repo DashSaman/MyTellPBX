@@ -127,6 +127,45 @@ class GeoipTests(unittest.TestCase):
         with self.assertRaises(ValueError):
             geoip.convert_csv(self.source, self.legacy, min_rows=1, min_countries=200)
 
+    def test_conversion_reports_only_validated_progress_with_a_bounded_slow_vm_budget(self):
+        # The actual 732k-row public feed exceeds 120s on the minimum fresh VM.
+        # Simulate that elapsed time rather than turning this into a timing test.
+        text = ''.join('10.0.{0}.{1},10.0.{0}.{1},US\n'.format(index // 256, index % 256)
+                       for index in range(8192)) + '2001:db8::,2001:db8::ffff,IR\n'
+        self.source.write_bytes(gzip.compress(text.encode('utf-8')))
+        progress = []
+        with mock.patch.object(geoip.time, 'monotonic', side_effect=[0, 31, 121, 122]):
+            info = geoip.convert_csv(self.source, self.legacy, min_rows=4, min_countries=2,
+                                     progress=progress.append)
+        self.assertEqual(info['rows'], 8193)
+        self.assertEqual([item['rows'] for item in progress], [4096, 8192, 8193])
+        self.assertEqual([item['complete'] for item in progress], [False, False, True])
+        self.assertEqual(progress[-1]['elapsed_seconds'], 122)
+        self.assertEqual(progress[-1]['ipv4_ranges'], 8192)
+        self.assertEqual(progress[-1]['ipv6_ranges'], 1)
+        self.assertFalse(any('address' in key or 'source' in key for item in progress for key in item))
+
+    def test_conversion_deadline_is_enforced_even_for_a_short_final_chunk(self):
+        with mock.patch.object(geoip.time, 'monotonic', side_effect=[0, 601]):
+            with self.assertRaisesRegex(ValueError, 'bounded deadline'):
+                self.convert()
+
+    def test_validated_ipv6_expansion_and_all_packed_hashes_match_reference_boundaries(self):
+        import ipaddress
+        ranges = [('::', '::ffff', 'ZZ'), ('::ffff:192.0.2.0', '::ffff:192.0.2.255', 'US'),
+                  ('2001:DB8::', '2001:DB8::FFFF', 'IR'),
+                  ('ffff:ffff:ffff:ffff:ffff:ffff:ffff:ff00', 'ffff:ffff:ffff:ffff:ffff:ffff:ffff:ffff', 'XK')]
+        text = '0.0.0.0,255.255.255.255,ZZ\n' + ''.join(','.join(row) + '\n' for row in ranges)
+        info = self.convert(text)
+        rows = list(csv.reader(io.StringIO(self.legacy.read_text(encoding='utf-8'))))
+        for index, (first, last, code) in enumerate(ranges, 1):
+            a, b = ipaddress.ip_address(first), ipaddress.ip_address(last)
+            self.assertEqual(rows[index], [a.exploded, b.exploded, str(int(a)), str(int(b)), code, code])
+            be = a.packed + b.packed
+            le = b''.join(struct.pack('<4I', *struct.unpack('>4I', value)) for value in (a.packed, b.packed))
+            self.assertEqual(info['files']['BE/' + code + '.iv6'], hashlib.sha256(be).hexdigest())
+            self.assertEqual(info['files']['LE/' + code + '.iv6'], hashlib.sha256(le).hexdigest())
+
     @unittest.skipUnless(os.name == 'posix' and os.environ.get('MT_GEOIP_TEST_BUILDER'), 'Native reviewed installed Perl builder')
     def test_actual_installed_legacy_builder_matches_independent_packed_bytes(self):
         builder = Path(os.environ['MT_GEOIP_TEST_BUILDER'])
