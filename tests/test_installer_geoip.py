@@ -8,6 +8,7 @@ import json
 import os
 from pathlib import Path
 import struct
+import subprocess
 import tempfile
 import unittest
 from unittest import mock
@@ -32,7 +33,7 @@ class GeoipTests(unittest.TestCase):
 
     def convert(self, text=CSV):
         self.source.write_bytes(gzip.compress(text.encode('utf-8')))
-        return geoip.convert_csv(self.source, self.legacy, min_rows=4)
+        return geoip.convert_csv(self.source, self.legacy, min_rows=4, min_countries=3)
 
     def build_fixture(self):
         info = self.convert()
@@ -73,7 +74,7 @@ class GeoipTests(unittest.TestCase):
     def test_truncated_gzip_empty_partial_and_single_family_data_are_rejected(self):
         self.source.write_bytes(self.source.read_bytes()[:-8])
         with self.assertRaises((ValueError, EOFError, OSError)):
-            geoip.convert_csv(self.source, self.legacy, min_rows=4)
+            geoip.convert_csv(self.source, self.legacy, min_rows=4, min_countries=3)
         for text in ['', CSV.splitlines()[0] + '\n', '\n'.join(CSV.splitlines()[:2]) + '\n']:
             with self.subTest(text=text), self.assertRaises(ValueError):
                 self.convert(text)
@@ -112,6 +113,32 @@ class GeoipTests(unittest.TestCase):
             geoip.download_month(output, '2026-11/../../bad', runner=runner)
         with self.assertRaises(ValueError):
             geoip.download_month(output, '2026-11', runner=lambda *a, **k: mock.Mock(returncode=0, stdout='302', stderr=''))
+        def html(argv, **kwargs):
+            output.write_bytes(b'<html>not country data</html>')
+            return mock.Mock(returncode=0, stdout='200', stderr='')
+        with self.assertRaises(ValueError):
+            geoip.download_month(output, '2026-11', runner=html)
+
+    def test_csv_field_and_coverage_limits_reject_bombs_and_partial_data(self):
+        with self.assertRaises((ValueError, csv.Error)):
+            self.convert('x' * 10000 + ',1.1.1.1,US\n')
+        self.source.write_bytes(gzip.compress(CSV.encode('utf-8')))
+        with self.assertRaises(ValueError):
+            geoip.convert_csv(self.source, self.legacy, min_rows=1, min_countries=200)
+
+    @unittest.skipUnless(os.name == 'posix' and os.environ.get('MT_GEOIP_TEST_BUILDER'), 'Native reviewed installed Perl builder')
+    def test_actual_installed_legacy_builder_matches_independent_packed_bytes(self):
+        builder = Path(os.environ['MT_GEOIP_TEST_BUILDER'])
+        geoip.verify_builder(builder)
+        stage, info = self.build_fixture()
+        expected = {name: (stage / name).read_bytes() for name in info['files']}
+        actual = self.base / 'native-output'
+        actual.mkdir()
+        result = subprocess.run(['/usr/bin/perl', str(builder), '-D', str(actual), str(self.legacy)],
+                                stdout=subprocess.PIPE, stderr=subprocess.PIPE, timeout=30)
+        self.assertEqual(result.returncode, 0, result.stderr.decode('utf-8', 'replace'))
+        self.assertEqual(geoip.validate_build(actual, info['files']), info['files'])
+        self.assertEqual({name: (actual / name).read_bytes() for name in info['files']}, expected)
 
     def test_builder_source_drift_is_rejected_before_execution(self):
         path = self.base / 'builder'
@@ -124,9 +151,12 @@ class GeoipTests(unittest.TestCase):
         root = self.base / 'root'
         active = root / 'usr/share/xt_geoip'
         active.mkdir(parents=True)
+        stage, info = self.build_fixture()
         release = root / 'usr/share/mytellpbx-geoip/releases/test'
-        (release / 'BE').mkdir(parents=True)
-        (release / 'BE/US.iv4').write_bytes(struct.pack('>II', 134744064, 134744319))
+        release.parent.mkdir(parents=True)
+        stage.rename(release)
+        info.update(owner=geoip.OWNER, layout='flat-network-BE', builder_sha256=geoip.BUILDER_SHA256)
+        (release / 'manifest.json').write_text(json.dumps(info), encoding='utf-8')
         geoip.activate(root, release)
         self.assertTrue(active.is_symlink())
         self.assertEqual(active.resolve(), release / 'BE')
@@ -140,6 +170,80 @@ class GeoipTests(unittest.TestCase):
             geoip.activate(root, release)
         self.assertEqual((active / 'owner-data').read_bytes(), b'retain')
 
+    @unittest.skipUnless(os.name == 'posix', 'Native POSIX atomic pointer contract')
+    def test_failed_atomic_switch_keeps_previous_valid_database(self):
+        root = self.base / 'root'
+        active = root / 'usr/share/xt_geoip'
+        active.mkdir(parents=True)
+        stage, info = self.build_fixture()
+        release = root / 'usr/share/mytellpbx-geoip/releases/first'
+        release.parent.mkdir(parents=True)
+        stage.rename(release)
+        info.update(owner=geoip.OWNER, layout='flat-network-BE', builder_sha256=geoip.BUILDER_SHA256)
+        (release / 'manifest.json').write_text(json.dumps(info), encoding='utf-8')
+        geoip.activate(root, release)
+        import shutil
+        next_release = release.parent / 'second'
+        shutil.copytree(str(release), str(next_release))
+        replace = os.replace
+        def fail_pointer(source, destination):
+            if Path(destination) == active:
+                raise OSError('fixture switch failure')
+            return replace(source, destination)
+        with mock.patch.object(geoip.os, 'replace', side_effect=fail_pointer), self.assertRaises(OSError):
+            geoip.activate(root, next_release)
+        self.assertEqual(active.resolve(), release / 'BE')
+        self.assertEqual((active / 'US.iv4').read_bytes(), struct.pack('>II', 134744064, 134744319))
+
+    @unittest.skipUnless(os.name == 'posix', 'Native POSIX managed path ownership')
+    def test_symlinked_state_parent_is_refused_without_chmod_or_writes(self):
+        root = self.base / 'root'
+        (root / 'var/lib').mkdir(parents=True)
+        victim = self.base / 'victim'
+        victim.mkdir(mode=0o755)
+        (root / geoip.STATE).symlink_to(victim)
+        before = victim.stat().st_mode
+        with self.assertRaises(ValueError):
+            geoip.update(root)
+        self.assertEqual(list(victim.iterdir()), [])
+        self.assertEqual(victim.stat().st_mode, before)
+
+    @unittest.skipUnless(os.name == 'posix', 'Native POSIX existing-data failure retention')
+    def test_failed_monthly_download_retains_live_pointer_and_previous_status(self):
+        root = self.base / 'root'
+        (root / geoip.ACTIVE).mkdir(parents=True)
+        stage, info = self.build_fixture()
+        release = root / geoip.RELEASES / 'prior'
+        release.parent.mkdir(parents=True)
+        stage.rename(release)
+        info.update(owner=geoip.OWNER, layout='flat-network-BE', builder_sha256=geoip.BUILDER_SHA256,
+                    month='2000-01', created_utc='2000-01-01T00:00:00Z', source_sha256='a' * 64,
+                    source_url='https://download.db-ip.com/free/dbip-country-lite-2000-01.csv.gz')
+        (release / 'manifest.json').write_text(json.dumps(info), encoding='utf-8')
+        geoip.activate(root, release)
+        geoip.publish_status(root, info)
+        status = root / 'usr/share/mytellpbx-geoip/status.json'
+        before = status.read_bytes()
+        with mock.patch.object(geoip, 'verify_builder'), mock.patch.object(geoip, 'download_month', side_effect=ValueError('fixture network failure')):
+            with self.assertRaises(ValueError):
+                geoip.update(root)
+        self.assertEqual((root / geoip.ACTIVE).resolve(), release / 'BE')
+        self.assertEqual(status.read_bytes(), before)
+        self.assertEqual((release / 'BE/US.iv4').read_bytes(), struct.pack('>II', 134744064, 134744319))
+
+    def test_public_status_is_provider_attribution_only_and_has_no_secret_or_private_paths(self):
+        info = self.convert()
+        info.update(month='2026-11', created_utc='2026-11-15T18:00:00Z', source_sha256='a' * 64,
+                    source_url='https://download.db-ip.com/free/dbip-country-lite-2026-11.csv.gz')
+        result = geoip.publish_status(self.base / 'root', info)
+        self.assertEqual(result['provider'], 'DB-IP Country Lite')
+        self.assertEqual(result['license'], 'CC-BY-4.0')
+        self.assertEqual(result['country_count'], 3)
+        self.assertEqual(result['layout'], 'flat-network-BE')
+        saved = self.base / 'root/usr/share/mytellpbx-geoip/status.json'
+        self.assertEqual(json.loads(saved.read_text(encoding='utf-8')), result)
+        self.assertFalse(any(key in result for key in ('password', 'key', 'secret', 'root', 'program')))
+
     def test_cron_install_refuses_unknown_source_without_writing(self):
         root = self.base / 'root'
         cron = root / 'etc/cron.daily/geoip_update.sh'
@@ -149,6 +253,55 @@ class GeoipTests(unittest.TestCase):
             geoip.install(root, REPO / 'installer/geoip-update.py')
         self.assertEqual(cron.read_bytes(), b'#!/bin/sh\necho owner customization\n')
         self.assertFalse((root / 'usr/local/libexec/mytellpbx/geoip-update.py').exists())
+
+    def test_known_cron_install_is_backed_up_and_idempotent_then_rejects_helper_drift(self):
+        root = self.base / 'root'
+        cron = root / geoip.CRON
+        cron.parent.mkdir(parents=True)
+        vendor = b'#!/bin/sh\necho vendor fixture\n'
+        cron.write_bytes(vendor)
+        with mock.patch.object(geoip, 'VENDOR_CRON_SHA256', hashlib.sha256(vendor).hexdigest()), mock.patch.object(geoip, 'verify_builder'):
+            geoip.install(root, REPO / 'installer/geoip-update.py')
+            self.assertEqual(cron.read_bytes(), geoip.WRAPPER)
+            backups = list((root / 'var/backups/mytellpbx/geoip').iterdir())
+            self.assertEqual(len(backups), 1)
+            self.assertEqual(backups[0].read_bytes(), vendor)
+            geoip.install(root, REPO / 'installer/geoip-update.py')
+            self.assertEqual(len(list(backups[0].parent.iterdir())), 1)
+            program = root / geoip.PROGRAM
+            program.write_bytes(b'owner changed this updater')
+            with self.assertRaises(ValueError):
+                geoip.install(root, REPO / 'installer/geoip-update.py')
+            self.assertEqual(program.read_bytes(), b'owner changed this updater')
+            if os.name == 'posix':
+                self.assertEqual(backups[0].stat().st_mode & 0o777, 0o600)
+                self.assertEqual(cron.stat().st_mode & 0o777, 0o755)
+
+    def test_status_wiring_is_source_guarded_backed_up_and_idempotent(self):
+        root = self.base / 'root'
+        cron = root / geoip.CRON
+        cron.parent.mkdir(parents=True)
+        vendor_cron = b'#!/bin/sh\necho vendor fixture\n'
+        cron.write_bytes(vendor_cron)
+        target = root / 'var/www/html/modules/sec_geoip_key/index.php'
+        target.parent.mkdir(parents=True)
+        vendor_status = b'<?php echo "vendor status fixture";'
+        target.write_bytes(vendor_status)
+        payload = self.base / 'status.php'
+        payload.write_bytes(b'<?php echo "read-only provider fixture";')
+        with mock.patch.object(geoip, 'VENDOR_CRON_SHA256', hashlib.sha256(vendor_cron).hexdigest()), \
+                mock.patch.object(geoip, 'VENDOR_STATUS_SHA256', hashlib.sha256(vendor_status).hexdigest()), \
+                mock.patch.object(geoip, 'verify_builder'):
+            geoip.install(root, REPO / 'installer/geoip-update.py', payload)
+            self.assertEqual(target.read_bytes(), payload.read_bytes())
+            backups = list((root / 'var/backups/mytellpbx/geoip').iterdir())
+            self.assertEqual(len(backups), 2)
+            self.assertIn(vendor_status, [item.read_bytes() for item in backups])
+            geoip.install(root, REPO / 'installer/geoip-update.py', payload)
+            target.write_bytes(b'<?php echo "owner edit";')
+            with self.assertRaises(ValueError):
+                geoip.install(root, REPO / 'installer/geoip-update.py', payload)
+            self.assertEqual(target.read_bytes(), b'<?php echo "owner edit";')
 
 
 if __name__ == '__main__':
