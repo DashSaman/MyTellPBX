@@ -141,5 +141,19 @@ class FirstBootTests(unittest.TestCase):
         self.assertIn('verify_asterisk_service', selfcheck)
         self.assertNotIn('asterisk unit not active yet', selfcheck)
 
+    def test_stage_record_failure_stops_before_completion_or_continuation(self):
+        for failure in ['mkdir', 'touch', 'log']:
+            with self.subTest(failure=failure):
+                log = self.base / 'log'
+                if log.exists(): log.unlink()
+                result = self.run_shell('STATE_DIR=' + repr((self.base / 'state').as_posix()) + '\n'
+                                        + failure + '(){ return 1; }\nmark_stage fixture\nprintf continued\n')
+                self.assertNotEqual(result.returncode, 0)
+                self.assertNotIn('continued', result.stdout)
+                self.assertNotIn('STAGE-COMPLETE:', log.read_text() if log.exists() else '')
+        result = self.run_shell('STATE_DIR=' + repr((self.base / 'state').as_posix()) + '\nmark_stage healthy\n')
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertTrue((self.base / 'state/stages/healthy.done').is_file())
+
 
 if __name__ == '__main__': unittest.main()
