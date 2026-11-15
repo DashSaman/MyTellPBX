@@ -60,7 +60,8 @@
 :root[data-mt-theme] body .content h2#title { padding: 18px 20px !important; font-size: 18px !important; line-height: 1.5; gap: 12px; border-radius: 12px 12px 0 0 !important; }
 :root[data-mt-theme] body .content h2#title::before { background: var(--mt-primary-fg); width: 3px; }
 :root[data-mt-theme] body .content :is(h2#title .mt-sub, tr.guielToggle .mt-sub) { background: transparent !important; color: var(--mt-text-muted) !important; border: 0; margin: 0; padding: 3px 0; font-size: 12px; }
-:root[data-mt-theme] body :is(.content label, #mainform label, form td, .label) { color: var(--mt-text) !important; }
+/* Base label ink must not outrank the semantic selected-choice foreground. */
+:root[data-mt-theme] body :where(.content label, #mainform label, form td, .label) { color: var(--mt-text) !important; }
 :root[data-mt-theme] body :is(form td, form th) { border-color: var(--mt-border) !important; }
 :root[data-mt-theme] body :is(.mt-sub, .deftext, .help, .help-block, .content small, #instructions, .mt-note) { color: var(--mt-text-muted) !important; }
 :root[data-mt-theme] body :is(.button.is-primary, #rnavadd) :is(.mt-sub, .mt-sub-t) { color: #FFFFFF !important; }
@@ -85,6 +86,9 @@
     background-image: none !important; box-shadow: none !important; font: 13px/1.6 var(--mt-font) !important; max-width: 100%;
 }
 :root[data-mt-theme] body :is(input, textarea)::placeholder { color: var(--mt-text-faint) !important; opacity: 1; }
+/* Preserve Bulma's icon space after the shared control padding is normalized. */
+:root[data-mt-theme] body .control.has-icons-left > .input { padding-left: 2.75em !important; }
+:root[data-mt-theme] body .control.has-icons-right > .input { padding-right: 2.75em !important; }
 :root[data-mt-theme] body :is(input, select, textarea):disabled { background: var(--mt-surface-2) !important; color: var(--mt-text-muted) !important; opacity: 1; }
 :root[data-mt-theme] body :is(input[type="checkbox"], input[type="radio"]) { accent-color: var(--mt-primary); }
 :root[data-mt-theme] body :is(.chosen-drop, .chosen-results, .chosen-results li) { background: var(--mt-surface) !important; color: var(--mt-text) !important; border-color: var(--mt-border) !important; }

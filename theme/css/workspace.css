@@ -228,6 +228,8 @@ body.mt-body #controlPanelApplication .paneledittitle { color: var(--mt-primary-
 body.mt-body #controlPanelApplication .statusbar div { background: var(--mt-surface) !important; box-shadow: none !important; }
 body.mt-body #controlPanelApplication .statusbar .Count-Registered { color: var(--mt-success-fg) !important; }
 body.mt-body #controlPanelApplication .statusbar .Count-NotRegistered { color: var(--mt-danger-fg) !important; }
+/* The legacy operator socket writes its error ink inline instead of a class. */
+body.mt-body #controlPanelApplication .statusbar span:is([style*="color: rgb(229, 57, 53)"], [style*="color: #e53935" i], [style*="color:#e53935" i]) { color: var(--mt-danger-fg) !important; }
 body.mt-body .neo-module-content .mytel-footer a { background: var(--mt-surface) !important; border-color: var(--mt-border) !important; box-shadow: none !important; }
 body.mt-body .neo-module-content .mytel-footer-label { color: var(--mt-primary-fg) !important; }
 

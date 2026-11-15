@@ -180,11 +180,11 @@ html[data-mt-theme="dark"] #calendar_main .mt-jday-open { color: var(--mt-text) 
 html[data-mt-theme="dark"] #calendar_main .mt-jday-open:hover { background: #1B2C49 !important; }
 html[data-mt-theme="dark"] #calendar_main .mt-jfriday .mt-jday-open,
 html[data-mt-theme="dark"] #calendar_main .mt-jholiday .mt-jday-open { color: var(--mt-danger-fg) !important; }
-html[data-mt-theme="dark"] #calendar_main .mt-jtoday .mt-jday-open {
-    background: var(--mt-accent-tint) !important;
-    color: var(--mt-accent-fg) !important;
+html[data-mt-theme="dark"] #calendar_main .mt-jtoday .mt-jday-open,
+html[data-mt-theme="dark"] #calendar_main .mt-jtoday .mt-jday-open:hover {
+    background: var(--cal-accent, var(--mt-primary-fg)) !important;
+    color: var(--mt-bg) !important;
 }
-html[data-mt-theme="dark"] #calendar_main .mt-jtoday .mt-jday-open:hover { background: #493327 !important; }
-html[data-mt-theme="dark"] #calendar_main .mt-jtoday-label { color: var(--mt-accent-fg) !important; }
+html[data-mt-theme="dark"] #calendar_main .mt-jtoday-label { color: inherit !important; }
 html[data-mt-theme="dark"] #calendar_main .mt-joutside .mt-jday-open,
 html[data-mt-theme="dark"] #calendar_main .mt-joutside .mt-jday-number { color: #7488A6 !important; }
