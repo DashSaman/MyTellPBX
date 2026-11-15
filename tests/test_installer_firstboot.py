@@ -76,7 +76,7 @@ class FirstBootTests(unittest.TestCase):
                 self.assertFalse(self.credentials.exists())
 
     def test_resume_preserves_originals_without_prompt_or_rotation(self):
-        self.credentials.write_text("MYSQL_ROOT_PASS='OriginalDb!'\nADMIN_PASS='OriginalPanel='\n")
+        self.credentials.write_bytes(b"MYSQL_ROOT_PASS='OriginalDb!'\nADMIN_PASS='OriginalPanel='\n")
         self.credentials.chmod(0o600)
         result = self.run_shell('credential_input_is_tty(){ return 0; }\nread(){ exit 99; }\nensure_credentials\n', env={'MYTELL_ADMIN_PASS': 'Different!'})
         self.assertEqual(result.returncode, 0, result.stderr)
