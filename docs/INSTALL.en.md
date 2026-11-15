@@ -8,7 +8,7 @@ script straight into bash without review:
 
 ```
 curl -fsSL -o install-mytellpbx.sh \
-  https://github.com/DashSaman/MyTellPBX/releases/download/v7.6.0/install-mytellpbx.sh
+  https://github.com/DashSaman/MyTellPBX/releases/download/v7.6.1/install-mytellpbx.sh
 ```
 
 ```
@@ -19,6 +19,19 @@ On success the panel URL and the credentials-file path are printed.
 An interactive terminal asks only for the panel administrator and MariaDB root
 passwords near the start. Input is hidden; Enter generates that password.
 An exact-release resume reuses the saved values without prompting or rotation.
+
+## Web certificate and country data
+
+Before web-module setup, the installer creates a MyTellPBX self-signed
+certificate with this server's hostname and interface addresses. Browsers do
+not automatically trust it; configure a trusted domain certificate for public
+use. An existing valid matching certificate/key pair is preserved. Partial or
+invalid pairs stop installation without replacement.
+
+DB-IP Country Lite data downloads and updates automatically, without a MaxMind
+account or license key. The GeoIP status page shows the provider, dataset version
+and country coverage. IP geolocation is approximate. Data updates do not change
+firewall rules, and download/conversion failures retain the previous valid data.
 
 ## Prerequisites
 

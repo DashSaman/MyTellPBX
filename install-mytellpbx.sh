@@ -1,7 +1,7 @@
 #!/bin/bash
 # ==========================================================================
 # MyTellPBX one-line installer for Rocky Linux 8.10 (x86_64)
-# Version: 7.6.0
+# Version: 7.6.1
 #
 # Installs the complete MyTellPBX contact-center platform:
 #   - telephony base (Asterisk 20, MariaDB, Apache, PHP 7.4, framework)
@@ -11,7 +11,7 @@
 #
 # Quick start (download, review, run — never pipe straight into bash):
 #   curl -fsSL -o install-mytellpbx.sh \
-#     https://github.com/DashSaman/MyTellPBX/releases/download/v7.6.0/install-mytellpbx.sh
+#     https://github.com/DashSaman/MyTellPBX/releases/download/v7.6.1/install-mytellpbx.sh
 #   bash install-mytellpbx.sh
 #
 # Environment overrides (all optional):
@@ -44,12 +44,12 @@
 set -u
 set -o pipefail
 
-MYTELLPBX_VERSION="7.6.0"
-MYTELLPBX_BUNDLE="mytelpbx-bundle-7.6.0.tgz"
+MYTELLPBX_VERSION="7.6.1"
+MYTELLPBX_BUNDLE="mytelpbx-bundle-7.6.1.tgz"
 # Expected SHA-256 of the bundle asset (filled in by the release builder).
 MYTELLPBX_BUNDLE_SHA256="126827851e676bfa51ca9e1527ad44fe9131452b808415ff08508886469a2bff"
 MYTELLPBX_GITHUB="https://github.com/DashSaman/MyTellPBX"
-MYTELLPBX_RELEASE_TAG="v7.6.0"
+MYTELLPBX_RELEASE_TAG="v7.6.1"
 MYTELLPBX_BUNDLE_URL="${MYTELL_BUNDLE_URL:-${MYTELLPBX_GITHUB}/releases/download/${MYTELLPBX_RELEASE_TAG}/${MYTELLPBX_BUNDLE}}"
 
 LOG="/var/log/mytelpbx-install.log"

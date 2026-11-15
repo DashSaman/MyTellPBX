@@ -5,7 +5,7 @@
 نصب مرحله‌ای مرکز تماس روی **راکی لینوکس ۸٫۱۰**: موتور تلفنی استریسک ۲۰،
 چارچوب ماژول‌ها (داخلی، صف، ضبط تماس، گزارش‌ها، فکس، …) و لایهٔ کامل
 قالب و برند مای‌تل — پنل فارسی راست‌چین با حالت روشن و تاریک، برند کامل
-کنسول مدیریتی و زبان فارسی. نسخهٔ **۷٫۶٫۰** میز کار MytelDesk را همراه با
+کنسول مدیریتی و زبان فارسی. نسخهٔ **۷٫۶٫۱** میز کار MytelDesk را همراه با
 نصب خودکار تحلیل گفتار VAD نیز راه‌اندازی می‌کند.
 
 ## نصب با یک خط
@@ -15,7 +15,7 @@
 </div>
 
 ```bash
-curl -fsSL -o install-mytellpbx.sh https://github.com/DashSaman/MyTellPBX/releases/download/v7.6.0/install-mytellpbx.sh && bash install-mytellpbx.sh
+curl -fsSL -o install-mytellpbx.sh https://github.com/DashSaman/MyTellPBX/releases/download/v7.6.1/install-mytellpbx.sh && bash install-mytellpbx.sh
 ```
 
 <div dir="rtl">
@@ -51,7 +51,7 @@ curl -fsSL -o install-mytellpbx.sh https://github.com/DashSaman/MyTellPBX/releas
 - Installation guide (English): [docs/INSTALL.en.md](docs/INSTALL.en.md)
 - سند تست: [docs/TESTING.md](docs/TESTING.md)
 - یادداشت انتشار نسخه: [RELEASE_NOTES_V7_6_0_FA.md](RELEASE_NOTES_V7_6_0_FA.md)
-- دامنهٔ آزمون‌های همین نسخه: [docs/releases/7.6.0/verification.md](docs/releases/7.6.0/verification.md)
+- گزارش آزمون‌های نسخهٔ ۷٫۶٫۰: [docs/releases/7.6.0/verification.md](docs/releases/7.6.0/verification.md)
 - تشخیص خروجی آسترنیک و دامنهٔ نصب: [docs/ASTERNIC_DIRECTION_FA.md](docs/ASTERNIC_DIRECTION_FA.md)
 
 ## هشدارهای امنیتی مهم
