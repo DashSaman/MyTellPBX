@@ -40,6 +40,11 @@ SUBMIT_PATHS = {'views/header.php', 'assets/mytel/apply.js', 'assets/mytel/apply
                 'assets/mytel/feedback.js', 'assets/mytel/save.js', 'modules/sipsettings/page.sipsettings.php',
                 'modules/sipsettings/functions.inc.php', 'libraries/mytell-sip-save.php'}
 SUBMIT_CHECKS = SCOPED_CHECKS | {'save-browser', 'toast-lifecycle', 'sip-save-transaction'}
+POLISH_PROFILE = 'panel-polish-desk-entry-v760'
+POLISH_PANEL = PANEL | {'css/base.css', 'css/theme-dark.css', 'css/theme-toggle.css'}
+POLISH_ADMIN = {'views/header.php', 'assets/mytel/workspace.css', 'assets/mytel/workspace.js'}
+POLISH_CHECKS = {'offline-tests', 'js-syntax', 'php-syntax', 'polish-browser',
+                 'entry-auth', 'apply-browser', 'calendar-tests'}
 APPLY_PATHS = {'functions.inc.php', 'libraries/view.functions.php', 'libraries/mytell-apply.php'}
 CALENDAR_PATHS = {'modules/calendar/index.php', 'modules/calendar/themes/default/calendar_gui.tpl',
                   'modules/calendar/themes/default/js/javascript.js', 'modules/calendar/scenarios/rest/CalendarEvent.class.php'}
@@ -84,6 +89,10 @@ def allowed(item, profile=None):
     root, relative = item["root"], item["path"]
     if root not in ALLOW:
         return False
+    if profile == POLISH_PROFILE:
+        return ((root == 'panel' and relative in POLISH_PANEL) or
+                (root == 'admin' and relative in POLISH_ADMIN) or
+                (root == 'legacy' and relative == 'modules/mytellpbxopdesk/index.php'))
     if profile == SUBMIT_PROFILE:
         return root == 'admin' and relative in SUBMIT_PATHS
     if profile == SCOPED_PROFILE:
@@ -122,7 +131,7 @@ def validate(artifact, manifest, roots, expected="before"):
     if not re.fullmatch(r"[0-9a-f]{40}|[0-9a-f]{64}", manifest.get("source_id", "")):
         raise ValueError("An exact Git tree ID is required")
     profile = manifest.get('profile')
-    if profile not in (None, SCOPED_PROFILE, SUBMIT_PROFILE):
+    if profile not in (None, SCOPED_PROFILE, SUBMIT_PROFILE, POLISH_PROFILE):
         raise ValueError('Unknown release profile')
     records = manifest.get("checks", [])
     if not isinstance(records, list) or any(not isinstance(item, dict) or not isinstance(item.get("check"), str) or type(item.get("rc")) is not int for item in records):
@@ -130,7 +139,9 @@ def validate(artifact, manifest, roots, expected="before"):
     checks = {item["check"]: item["rc"] for item in records}
     if len(checks) != len(records):
         raise ValueError("Duplicate build checks")
-    required = SUBMIT_CHECKS if profile == SUBMIT_PROFILE else SCOPED_CHECKS if profile == SCOPED_PROFILE else REQUIRED_CHECKS
+    required = (POLISH_CHECKS if profile == POLISH_PROFILE else
+                SUBMIT_CHECKS if profile == SUBMIT_PROFILE else
+                SCOPED_CHECKS if profile == SCOPED_PROFILE else REQUIRED_CHECKS)
     if not required.issubset(checks) or any(item["rc"] != 0 for item in records):
         raise ValueError("Required build checks did not pass")
     targets, plan = set(), []
