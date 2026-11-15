@@ -91,6 +91,18 @@ class TLSPreparationTests(unittest.TestCase):
         self.cert.write_bytes(b'not a certificate\n')
         with self.assertRaises(ValueError):
             self.prepare()
+
+    def test_empty_passphrase_encrypted_pkcs8_key_is_refused_and_preserved(self):
+        self.make_pair()
+        encrypted = self.root / 'empty-passphrase.key'
+        subprocess.check_call([OPENSSL, 'pkcs8', '-topk8', '-in', str(self.key), '-passout', 'pass:', '-out', str(encrypted)],
+                              stdin=subprocess.DEVNULL, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+        self.assertIn(b'BEGIN ENCRYPTED PRIVATE KEY', encrypted.read_bytes())
+        self.key.write_bytes(encrypted.read_bytes())
+        before = self.key.read_bytes()
+        with self.assertRaises(ValueError):
+            self.prepare()
+        self.assertEqual(self.key.read_bytes(), before)
         self.assertEqual(self.cert.read_bytes(), b'not a certificate\n')
         self.make_pair()
         encrypted = self.root / 'encrypted.key'
