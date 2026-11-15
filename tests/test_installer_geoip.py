@@ -65,6 +65,7 @@ class GeoipTests(unittest.TestCase):
 
     def test_invalid_reversed_overlapping_mixed_family_or_unsafe_country_is_rejected(self):
         for bad in ['x,y,US\n', '8.8.8.8,8.8.8.0,US\n', '1.0.0.0,::1,US\n',
+                    '2001:db8::%eth0,2001:db8::ffff%eth0,US\n',
                     '1.0.0.0,1.0.0.255,../US\n', '1.0.0.0,1.0.0.255,us\n',
                     '1.0.0.0,1.0.0.255,US,extra\n',
                     '1.0.0.0,1.0.0.255,US\n1.0.0.1,1.0.0.2,AU\n']:
@@ -150,6 +151,12 @@ class GeoipTests(unittest.TestCase):
             with self.assertRaisesRegex(ValueError, 'bounded deadline'):
                 self.convert()
 
+    def test_failed_cosmetic_progress_output_does_not_abort_valid_conversion(self):
+        def broken_output(_item):
+            raise BrokenPipeError('closed installer output')
+        info = geoip.convert_csv(self.source, self.legacy, min_rows=4, min_countries=3, progress=broken_output)
+        self.assertEqual(info['rows'], 4)
+
     def test_validated_ipv6_expansion_and_all_packed_hashes_match_reference_boundaries(self):
         import ipaddress
         ranges = [('::', '::ffff', 'ZZ'), ('::ffff:192.0.2.0', '::ffff:192.0.2.255', 'US'),
@@ -160,11 +167,30 @@ class GeoipTests(unittest.TestCase):
         rows = list(csv.reader(io.StringIO(self.legacy.read_text(encoding='utf-8'))))
         for index, (first, last, code) in enumerate(ranges, 1):
             a, b = ipaddress.ip_address(first), ipaddress.ip_address(last)
-            self.assertEqual(rows[index], [a.exploded, b.exploded, str(int(a)), str(int(b)), code, code])
+            # Eight hex words are the actual legacy parser's input contract;
+            # modern Python renders IPv4-mapped exploded addresses with dots.
+            expanded = lambda address: ':'.join('{:04x}'.format(word) for word in struct.unpack('>8H', address.packed))
+            self.assertEqual(rows[index], [expanded(a), expanded(b), str(int(a)), str(int(b)), code, code])
             be = a.packed + b.packed
             le = b''.join(struct.pack('<4I', *struct.unpack('>4I', value)) for value in (a.packed, b.packed))
             self.assertEqual(info['files']['BE/' + code + '.iv6'], hashlib.sha256(be).hexdigest())
             self.assertEqual(info['files']['LE/' + code + '.iv6'], hashlib.sha256(le).hexdigest())
+
+    @unittest.skipUnless(os.name == 'posix' and os.environ.get('MT_GEOIP_TEST_BUILDER'), 'Native reviewed installed Perl builder')
+    def test_native_builder_accepts_full_hex_mapped_ipv6_and_integer_boundaries(self):
+        builder = Path(os.environ['MT_GEOIP_TEST_BUILDER'])
+        geoip.verify_builder(builder)
+        text = ('0.0.0.0,255.255.255.255,ZZ\n::,::ffff,ZZ\n'
+                '::ffff:192.0.2.0,::ffff:192.0.2.255,US\n'
+                '2001:DB8::,2001:DB8::FFFF,IR\n'
+                'ffff:ffff:ffff:ffff:ffff:ffff:ffff:ff00,ffff:ffff:ffff:ffff:ffff:ffff:ffff:ffff,XK\n')
+        info = self.convert(text)
+        actual = self.base / 'boundary-output'
+        actual.mkdir()
+        result = subprocess.run(['/usr/bin/perl', str(builder), '-D', str(actual), str(self.legacy)],
+                                stdin=subprocess.DEVNULL, stdout=subprocess.PIPE, stderr=subprocess.PIPE, timeout=30)
+        self.assertEqual(result.returncode, 0, result.stderr.decode('utf-8', 'replace'))
+        self.assertEqual(geoip.validate_build(actual, info['files']), info['files'])
 
     @unittest.skipUnless(os.name == 'posix' and os.environ.get('MT_GEOIP_TEST_BUILDER'), 'Native reviewed installed Perl builder')
     def test_actual_installed_legacy_builder_matches_independent_packed_bytes(self):

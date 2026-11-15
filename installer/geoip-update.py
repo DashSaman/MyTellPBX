@@ -16,6 +16,7 @@ from pathlib import Path
 import re
 import struct
 import subprocess
+import sys
 import tempfile
 import time
 
@@ -30,6 +31,7 @@ RELEASES = 'usr/share/mytellpbx-geoip/releases'
 ACTIVE = 'usr/share/xt_geoip'
 MAX_COMPRESSED = 16 * 1024 * 1024
 MAX_CSV = 128 * 1024 * 1024
+CONVERSION_TIMEOUT = 600
 NOTICE = ('IP Geolocation by DB-IP: https://db-ip.com\n'
           'DB-IP Country Lite, https://db-ip.com/db/download/ip-to-country-lite\n'
           'License: CC BY 4.0, https://creativecommons.org/licenses/by/4.0/\n'
@@ -67,18 +69,34 @@ def verify_builder(path):
         raise ValueError('Installed GeoIP builder differs from the reviewed legacy format')
 
 
-def convert_csv(source, destination, min_rows=100000, min_countries=200):
+def convert_csv(source, destination, min_rows=100000, min_countries=200, progress=None):
     """Validate ordered DB-IP ranges and derive every expected packed-file hash."""
     csv.field_size_limit(256)
     hashes, countries, previous = {}, set(), {4: -1, 6: -1}
     families, rows, size, last_family = {'4': 0, '6': 0}, 0, 0, 4
-    deadline = time.monotonic() + 120
+    started = last_report = time.monotonic()
+    def observation(elapsed, complete=False):
+        return {'stage': 'country-conversion', 'rows': rows, 'ipv4_ranges': families['4'],
+                'ipv6_ranges': families['6'], 'elapsed_seconds': round(elapsed, 1), 'complete': complete}
+    def notify(item):
+        # Console/journal output is cosmetic; a closed output pipe must not
+        # discard an otherwise valid conversion or interrupt safe activation.
+        if progress is not None:
+            try:
+                progress(item)
+            except Exception:
+                pass
     with gzip.open(str(source), 'rt', encoding='utf-8', newline='') as stream, Path(destination).open('w', encoding='utf-8', newline='') as output:
         writer = csv.writer(output, lineterminator='\n')
         for row in csv.reader(stream, strict=True):
             if len(row) != 3 or not re.fullmatch('[A-Z]{2}', row[2]):
                 raise ValueError('Invalid country CSV fields')
-            start, end = ipaddress.ip_address(row[0]), ipaddress.ip_address(row[1])
+            if '%' in row[0] or '%' in row[1]:
+                raise ValueError('Scoped country addresses are not allowed')
+            # Select the strict parser directly: ip_address first tries IPv4 and
+            # raises for every IPv6 endpoint in the full monthly data set.
+            start = (ipaddress.IPv6Address if ':' in row[0] else ipaddress.IPv4Address)(row[0])
+            end = (ipaddress.IPv6Address if ':' in row[1] else ipaddress.IPv4Address)(row[1])
             family, first, final = start.version, int(start), int(end)
             if family != end.version or first > final or family < last_family or first <= previous[family]:
                 raise ValueError('Mixed, reversed, unordered or overlapping country range')
@@ -87,8 +105,6 @@ def convert_csv(source, destination, min_rows=100000, min_countries=200):
             rows += 1
             if rows > 1500000 or size > MAX_CSV:
                 raise ValueError('Country CSV exceeds its bounded size')
-            if rows % 4096 == 0 and time.monotonic() > deadline:
-                raise ValueError('Country conversion exceeded its bounded deadline')
             code = row[2]
             if code not in countries:
                 countries.add(code)
@@ -97,16 +113,34 @@ def convert_csv(source, destination, min_rows=100000, min_countries=200):
                         hashes[order + '/' + code + '.iv' + str(version)] = hashlib.sha256()
             if family == 4:
                 be, le = struct.pack('>II', first, final), struct.pack('<II', first, final)
+                start_text, end_text = str(start), str(end)
             else:
                 be = start.packed + end.packed
-                le = b''.join(struct.pack('<4I', *struct.unpack('>4I', value)) for value in (start.packed, end.packed))
+                le = struct.pack('<8I', *struct.unpack('>8I', be))
+                # IPv6Address.exploded stringifies and reparses each address.
+                # The validated 128-bit values already contain all eight words.
+                first_hex, final_hex = format(first, '032x'), format(final, '032x')
+                start_text = ':'.join(first_hex[index:index + 4] for index in range(0, 32, 4))
+                end_text = ':'.join(final_hex[index:index + 4] for index in range(0, 32, 4))
             hashes['BE/' + code + '.iv' + str(family)].update(be)
             hashes['LE/' + code + '.iv' + str(family)].update(le)
             families[str(family)] += 1
             # Full IPv6 expansion avoids the legacy builder's compressed-address ambiguity.
-            writer.writerow([start.exploded, end.exploded, str(first), str(final), code, code])
+            writer.writerow([start_text, end_text, str(first), str(final), code, code])
+            if rows % 4096 == 0:
+                now = time.monotonic()
+                if now - started > CONVERSION_TIMEOUT:
+                    raise ValueError('Country conversion exceeded its bounded deadline')
+                if progress is not None and now - last_report >= 30:
+                    notify(observation(now - started))
+                    last_report = now
+    elapsed = time.monotonic() - started
+    if elapsed > CONVERSION_TIMEOUT:
+        raise ValueError('Country conversion exceeded its bounded deadline')
     if rows < min_rows or len(countries) < min_countries or not all(families.values()):
         raise ValueError('Empty, partial or single-family country database')
+    if progress is not None:
+        notify(observation(elapsed, complete=True))
     return {'rows': rows, 'families': families, 'countries': sorted(countries),
             'files': {name: value.hexdigest() for name, value in hashes.items()}}
 
@@ -321,7 +355,10 @@ def update(root):
             work = Path(temporary)
             source, legacy, compiled = work / 'source.gz', work / 'legacy.csv', work / 'compiled'
             url = download_month(source, month)
-            info = convert_csv(source, legacy)
+            def progress(item):
+                # Aggregate validated counts only, never source addresses or keys.
+                print('MyTellPBX GeoIP progress: ' + json.dumps(item, sort_keys=True), file=sys.stderr, flush=True)
+            info = convert_csv(source, legacy, progress=progress)
             compiled.mkdir()
             result = subprocess.run(['/usr/bin/perl', str(builder), '-D', str(compiled), str(legacy)],
                                     stdin=subprocess.DEVNULL, stdout=subprocess.DEVNULL, stderr=subprocess.PIPE, timeout=120)
