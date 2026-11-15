@@ -92,7 +92,8 @@ def allowed(item, profile=None):
     if profile == POLISH_PROFILE:
         return ((root == 'panel' and relative in POLISH_PANEL) or
                 (root == 'admin' and relative in POLISH_ADMIN) or
-                (root == 'legacy' and relative == 'modules/mytellpbxopdesk/index.php'))
+                (root == 'legacy' and relative in {'modules/mytellpbxopdesk/index.php',
+                                                  'modules/mytellpbxopdesk/launcher-access.php'}))
     if profile == SUBMIT_PROFILE:
         return root == 'admin' and relative in SUBMIT_PATHS
     if profile == SCOPED_PROFILE:
