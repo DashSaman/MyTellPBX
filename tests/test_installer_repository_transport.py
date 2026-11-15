@@ -116,7 +116,9 @@ class RepositoryTransportTests(unittest.TestCase):
     def test_resumed_stage_repairs_before_first_dnf_and_after_vendor_rpm(self):
         bash = 'C:/Program Files/Git/bin/bash.exe' if os.name == 'nt' else shutil.which('bash')
         definitions = Path(self.tmp.name) / 'definitions.sh'
-        definitions.write_text((ROOT / 'install-mytellpbx.sh').read_text(encoding='utf-8').rsplit('\nmain "$@"', 1)[0], encoding='utf-8')
+        fixture_repos = self.root / 'repo-files'; fixture_repos.mkdir()
+        definitions.write_text((ROOT / 'install-mytellpbx.sh').read_text(encoding='utf-8').rsplit('\nmain "$@"', 1)[0]
+                               .replace('/etc/yum.repos.d', fixture_repos.as_posix()), encoding='utf-8')
         (self.root / 'installer/repos').mkdir(parents=True)
         (self.root / 'installer/repos/mytelpbx-base.repo.in').write_text('fixture')
         script = Path(self.tmp.name) / 'order.sh'
@@ -126,7 +128,7 @@ READY=0
 stage_done(){ return 1; }; step(){ :; }; cp(){ :; }; chmod(){ :; }; grep(){ return 0; }; mark_stage(){ :; }
 repair_stub(){ printf 'repair %s\\n' "$*"; READY=1; }
 dnf(){ [ "$READY" = 1 ] || return 28; printf 'dnf %s\\n' "$*"; }
-run_logged(){ "$@"; }
+run_logged(){ "$@" >>"$LOG" 2>&1; }
 stage_repos
 '''
         # Repair output is normally private; override only logging redirection
