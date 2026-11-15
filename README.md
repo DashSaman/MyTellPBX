@@ -39,6 +39,7 @@ curl -fsSL -o install-mytellpbx.sh https://github.com/DashSaman/MyTellPBX/releas
 - کنسول مدیریتی: پوستهٔ کامل + برند + زیرنویس «گزارش پیشرفته» + دی‌برند کامل
 - رفع مشکل «اعمال پیکربندی» (Apply Config)
 - کنسول فنی LTR، انتخاب‌های واضح، جست‌وجوی خوانا، تقویم شمسی و ناوبری واکنش‌گرا
+- اصلاح گزارش خروجیِ آسترنیک نصب‌شده بر پایهٔ ترانک، مستقل از پیش‌شمارهٔ شماره‌گیری
 - نصب نسخهٔ دقیق و بررسی‌شدهٔ [MytelDesk](https://github.com/DashSaman/MytelDesk)، با Python مستقل، مدل همراه و وابستگی‌های دارای هش برای VAD روی CPU
 - بررسی واقعی مدل با `myteldesk doctor`؛ نصب موتور، سیاست ضبط تماس را خودکار فعال یا تغییر نمی‌دهد
 - فایروال روشن می‌ماند؛ فقط پورت‌های لازم باز می‌شوند
@@ -51,6 +52,7 @@ curl -fsSL -o install-mytellpbx.sh https://github.com/DashSaman/MyTellPBX/releas
 - سند تست: [docs/TESTING.md](docs/TESTING.md)
 - یادداشت انتشار نسخه: [RELEASE_NOTES_V7_6_0_FA.md](RELEASE_NOTES_V7_6_0_FA.md)
 - دامنهٔ آزمون‌های همین نسخه: [docs/releases/7.6.0/verification.md](docs/releases/7.6.0/verification.md)
+- تشخیص خروجی آسترنیک و دامنهٔ نصب: [docs/ASTERNIC_DIRECTION_FA.md](docs/ASTERNIC_DIRECTION_FA.md)
 
 ## هشدارهای امنیتی مهم
 
