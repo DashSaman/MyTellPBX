@@ -52,8 +52,7 @@ class InstallerWorkspaceTests(unittest.TestCase):
         fixtures = '''
 id() { if [ "$#" -eq 1 ] && [ "$1" = '-u' ]; then printf '0\\n'; else command id "$@"; fi; }
 stat() {
-    if [ "$#" -ge 2 ] && [ "$1" = '-c' ] && [ "$2" = '%u' ]; then printf '0\\n';
-    elif [ "$#" -ge 2 ] && [ "$1" = '-c' ] && [ "$2" = '%u:%a' ]; then printf '0:%s\\n' "$(command stat -c %a "${@:3}")";
+    if [ "$#" -ge 2 ] && [ "$1" = '-c' ]; then local format="${2//%u/0}"; shift 2; command stat -c "$format" "$@";
     else command stat "$@"; fi
 }
 say() { :; }
@@ -69,7 +68,7 @@ die() { printf 'EXPECTED-REFUSAL: %s\\n' "$*" >&2; exit 1; }
         }
         assignments = '\n'.join(key + '=' + quote(value) for key, value in settings.items())
         return subprocess.run(['bash', '-s'], input=(self.source + '\n' + fixtures + assignments + '\n' + body),
-                              stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True,
+                              stdout=subprocess.PIPE, stderr=subprocess.PIPE, universal_newlines=True,
                               cwd=str(self.base), timeout=20,
                               env=dict(os.environ, TMPDIR=str(self.base)))
 
