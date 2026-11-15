@@ -140,6 +140,25 @@ def transform_page(text):
     return text.replace('\n', newline)
 
 
+def transform_pdf_data_cells(text):
+    """FPDF on PHP7 compares numeric zero equal to its empty-string sentinel."""
+    start = '    function FancyTable($header,$data,$w) {'
+    end = '\n}\n\nfunction asternic_export_csv'
+    if text.count(start) != 1:
+        raise ValueError('Unknown Asternic PDF data renderer')
+    before, tail = text.split(start, 1)
+    if tail.count(end) != 1:
+        raise ValueError('Unknown Asternic PDF/CSV boundary')
+    method, after = tail.split(end, 1)
+    original = "$this->Cell($w[$contador],6,$valor,'LR',0,'C',$fill);"
+    fixed = "$this->Cell($w[$contador],6,(string)$valor,'LR',0,'C',$fill);"
+    if method.count(original) == 1 and fixed not in method:
+        method = method.replace(original, fixed, 1)
+    elif original in method or method.count(fixed) != 1:
+        raise ValueError('Unknown Asternic PDF Cell argument boundary')
+    return before + start + method + end + after
+
+
 def transform_functions(text):
     newline = '\r\n' if '\r\n' in text else '\n'
     text = text.replace('\r\n', '\n')
@@ -167,6 +186,7 @@ def transform_functions(text):
         text = replace_exact(text, query, insertion + query, 1)
     for old, new in DIRECTION_COMMENTS.items():
         text = text.replace(old, new)
+    text = transform_pdf_data_cells(text)
     validate_result(text, expected)
     return text.replace('\n', newline)
 

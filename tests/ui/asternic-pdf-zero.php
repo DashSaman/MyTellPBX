@@ -3,7 +3,7 @@
  * Cell comparison. No real PDF/framework/database/report source is executed.
  * Optional second input is the captured vendor source, read as text only.
  */
-$source=file_get_contents($argv[1]);
+$source=str_replace("\r\n", "\n", file_get_contents($argv[1]));
 $start=strpos($source, '    function FancyTable($header,$data,$w) {');
 $end=$start === false ? false : strpos($source, "\n}\n\nfunction asternic_export_csv", $start);
 if ($start === false || $end === false) throw new RuntimeException('Unknown captured FancyTable boundary');

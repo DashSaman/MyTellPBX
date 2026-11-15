@@ -162,6 +162,15 @@ class AsternicDirectionPatcherTests(unittest.TestCase):
         patcher=self.load()
         with self.assertRaises(ValueError):patcher.transform_functions(FUNCTIONS.replace("6,$valor,'LR',0,'C'","6,$valor,'LR',1,'R'",1))
 
+    @unittest.skipUnless(shutil.which('php'), 'Native PHP CLI required')
+    def test_derived_pdf_cells_execute_with_the_legacy_php_comparison(self):
+        patcher=self.load()
+        with tempfile.TemporaryDirectory() as directory:
+            candidate=Path(directory)/'candidate-functions.php'
+            candidate.write_text(patcher.transform_functions(FUNCTIONS),encoding='utf-8')
+            result=subprocess.run([shutil.which('php'),'-n',str(ROOT/'tests/ui/asternic-pdf-zero.php'),str(candidate)],stdout=subprocess.PIPE,stderr=subprocess.PIPE)
+            self.assertEqual(result.returncode,0,result.stdout.decode('utf-8','replace')+result.stderr.decode('utf-8','replace'))
+
     def test_plan_refuses_other_versions_and_unknown_existing_helper(self):
         patcher = self.load()
         with tempfile.TemporaryDirectory() as directory:
