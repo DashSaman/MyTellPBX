@@ -1,4 +1,5 @@
 #!/usr/bin/env python3
+# SPDX-License-Identifier: GPL-3.0-or-later
 """Prepare the separately authorized report-only update from private site sources."""
 import argparse
 import hashlib

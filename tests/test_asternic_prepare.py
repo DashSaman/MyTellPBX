@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: GPL-3.0-or-later
 """Report artifacts are derived from private site sources without changing them."""
 import importlib.util
 from pathlib import Path

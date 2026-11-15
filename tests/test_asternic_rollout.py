@@ -1,3 +1,4 @@
+# SPDX-License-Identifier: GPL-3.0-or-later
 """The separately authorized report fix never broadens PBX configuration writes."""
 import importlib.util
 import json
