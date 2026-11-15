@@ -1157,6 +1157,9 @@ main() {
 
     verify_bundle
     ensure_credentials
+    # Only the collector consumes inherited stdin. Later vendor commands get
+    # EOF; explicit SQL/PHP pipes and heredocs keep their own input streams.
+    exec </dev/null || die "cannot close inherited installer input"
 
     stage_repos
     stage_update
