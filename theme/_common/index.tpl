@@ -111,6 +111,7 @@
                          installed front controller exists. Desk eligibility
                          remains server-provided; JS restores it after AJAX. -->
                     <div id="mt-home-quicklinks" class="mt-home-quicklinks">
+                        {if $MT_CAN_ENTER_DESK}
                         <a id="mt-desk-banner"
                            class="mt-home-card mt-home-card--desk"
                            href="/modules/mytellpbxopdesk/index.php">
@@ -125,6 +126,7 @@
                                 <i class="fa fa-angle-left"></i>
                             </span>
                         </a>
+                        {/if}
                         {if $MT_HAS_STANDALONE_PHONE}
                         <a id="mt-webphone-card"
                            class="mt-home-card mt-home-card--webphone"
