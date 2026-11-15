@@ -16,6 +16,9 @@ bash install-mytellpbx.sh
 ```
 
 On success the panel URL and the credentials-file path are printed.
+An interactive terminal asks only for the panel administrator and MariaDB root
+passwords near the start. Input is hidden; Enter generates that password.
+An exact-release resume reuses the saved values without prompting or rotation.
 
 ## Prerequisites
 
@@ -38,7 +41,7 @@ On success the panel URL and the credentials-file path are printed.
    - Persian panel language and complete debranding (no upstream brand
      name is visible anywhere in the UI)
    - The Apply Config fix
-   - Unique random passwords in a root-only credentials file
+   - Two chosen or uniquely generated passwords in a root-only credentials file
 3. **MytelDesk with CPU VAD**: the exact pinned public release, private Node and
    Python3.11 runtimes, hash-locked dependencies and bundled verified model.
    The product's installer and doctor run real CPU inference before success.
@@ -66,16 +69,17 @@ their accounts or patches immutable release code.
 
 ## Credentials
 
-- The panel password (user `admin`) and the MariaDB root password are
-  **generated randomly** during install and stored in:
+- Choose the panel password (user `admin`) and MariaDB root password in two
+  hidden terminal inputs. Enter, or a headless run without preset values,
+  generates a unique random value. Both are validated before saving:
 
 ```
 /root/mytelpbx-credentials.txt
 ```
 
 - The file is mode 0600, root only.
-- On an interactive terminal the passwords are printed at the end; in a
-  headless run only the file path is shown.
+- Passwords are never printed at the end or in installer output; only the file
+  path is shown. Invalid or interrupted input stops before creating the final file.
 - You may pre-set them:
 
 ```
@@ -110,7 +114,7 @@ firewalld **stays enabled**; only these ports are opened.
 - **PHP 7.4** reached upstream end-of-life (November 2022); the telephony
   framework requires it. Keep the panel on an internal network or behind
   a firewall/reverse proxy and keep the OS updated.
-- There are no default passwords; everything is generated at install time.
+- There are no default passwords; choose your own values or generate unique ones.
 - The base telephony packages come from the upstream open-source
   distribution's repositories; functional package and repository
   identities are preserved unchanged for dependency resolution and

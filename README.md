@@ -34,7 +34,7 @@ curl -fsSL -o install-mytellpbx.sh https://github.com/DashSaman/MyTellPBX/releas
 ## قابلیت‌ها
 
 - نصب مرحله‌ای تکرارپذیر؛ ادامهٔ همان نسخه پس از قطعی با حفظ رمزها
-- رمزهای تصادفی یکتا برای پنل و پایگاه‌داده در فایل فقط‌روت
+- فقط دو ورودی مخفی برای رمز پنل و پایگاه‌داده؛ Enter برای تولید تصادفی و حفظ رمزها در ادامهٔ نصب
 - قالب پنل: فارسی راست‌چین، فونت وزیرمتن، حالت روشن/تاریک، داشبورد اتاق کنترل
 - کنسول مدیریتی: پوستهٔ کامل + برند + زیرنویس «گزارش پیشرفته» + دی‌برند کامل
 - رفع مشکل «اعمال پیکربندی» (Apply Config)
@@ -74,7 +74,7 @@ upstream UI.
 ## What's inside
 
 - `install-mytellpbx.sh` — the staged, resumable one-line installer with
-  generated credentials and self-checks
+  two hidden password inputs, optional generation and runtime self-checks
 - `theme/` — the Persian RTL panel theme (source of truth)
 - `admin-theme/` — admin-console skin, dark layer and debrand patchers
 - `installer/` — package lists, repository template and golden payload
