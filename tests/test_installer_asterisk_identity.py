@@ -99,5 +99,28 @@ stage_packages1
         self.assertLess(postbase.index('ensure_asterisk_identity'), postbase.index('systemctl'))
         self.assertNotIn('groupadd', postbase); self.assertNotIn('useradd', postbase)
 
+    def test_framework_start_uses_one_native_unit_without_safe_asterisk_helper(self):
+        # Redirect only the optional vendor executable's path into a fixture;
+        # every start/provisioning command is intercepted below.
+        vendor = self.base / 'start_asterisk'; vendor.write_text('#!/bin/bash\nexit 99\n'); vendor.chmod(0o755)
+        original = self.base / 'definitions.sh'
+        original.write_text(self.source.rsplit('\nmain "$@"', 1)[0].replace('/usr/src/issabelPBX/framework/start_asterisk', vendor.as_posix()), encoding='utf-8')
+        unit = self.base / 'unit-started'
+        body = 'UNIT=' + repr(unit.as_posix()) + '\n'
+        body += '''stage_done(){ return 1; }; ensure_credentials(){ :; }; guard_empty_framework_bootstrap(){ :; }
+framework_service_config(){ printf absent; }; sleep(){ :; }
+bootstrap_empty_framework(){ exit 42; }
+asterisk(){ [ -f "$UNIT" ]; }
+systemctl(){ printf 'unit %s\\n' "$*" >> "$CALLS"; [ "$1" != start ] || printf started > "$UNIT"; }
+run_logged(){ printf 'manual %s\\n' "$*" >> "$CALLS"; }
+stage_framework_init
+'''
+        result = self.run_shell(body)
+        self.assertEqual(result.returncode, 42, result.stderr)
+        calls = self.calls.read_text()
+        self.assertNotIn('manual ', calls)
+        self.assertEqual(calls.count('unit start asterisk'), 1)
+        self.assertIn('unit is-active --quiet asterisk', calls)
+
 
 if __name__ == '__main__': unittest.main()
