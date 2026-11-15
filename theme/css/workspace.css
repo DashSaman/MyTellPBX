@@ -455,3 +455,9 @@ body.mt-mail-embed :focus-visible { outline: 3px solid var(--mt-focus); outline-
 @media (prefers-reduced-motion: reduce) {
     *, *::before, *::after { scroll-behavior: auto !important; animation-duration: .001ms !important; animation-iteration-count: 1 !important; transition-duration: .001ms !important; }
 }
+
+/* Dashboard feed feedback wraps without displacing the heading or controls. */
+.mt-dash-fresh { min-width: 0; max-width: 100%; }
+.mt-dash-fresh #mt-fresh { overflow-wrap: anywhere; }
+.mt-dash-fresh .mt-dot { flex-shrink: 0; }
+.mt-dash-fresh.stale { color: var(--mt-text-muted); }

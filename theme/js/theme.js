@@ -459,20 +459,147 @@
         /* ---- 0) custom MyTel dashboard ("control room") — replaces the
            legacy applet grid, which stays in the DOM only as a data source ---- */
         var mtFa = function (n) { return window.MTJalali ? MTJalali.faNum(String(n)) : String(n); };
-        var mtFresh = function () {
-            window.__mtFreshAt = Date.now();
-            var el = document.getElementById('mt-fresh');
-            if (!el) return;
-            var d = new Date();
-            el.textContent = 'به‌روزرسانی: ' + mtFa(('0' + d.getHours()).slice(-2) + ':' + ('0' + d.getMinutes()).slice(-2) + ':' + ('0' + d.getSeconds()).slice(-2));
-            var wrap = el.closest('.mt-dash-fresh');
-            if (wrap) wrap.classList.remove('stale');
+        var dashFeeds = {}, dashOwner = null, dashElement = null, dashGeneration = 0, dashStarted = 0;
+        var dashRequests = new WeakMap(), dashSequence = 0;
+        var dashApplets = ['SystemResources', 'CommunicationActivity', 'PerformanceGraphic', 'HardDrives'];
+        var dashboardNumber = function (value) {
+            if (typeof value === 'number') return isFinite(value) && value >= 0 ? value : null;
+            if (typeof value !== 'string') return null;
+            var text = value.trim();
+            if (!/^(?:\d+|[1-9]\d{0,2}(?:,\d{3})+)(?:\.\d+)?$/.test(text)) return null;
+            var number = Number(text.replace(/,/g, ''));
+            return isFinite(number) && number >= 0 ? number : null;
         };
-        setInterval(function () {
-            var el = document.getElementById('mt-fresh');
-            var wrap = el ? el.closest('.mt-dash-fresh') : null;
-            if (wrap && window.__mtFreshAt && Date.now() - window.__mtFreshAt > 90000) wrap.classList.add('stale');
-        }, 15000);
+        var dashboardDisk = function (text) {
+            var total = text.match(/(?:^|[^\d,.])((?:\d{1,3}(?:,\d{3})+|\d+)(?:\.\d+)?)\s*GB/i);
+            var used = text.match(/Used[^%]{0,120}?(\d{1,3})\s*%/i) || text.match(/(?:^|[^\d])(\d{1,3})\s*%/);
+            var size = total && dashboardNumber(total[1]), percent = used && dashboardNumber(used[1]);
+            return size > 0 && percent !== null && percent <= 100 ? { total: size, usedPct: percent } : null;
+        };
+        var dashboardSeries = function (html) {
+            var call = /\$\.plot\(\s*['"]#dashboard-applet-performancegraph['"]\s*,\s*/.exec(html);
+            if (!call) return null;
+            var start = call.index + call[0].length, depth = 0, string = false, escape = false;
+            if (html[start] !== '[') return null;
+            for (var i = start; i < html.length; i++) {
+                var c = html[i];
+                if (string) { if (escape) escape = false; else if (c === '\\') escape = true; else if (c === '"') string = false; }
+                else if (c === '"') string = true;
+                else if (c === '[') depth++;
+                else if (c === ']' && --depth === 0) {
+                    try { return JSON.parse(html.slice(start, i + 1)); } catch (e) { return null; }
+                }
+            }
+            return null;
+        };
+        var dashboardRequest = function (settings) {
+            try {
+                var url = new URL(settings.url, window.location.href), params = new URLSearchParams(url.search);
+                if (url.origin !== window.location.origin || url.pathname !== '/index.php') return null;
+                var data = settings.data;
+                if (typeof data === 'string') new URLSearchParams(data).forEach(function (v, k) { params.set(k, v); });
+                else if (data) Object.keys(data).forEach(function (k) { params.set(k, String(data[k])); });
+                var applet = params.get('applet'), action = params.get('action');
+                if (['dashboard', 'index'].indexOf(params.get('menu')) < 0 || dashApplets.indexOf(applet) < 0) return null;
+                if (action !== 'getContent' && !(action === 'updateStatus' && ['SystemResources', 'CommunicationActivity'].indexOf(applet) >= 0)) return null;
+                return { applet: applet, action: action, key: applet + ':' + action };
+            } catch (e) { return null; }
+        };
+        var dashboardObservation = function (xhr, request) {
+            if (xhr.status === 0 && /abort/i.test(xhr.statusText || '')) return null;
+            if (xhr.status < 200 || xhr.status >= 300) return { state: 'error' };
+            try {
+                var data = JSON.parse(xhr.responseText), finite = function (v) { return typeof v === 'number' && isFinite(v); };
+                if (!data || typeof data !== 'object' || Array.isArray(data)) return { state: 'error' };
+                if (request.action === 'updateStatus') {
+                    if (request.applet === 'SystemResources') {
+                        var s = data.status;
+                        return { state: s && ['cpugauge', 'memgauge', 'swapgauge'].every(function (k) { return finite(s[k]) && s[k] >= 0 && s[k] <= 1; }) ? 'ready' : 'error' };
+                    }
+                    return { state: data.status === 'success' && dashboardNumber(data.rx_bytes) !== null && dashboardNumber(data.tx_bytes) !== null ? 'ready' : 'error' };
+                }
+                if (data.status !== 'success' || typeof data.html !== 'string') return { state: 'error' };
+                if (!data.html.trim()) return { state: 'empty' };
+                // Detached template contents stay inert and are never inserted into the page.
+                var template = document.createElement('template'); template.innerHTML = data.html;
+                var content = template.content, valid = false;
+                if (request.applet === 'SystemResources') valid = ['cpu', 'mem', 'swap'].every(function (name) {
+                    var input = content.querySelector('#' + name + 'gauge_value'), value = input && input.value;
+                    return dashboardNumber(value) !== null && dashboardNumber(value) <= 1;
+                });
+                else if (request.applet === 'CommunicationActivity') valid = ['rx', 'tx'].every(function (name) {
+                    var span = content.querySelector('#communication_activity_' + name + '_bytes');
+                    return span && dashboardNumber(span.textContent) !== null;
+                });
+                else if (request.applet === 'PerformanceGraphic') {
+                    var series = dashboardSeries(data.html), points = 0;
+                    valid = !!content.querySelector('#dashboard-applet-performancegraph') && Array.isArray(series) && series.every(function (line) {
+                        if (!line || !Array.isArray(line.data)) return false;
+                        return line.data.every(function (point) { if (!Array.isArray(point) || !finite(point[0]) || !(point[1] === null || finite(point[1]))) return false; if (point[1] !== null) points++; return true; });
+                    });
+                    if (valid && !points) return { state: 'empty' };
+                } else valid = !!content.querySelector('#dashboard-applet-hd-usage') && !!dashboardDisk(content.textContent);
+                return { state: valid ? 'ready' : 'error', data: data };
+            } catch (e) { return { state: 'error' }; }
+        };
+        var dashboardStatus = function () {
+            var element = document.getElementById('mt-dash'), grid = document.getElementById('applet_grid');
+            if (!element || !grid) return;
+            if (element !== dashElement || grid !== dashOwner) {
+                dashElement = element; dashOwner = grid; dashGeneration++; dashFeeds = {}; dashStarted = Date.now();
+                window.__mtFreshAt = 0;
+                dashApplets.forEach(function (name) { if (document.getElementById('Applet_' + name)) dashFeeds[name + ':getContent'] = { state: 'loading', at: dashStarted }; });
+            }
+            Object.keys(dashFeeds).forEach(function (key) { if (!grid.querySelector('#Applet_' + key.split(':')[0])) delete dashFeeds[key]; });
+            var el = element.querySelector('#mt-fresh'); if (!el) return;
+            var states = Object.keys(dashFeeds).map(function (key) {
+                var item = dashFeeds[key], name = key.split(':')[0], now = Date.now();
+                if (item.pendingAt && now - item.pendingAt >= 15000 || item.state === 'loading' && now - item.at >= 15000) return 'error';
+                if (item.state === 'ready' && name !== 'HardDrives') {
+                    var latest = item.at;
+                    Object.keys(dashFeeds).forEach(function (other) { if (other.split(':')[0] === name && dashFeeds[other].state === 'ready') latest = Math.max(latest, dashFeeds[other].at); });
+                    if (now - latest > 90000) return 'stale';
+                }
+                return item.state;
+            });
+            var ready = states.indexOf('ready') >= 0, error = states.indexOf('error') >= 0, empty = states.indexOf('empty') >= 0, stale = states.indexOf('stale') >= 0;
+            var state = error ? (ready ? 'partial' : 'error') : empty ? (ready || stale ? 'partial' : 'empty') : stale ? (ready ? 'partial' : 'stale') : ready ? 'ready' : 'loading';
+            if (state === 'ready' && states.indexOf('loading') >= 0) state = 'partial';
+            if (!states.length) state = 'empty';
+            var text = { loading: 'در حال دریافت…', error: 'دریافت اطلاعات انجام نشد؛ اتصال را بررسی کنید.', empty: 'داده‌ای برای نمایش دریافت نشد.', partial: 'بخشی از اطلاعات در دسترس نیست؛ داده‌های موجود نمایش داده می‌شوند.', stale: 'اطلاعات تازه دریافت نشده است؛ داده‌های قبلی نمایش داده می‌شوند.' }[state];
+            if (!text) { var d = new Date(window.__mtFreshAt || Date.now()); text = 'به‌روزرسانی: ' + mtFa(('0' + d.getHours()).slice(-2) + ':' + ('0' + d.getMinutes()).slice(-2) + ':' + ('0' + d.getSeconds()).slice(-2)); }
+            el.setAttribute('role', 'status'); el.setAttribute('aria-live', 'polite'); el.dataset.state = state; if (el.textContent !== text) el.textContent = text;
+            el.closest('.mt-dash-fresh').classList.toggle('stale', state !== 'ready' && state !== 'loading');
+        };
+        var dashboardAccepts = function (xhr, request) {
+            dashboardStatus();
+            if (!dashElement || !document.contains(dashElement) || !dashOwner || !document.contains(dashOwner) || !dashOwner.querySelector('#Applet_' + request.applet)) return false;
+            var owner = dashRequests.get(xhr), entry = dashFeeds[request.key];
+            if (!owner) return dashGeneration === 1 && !(entry && entry.sequence);
+            return owner.grid === dashOwner && owner.element === dashElement && owner.generation === dashGeneration && entry && entry.sequence === owner.sequence;
+        };
+        $(document).on('ajaxSend', function (ev, xhr, settings) {
+            var request = dashboardRequest(settings); if (!request) return;
+            dashboardStatus(); if (!dashElement || !document.contains(dashElement) || !dashOwner.querySelector('#Applet_' + request.applet)) return;
+            var entry = dashFeeds[request.key] || { state: 'loading', at: Date.now() };
+            entry.pendingAt = Date.now(); entry.sequence = ++dashSequence; dashFeeds[request.key] = entry;
+            dashRequests.set(xhr, { grid: dashOwner, element: dashElement, generation: dashGeneration, sequence: entry.sequence });
+        });
+        $(document).on('ajaxComplete', function (ev, xhr, settings) {
+            var request = dashboardRequest(settings); if (!request || !dashboardAccepts(xhr, request)) return;
+            var observation = dashboardObservation(xhr, request), entry = dashFeeds[request.key] || {};
+            entry.pendingAt = 0;
+            if (observation) {
+                entry.state = observation.state; entry.at = Date.now(); dashFeeds[request.key] = entry;
+                if (observation.state === 'ready') window.__mtFreshAt = Date.now();
+            }
+            dashboardStatus();
+        });
+        var mtFresh = function () {
+            // Repainting retained chart/DOM data cannot turn a failed feed healthy.
+            dashboardStatus();
+        };
+        setInterval(dashboardStatus, 15000);
 
         var renderHealth = function () {
             var wrap = document.getElementById('mt-health-rows');
@@ -539,6 +666,7 @@
                     '<section class="mt-card"><div class="mt-card-title">اطلاعات سیستم</div><div class="mt-sysinfo" id="mt-dash-sys"></div></section>' +
                 '</div>';
             parent.insertBefore(dash, grid);
+            dashboardStatus();
         };
         /* applets can arrive long after ready (ajax menu navigation) —
            keep looking for the grid until the shell is in place */
@@ -668,9 +796,10 @@
                  || up.match(/(\d+)\s*day\(s\)\s*(\d+)\s*hour\(s\)\s*(\d+)\s*minute\(s\)/i);
             if (m) up = mtFa(m[1]) + ' روز، ' + mtFa(m[2]) + ' ساعت و ' + mtFa(m[3]) + ' دقیقه';
             if (!cpu && !up && !speed && !mem && !login) return;
+            var escapeText = function (value) { var span = document.createElement('span'); span.textContent = value; return span.innerHTML; };
             var row = function (label, value) {
                 return '<div class="mt-sysrow"><span class="mt-syslabel">' + label + '</span>' +
-                       '<span class="mt-sysval" dir="ltr">' + value + '</span></div>';
+                       '<span class="mt-sysval" dir="ltr">' + escapeText(value) + '</span></div>';
             };
             var html = '';
             if (cpu) html += row('پردازنده', cpu);
@@ -1076,47 +1205,29 @@
             window.jQuery.get('index.php', {
                 menu: 'index', rawmode: 'yes',
                 applet: 'HardDrives', action: 'getContent'
-            }, function (html) {
-                mtDiskFetching = false;
-                var t = String(html);
-                var m = t.match(/([\d.]+)\s*GB/i);
-                var p = t.match(/percent=(\d{1,3})/) || t.match(/(\d{1,3})\s*%/);
-                if (m && p) window.__mtDisk = { total: parseFloat(m[1]), usedPct: parseInt(p[1], 10) };
-            }, 'text').fail(function () { mtDiskFetching = false; });
+            }, function () { mtDiskFetching = false; }, 'text').fail(function () { mtDiskFetching = false; });
         };
-        /* capture disk values from the applet ajax response the moment it
-           arrives — the module strips this data on its own re-render */
+        /* Only a successful, recognized HardDrives response can update the cache. */
         $(document).on('ajaxComplete', function (ev, xhr, settings) {
-            try {
-                var t = (xhr && xhr.responseText) || '';
-                if (!t || t.indexOf('Hard Disk Capacity') === -1) return;
-                var m = t.match(/Hard Disk Capacity:\s*([\d.]+)\s*GB/i);
-                var used = t.match(/Used[^%]{0,120}?(\d{1,3})\s*%/i);
-                var any = t.match(/(\d{1,3})\s*%/);
-                if (m) {
-                    var up = used ? parseInt(used[1], 10) : (any ? parseInt(any[1], 10) : null);
-                    if (up === null || isNaN(up) || up < 0 || up > 100) up = any ? parseInt(any[1], 10) : null;
-                    if (up !== null && !isNaN(up)) {
-                        window.__mtDisk = { total: parseFloat(m[1]), usedPct: up };
-                    }
-                }
-            } catch (e) {}
+            var request = dashboardRequest(settings);
+            if (!request || request.applet !== 'HardDrives' || request.action !== 'getContent') return;
+            if (!dashboardAccepts(xhr, request)) return;
+            var observation = dashboardObservation(xhr, request);
+            if (!observation || observation.state !== 'ready') return;
+            var template = document.createElement('template'); template.innerHTML = observation.data.html;
+            var text = template.content.textContent || '';
+            var reading = dashboardDisk(text);
+            if (reading) window.__mtDisk = reading;
         });
+
         var migrateDisks = function () {
             /* harvest GB/% from the hidden applet text (first % is the
                donut center = used), then paint the health-card disk panel */
             var full = document.querySelector('#Applet_HardDrives .appletwindow_fullcontent');
             if (!full && !window.__mtDisk) return; /* not a dashboard page */
-            if (full) {
-                var txt = (full.textContent || '');
-                var m = txt.match(/([\d.]+)\s*GB/i);
-                var pct = txt.match(/(\d{1,3})\s*%/);
-                if (m && pct) {
-                    var up = parseInt(pct[1], 10);
-                    if (up >= 0 && up <= 100) {
-                        window.__mtDisk = { total: parseFloat(m[1]), usedPct: up };
-                    }
-                }
+            if (full && dashFeeds['HardDrives:getContent'] && dashFeeds['HardDrives:getContent'].state === 'ready') {
+                var reading = dashboardDisk(full.textContent || '');
+                if (reading) window.__mtDisk = reading;
             }
             renderHealth();
         };
@@ -1931,8 +2042,8 @@
             var pjsip = grab(/PJSIP داخلي هاي\s*\((\d+)\)|PJSIP داخلی های\s*\((\d+)\)/);
             var iax = grab(/IAX داخلي هاي\s*\((\d+)\)|IAX داخلی های\s*\((\d+)\)/);
             var trunks = grab(/ترانك ها\s*\((\d+)\)|ترانک ها\s*\((\d+)\)/);
-            var rxT = grab(/\(([\d.]+\s*k?B\/s)\)\s*<=\s*RX/);
-            var txT = grab(/TX\s*=>\s*\(([\d.]+\s*k?B\/s)\)/);
+            var rxT = grab(/\(([\d,.]+\s*k?B\/s)\)\s*<=\s*RX/);
+            var txT = grab(/TX\s*=>\s*\(([\d,.]+\s*k?B\/s)\)/);
             if (channels === null && trunks === null) return; /* data not complete yet */
             var regCount = function (base) {
                 var after = txt.slice(txt.indexOf(base));
