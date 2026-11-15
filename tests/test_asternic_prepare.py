@@ -35,6 +35,11 @@ class AsternicPrepareTests(unittest.TestCase):
         (self.module/'functions.inc.php').write_text('<?php // foreign report')
         with self.assertRaisesRegex(ValueError,'anchor'):self.prepare()
         self.assertFalse(self.output.exists())
+    def test_native_source_line_endings_reach_the_transform_without_normalization(self):
+        original=b'<?php // owner page\r\n// original CRLF material\r\n'
+        (self.module/'page.asternic_cdr.php').write_bytes(original)
+        self.prepare()
+        self.assertTrue((self.output/'payload/admin/modules/asternic_cdr/page.asternic_cdr.php').read_bytes().startswith(original))
     def test_unsupported_module_version_fails_before_output_creation(self):
         (self.module/'module.xml').write_text('<module><rawname>asternic_cdr</rawname><version>9.0.0</version></module>')
         with self.assertRaisesRegex(ValueError,'version'):self.prepare()
