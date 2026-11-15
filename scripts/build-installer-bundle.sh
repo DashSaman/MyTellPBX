@@ -56,6 +56,7 @@ copy_path "installer/repos/mytelpbx-base.repo.in"
 copy_path "installer/payload/lang/fa.lang"
 copy_path "installer/install-myteldesk.py"
 copy_path "installer/myteldesk-release.json"
+copy_path "installer/password-init.php"
 copy_path "modules/mytellpbxopdesk/launcher-access.php"
 copy_path "modules/mytellpbxopdesk/index.php"
 copy_path "installer/payload/admin/assets/mytel/skin.css"
@@ -82,7 +83,7 @@ copy_path "THIRD_PARTY_NOTICES.md"
 copy_path "LICENSE"
 copy_path "theme/THIRD-PARTY-LICENSES.txt"
 
-# Theme inputs come from the reviewed Git index, never ignored local secrets,
+# Theme inputs come from reviewed tracked source, never ignored local secrets,
 # screenshots, cache files or unrelated operator material in the worktree.
 mkdir -p "${STAGE}/theme"
 while IFS= read -r -d '' rel; do

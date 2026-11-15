@@ -5,7 +5,7 @@
 #
 # Installs the complete MyTellPBX contact-center platform:
 #   - telephony base (Asterisk 20, MariaDB, Apache, PHP 7.4, framework)
-#   - the MyTellPBX Persian RTL theme for the panel and admin console
+#   - Persian RTL panel navigation with the PBX technical settings console LTR
 #   - full MyTel branding, dark/light themes, Persian language
 #   - pinned MytelDesk 1.1.0 with automatic verified CPU VAD
 #
