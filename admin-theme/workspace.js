@@ -12,6 +12,21 @@
     var sun = '<circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M2 12h2M20 12h2M5 5l1.5 1.5M17.5 17.5L19 19M5 19l1.5-1.5M17.5 6.5L19 5"/>';
     var moon = '<path d="M20.6 13.2A8.6 8.6 0 0 1 10.8 3.4a8.6 8.6 0 1 0 9.8 9.8Z"/>';
 
+    function syncNativeMenus() {
+        document.querySelectorAll('.navbar-burger[data-target]').forEach(function (button) {
+            var id = button.getAttribute('data-target');
+            var menu = document.getElementById(id);
+            if (!menu) return;
+            button.setAttribute('aria-controls', id);
+            button.setAttribute('aria-expanded', String(menu.classList.contains('is-active')));
+            if (button.tagName !== 'BUTTON' && !button.hasAttribute('href')) button.tabIndex = 0;
+            if (!menu.__mtNavObserver) {
+                menu.__mtNavObserver = new MutationObserver(syncNativeMenus);
+                menu.__mtNavObserver.observe(menu, { attributes: true, attributeFilter: ['class'] });
+            }
+        });
+    }
+
     function paint() {
         var button = document.querySelector('.mt-admin-theme-toggle');
         if (!button) return;
@@ -47,6 +62,7 @@
             scroll.appendChild(table);
         });
         paint();
+        syncNativeMenus();
     }
 
     document.addEventListener('click', function (event) {
@@ -55,6 +71,23 @@
         root.setAttribute('data-mt-theme', next);
         root.style.colorScheme = next;
         try { localStorage.setItem('mt-theme', next); } catch (e) {}
+    });
+    document.addEventListener('keydown', function (event) {
+        var button = event.target.closest('.navbar-burger[data-target]');
+        if (button && (event.key === ' ' || event.key === 'Spacebar' ||
+            (event.key === 'Enter' && button.tagName !== 'BUTTON' && !button.hasAttribute('href')))) {
+            // Leave native Enter/click handling in place; complete button semantics.
+            event.preventDefault();
+            button.click();
+            return;
+        }
+        if (event.key !== 'Escape' || !window.matchMedia('(max-width:1023px)').matches) return;
+        button = document.querySelector('.navbar-burger[aria-expanded="true"]');
+        if (!button) return;
+        event.preventDefault();
+        button.click();
+        syncNativeMenus();
+        button.focus();
     });
     window.addEventListener('storage', function (event) {
         if (event.key === 'mt-theme' && /^(dark|light)$/.test(event.newValue)) {

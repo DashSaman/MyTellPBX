@@ -109,12 +109,12 @@
 :root[data-mt-theme] body :is(.button, input[type="submit"]):disabled { background: var(--mt-surface-2) !important; color: var(--mt-text-muted) !important; border-color: var(--mt-border) !important; opacity: 1; }
 
 /* Native record navigation stays on its existing side. */
-:root[data-mt-theme] body :is(nav.rnav, nav.rnav ul, nav.rnav li) { background: var(--mt-surface) !important; border-color: var(--mt-border) !important; box-shadow: none !important; }
-:root[data-mt-theme] body nav.rnav { border-radius: 12px !important; }
-:root[data-mt-theme] body nav.rnav a:not(.button) { color: var(--mt-text) !important; background: transparent !important; }
-:root[data-mt-theme] body nav.rnav :is(a.is-active, a[aria-current="page"], li.current > a):not(.button) { background: var(--mt-primary-tint) !important; color: var(--mt-primary-fg) !important; border-inline-start-color: var(--mt-primary-fg) !important; }
-:root[data-mt-theme] body nav.rnav a:not(.button):hover { background: var(--mt-surface-2) !important; color: var(--mt-primary-fg) !important; }
-:root[data-mt-theme] body nav.rnav .mt-sub { color: var(--mt-text-muted) !important; }
+:root[data-mt-theme] body :is(nav.rnav, div.rnav, .rnav ul, .rnav li) { background: var(--mt-surface) !important; border-color: var(--mt-border) !important; box-shadow: none !important; }
+:root[data-mt-theme] body :is(nav.rnav, div.rnav) { border-radius: 12px !important; }
+:root[data-mt-theme] body .rnav a:not(.button) { color: var(--mt-text) !important; background: transparent !important; }
+:root[data-mt-theme] body .rnav :is(a.is-active, a[aria-current="page"], li.current > a):not(.button) { background: var(--mt-primary-tint) !important; color: var(--mt-primary-fg) !important; border-inline-start-color: var(--mt-primary-fg) !important; }
+:root[data-mt-theme] body .rnav a:not(.button):hover { background: var(--mt-surface-2) !important; color: var(--mt-primary-fg) !important; }
+:root[data-mt-theme] body .rnav .mt-sub { color: var(--mt-text-muted) !important; }
 :root[data-mt-theme] body a.current { background: var(--mt-primary-tint) !important; color: var(--mt-primary-fg) !important; }
 
 /* Every installed report module, including legacy inline/gradient tables. */
@@ -233,4 +233,12 @@
 @media (max-width:700px) {
  :root[data-mt-theme] body .content:has(form[name="frm_voicemail"]) { width:100%; max-width:100%; min-width:0!important; }
  :root[data-mt-theme] body .content:has(form[name="frm_voicemail"]) :is(#tabs,#tab-content) { width:100%!important; max-width:100%; min-width:0; }
+}
+/* Older read-only reports still use a fixed div.rnav instead of the responsive
+   nav element. Keep desktop placement; on narrow screens follow source order. */
+@media (max-width:700px) {
+ :root[data-mt-theme] body #page_body > div.rnav { position:static!important; inset:auto!important; float:none!important; width:100%!important; max-width:100%; box-sizing:border-box; margin:0 0 16px!important; }
+ :root[data-mt-theme] body #page_body:has(> div.rnav) > .content { width:100%!important; min-width:0!important; max-width:100%; }
+ :root[data-mt-theme] body #page_body:has(> div.rnav) > #collapsemenuicon { display:none!important; }
+ :root[data-mt-theme] body .chosen-container-multi .chosen-choices li.search-field { max-width:100%; }
 }
