@@ -486,9 +486,15 @@ stage_repos() {
     grep -qxF 'fastestmirror=True' /etc/dnf/dnf.conf 2>/dev/null || echo 'fastestmirror=True' >> /etc/dnf/dnf.conf
 
     # Remi repo + explicit PHP stream selection
+    # On a resumed repo stage the RPM may already be present. Repair its
+    # transport BEFORE any DNF command attempts metadata from the old HTTP URL.
+    "${PY_BIN}" -B "${BUNDLE_DIR}/installer/repair-repository-transport.py" --if-present >>"$LOG" 2>&1 \
+        || die "repository transport repair failed; review installed vendor repos"
     run_logged dnf install -y dnf-plugins-core || die "dnf-plugins-core install failed"
     run_logged dnf install -y https://rpms.remirepo.net/enterprise/remi-release-8.rpm \
         || die "remi-release install failed"
+    "${PY_BIN}" -B "${BUNDLE_DIR}/installer/repair-repository-transport.py" >>"$LOG" 2>&1 \
+        || die "repository transport repair failed; review vendor repo files"
     run_logged dnf module reset -y php || true
     run_logged dnf module enable -y php:remi-7.4 || die "php:remi-7.4 module enable failed"
     run_logged dnf config-manager --set-enabled remi || true

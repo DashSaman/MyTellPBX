@@ -103,8 +103,8 @@ class RepositoryTransportTests(unittest.TestCase):
     def test_installer_repairs_transport_before_module_operations(self):
         source = (ROOT / 'install-mytellpbx.sh').read_text(encoding='utf-8')
         stage = source.split('stage_repos() {', 1)[1].split('\n# ----', 1)[0]
-        self.assertLess(stage.index('remi-release-8.rpm'), stage.index('installer/repair-repository-transport.py'))
-        self.assertLess(stage.index('installer/repair-repository-transport.py'), stage.index('dnf module reset'))
+        self.assertLess(stage.index('remi-release-8.rpm'), stage.rindex('installer/repair-repository-transport.py'))
+        self.assertLess(stage.rindex('installer/repair-repository-transport.py'), stage.index('dnf module reset'))
         self.assertIn('repository transport repair failed', stage)
 
     def test_optional_preflight_skips_absent_but_refuses_partial_repositories(self):
