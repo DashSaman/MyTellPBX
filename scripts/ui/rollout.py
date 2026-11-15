@@ -106,6 +106,8 @@ def allowed(item, profile=None):
 
 
 def priority(item):
+    if item['root'] == 'legacy' and item['path'] == 'modules/mytellpbxopdesk/launcher-access.php':
+        return 10  # Publish dependencies before the PHP entrypoint; rollback reverses this.
     if item["root"] == "desk":
         return 40 if item["path"] == "dist/index.html" else 20 if item["path"].startswith("src/") else 10
     return 30 if item["path"].endswith((".tpl", ".php", ".html")) else 10
