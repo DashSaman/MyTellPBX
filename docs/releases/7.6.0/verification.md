@@ -44,6 +44,9 @@ blocked. Read-only sweeps never save PBX settings or originate calls.
 The Linux suite executes the actual Bash functions against owned disposable
 files/recording commands and tests the Python Desk adapter, source ownership,
 download integrity, cache permissions, resume guards and rollback policies.
+The final installer-source checkpoint passed 135 Python tests with zero skips,
+62 native PHP assertions and Bash syntax checks. The chart/calendar Node suite
+passed 16 tests; JavaScript syntax passed for 35 source and browser-test files.
 Bundle assembly runs with actual GNU tools and Git, including clean CRLF checkout
 versus committed-source bytes. Ignored secrets and dirty tracked sources are
 rejected. The private workspace regression reproduces the former predictable
