@@ -10,3 +10,22 @@ __pycache__/
 ui-evidence/
 .ui-build/
 .serena/
+
+# Host-only configuration and private runtime evidence never belong in releases.
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+*.p8
+*.p12
+*.pfx
+*.sqlite
+*.sqlite3
+*.db
+*.db-*
+credentials*
+secrets/
+backups/
+audit/
+dist/

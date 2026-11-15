@@ -100,14 +100,24 @@ async function main() {
         await page.waitForFunction(title => document.querySelector('#mt-jmonth-title').textContent === title, title);
         const month = Number(await page.locator('.mt-cal-jm').inputValue());
         await page.locator('.mt-cal-jm').selectOption(String(month === 12 ? 1 : month + 1));
-        await page.locator('.mt-calside-today').click();
+        await page.locator('.mt-calside-today:visible, .mt-jnav-today:visible').first().click();
+        await page.waitForFunction(title => document.querySelector('#mt-jmonth-title').textContent === title, title);
         const geometry = await page.evaluate(() => {
           const scroll = document.querySelector('.mt-jmonth-scroll');
           return { document: Math.max(document.body.scrollWidth, document.documentElement.scrollWidth) - innerWidth,
-            local: scroll.scrollWidth > scroll.clientWidth, columns: document.querySelectorAll('.mt-jweekday').length };
+            local: scroll.scrollWidth > scroll.clientWidth, columns: document.querySelectorAll('.mt-jweekday').length,
+            fits: [...document.querySelectorAll('.mt-jweekday')].every(el => { const r=el.getBoundingClientRect(),b=scroll.getBoundingClientRect();return r.width>=24&&r.left>=b.left-2&&r.right<=b.right+2; }) };
         });
         assert.equal(geometry.columns, 7); assert.ok(geometry.document <= 3);
-        if (width < 700) assert.equal(geometry.local, true);
+        assert.ok(geometry.local || geometry.fits, 'All seven columns must fit or have a local scroll area');
+        await page.locator('.mt-jcell:not(.mt-joutside) .mt-jday-open').first().focus();
+        await page.keyboard.press('Tab');
+        const focused = await page.evaluate(() => {
+          const el=document.activeElement,scroll=document.querySelector('.mt-jmonth-scroll'),r=el.getBoundingClientRect(),b=scroll.getBoundingClientRect(),s=getComputedStyle(el);
+          return {day:el.matches('.mt-jday-open'),contained:r.left>=b.left-2&&r.right<=b.right+2,outline:s.outlineStyle,outlineWidth:parseFloat(s.outlineWidth)};
+        });
+        assert.ok(focused.day && focused.contained, 'Keyboard-focused date must be reachable without hidden clipping');
+        assert.notEqual(focused.outline, 'none'); assert.ok(focused.outlineWidth>=2);
       });
       await check('report filter, date focus and export menu without submission', async () => {
         await goto('/index.php?menu=cdrreport', 'panel', 'cdrreport');

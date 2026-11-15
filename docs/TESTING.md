@@ -1,3 +1,7 @@
+> Historical v7.5.1 baseline. These results do not certify a fresh-OS installation
+> of v7.6.0. Current checks, target acceptance and remaining boundaries are in
+> [the 7.6.0 verification record](releases/7.6.0/verification.md).
+
 # MyTellPBX installer — verification record for v7.5.1
 
 This document records how the installer was verified before publication.

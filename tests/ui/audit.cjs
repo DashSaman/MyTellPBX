@@ -304,7 +304,9 @@ async function settle(page, item) {
   if (item.name === 'email_template' && item.surface === 'panel') await page.locator('.mt-tpl').waitFor({ state: 'visible', timeout: 12000 });
   if (item.name === 'calendar' && item.surface === 'panel') {
     await page.locator('#calendar_main.mt-jmonth-active .mt-jmonth-table tbody tr').first().waitFor({ state: 'visible', timeout: 12000 });
-    await page.locator('.mt-calside[data-mt-key] .mt-mini[data-d]').first().waitFor({ state: 'visible', timeout: 12000 });
+    // The compact mobile sidebar intentionally hides its mini grid; readiness
+    // still requires the main month rows plus an initialized side calendar.
+    await page.locator('.mt-calside[data-mt-key] .mt-mini[data-d]').first().waitFor({ state: 'attached', timeout: 12000 });
   }
 }
 

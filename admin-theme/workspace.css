@@ -26,6 +26,9 @@
 :root body .navbar.is-dark .navbar-dropdown :is(a.navbar-item, .navbar-item) { color: var(--mt-text) !important; background: transparent !important; }
 :root body .navbar.is-dark .navbar-dropdown a.navbar-item:hover { background: var(--mt-primary-tint) !important; color: var(--mt-primary-fg) !important; }
 :root body .navbar.is-dark .navbar-dropdown a.navbar-item.is-active { color: var(--mt-primary-fg) !important; background: var(--mt-primary-tint) !important; box-shadow: inset 3px 0 0 var(--mt-primary-fg); border-radius: 0; }
+:root body .navbar.is-dark .navbar-item.has-dropdown:focus-within > .navbar-dropdown { display:block; }
+:root body .navbar.is-dark .navbar-item.has-dropdown:focus-within > .navbar-link { color:#FFFFFF!important; background:#254262!important; }
+:root body .navbar-dropdown.mt-native-menu-fit { translate:calc(var(--mt-menu-x, 0px) + var(--mt-menu-shift, 0px)) var(--mt-menu-y, 0px) var(--mt-menu-z, 0px); }
 :root body .navbar.is-dark .navbar-dropdown a.navbar-item::after { color: var(--mt-text-muted); font-size: 11px; opacity: 1; }
 :root body .navbar-divider { background: var(--mt-border) !important; }
 :root body .navbar.is-dark .mt-admin-theme-toggle {
@@ -60,7 +63,8 @@
 :root[data-mt-theme] body .content h2#title { padding: 18px 20px !important; font-size: 18px !important; line-height: 1.5; gap: 12px; border-radius: 12px 12px 0 0 !important; }
 :root[data-mt-theme] body .content h2#title::before { background: var(--mt-primary-fg); width: 3px; }
 :root[data-mt-theme] body .content :is(h2#title .mt-sub, tr.guielToggle .mt-sub) { background: transparent !important; color: var(--mt-text-muted) !important; border: 0; margin: 0; padding: 3px 0; font-size: 12px; }
-:root[data-mt-theme] body :is(.content label, #mainform label, form td, .label) { color: var(--mt-text) !important; }
+/* Base label ink must not outrank the semantic selected-choice foreground. */
+:root[data-mt-theme] body :where(.content label, #mainform label, form td, .label) { color: var(--mt-text) !important; }
 :root[data-mt-theme] body :is(form td, form th) { border-color: var(--mt-border) !important; }
 :root[data-mt-theme] body :is(.mt-sub, .deftext, .help, .help-block, .content small, #instructions, .mt-note) { color: var(--mt-text-muted) !important; }
 :root[data-mt-theme] body :is(.button.is-primary, #rnavadd) :is(.mt-sub, .mt-sub-t) { color: #FFFFFF !important; }
@@ -85,6 +89,9 @@
     background-image: none !important; box-shadow: none !important; font: 13px/1.6 var(--mt-font) !important; max-width: 100%;
 }
 :root[data-mt-theme] body :is(input, textarea)::placeholder { color: var(--mt-text-faint) !important; opacity: 1; }
+/* Preserve Bulma's icon space after the shared control padding is normalized. */
+:root[data-mt-theme] body .control.has-icons-left > .input { padding-left: 2.75em !important; }
+:root[data-mt-theme] body .control.has-icons-right > .input { padding-right: 2.75em !important; }
 :root[data-mt-theme] body :is(input, select, textarea):disabled { background: var(--mt-surface-2) !important; color: var(--mt-text-muted) !important; opacity: 1; }
 :root[data-mt-theme] body :is(input[type="checkbox"], input[type="radio"]) { accent-color: var(--mt-primary); }
 :root[data-mt-theme] body :is(.chosen-drop, .chosen-results, .chosen-results li) { background: var(--mt-surface) !important; color: var(--mt-text) !important; border-color: var(--mt-border) !important; }
@@ -105,12 +112,12 @@
 :root[data-mt-theme] body :is(.button, input[type="submit"]):disabled { background: var(--mt-surface-2) !important; color: var(--mt-text-muted) !important; border-color: var(--mt-border) !important; opacity: 1; }
 
 /* Native record navigation stays on its existing side. */
-:root[data-mt-theme] body :is(nav.rnav, nav.rnav ul, nav.rnav li) { background: var(--mt-surface) !important; border-color: var(--mt-border) !important; box-shadow: none !important; }
-:root[data-mt-theme] body nav.rnav { border-radius: 12px !important; }
-:root[data-mt-theme] body nav.rnav a:not(.button) { color: var(--mt-text) !important; background: transparent !important; }
-:root[data-mt-theme] body nav.rnav :is(a.is-active, a[aria-current="page"], li.current > a):not(.button) { background: var(--mt-primary-tint) !important; color: var(--mt-primary-fg) !important; border-inline-start-color: var(--mt-primary-fg) !important; }
-:root[data-mt-theme] body nav.rnav a:not(.button):hover { background: var(--mt-surface-2) !important; color: var(--mt-primary-fg) !important; }
-:root[data-mt-theme] body nav.rnav .mt-sub { color: var(--mt-text-muted) !important; }
+:root[data-mt-theme] body :is(nav.rnav, div.rnav, .rnav ul, .rnav li) { background: var(--mt-surface) !important; border-color: var(--mt-border) !important; box-shadow: none !important; }
+:root[data-mt-theme] body :is(nav.rnav, div.rnav) { border-radius: 12px !important; }
+:root[data-mt-theme] body .rnav a:not(.button) { color: var(--mt-text) !important; background: transparent !important; }
+:root[data-mt-theme] body .rnav :is(a.is-active, a[aria-current="page"], li.current > a):not(.button) { background: var(--mt-primary-tint) !important; color: var(--mt-primary-fg) !important; border-inline-start-color: var(--mt-primary-fg) !important; }
+:root[data-mt-theme] body .rnav a:not(.button):hover { background: var(--mt-surface-2) !important; color: var(--mt-primary-fg) !important; }
+:root[data-mt-theme] body .rnav .mt-sub { color: var(--mt-text-muted) !important; }
 :root[data-mt-theme] body a.current { background: var(--mt-primary-tint) !important; color: var(--mt-primary-fg) !important; }
 
 /* Every installed report module, including legacy inline/gradient tables. */
@@ -229,4 +236,12 @@
 @media (max-width:700px) {
  :root[data-mt-theme] body .content:has(form[name="frm_voicemail"]) { width:100%; max-width:100%; min-width:0!important; }
  :root[data-mt-theme] body .content:has(form[name="frm_voicemail"]) :is(#tabs,#tab-content) { width:100%!important; max-width:100%; min-width:0; }
+}
+/* Older read-only reports still use a fixed div.rnav instead of the responsive
+   nav element. Keep desktop placement; on narrow screens follow source order. */
+@media (max-width:700px) {
+ :root[data-mt-theme] body #page_body > div.rnav { position:static!important; inset:auto!important; float:none!important; width:100%!important; max-width:100%; box-sizing:border-box; margin:0 0 16px!important; }
+ :root[data-mt-theme] body #page_body:has(> div.rnav) > .content { width:100%!important; min-width:0!important; max-width:100%; }
+ :root[data-mt-theme] body #page_body:has(> div.rnav) > #collapsemenuicon { display:none!important; }
+ :root[data-mt-theme] body .chosen-container-multi .chosen-choices li.search-field { max-width:100%; }
 }

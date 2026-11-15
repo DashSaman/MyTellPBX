@@ -1,133 +1,50 @@
 <?php
-/**
- * MyTellPBX OpDesk Bridge — پل احراز هویت بومی پنل ایزابل
- *
- * فقط کاربران گروه «administrator» پنل ایزابل توکن مدیر OpDesk می‌گیرند؛
- * سایر کاربران واردشده پیام «دسترسی ندارید» می‌بینند و توکنی صادر نمی‌شود.
- *
- * @license GPL-2.0 (MyTellPBX project)
- */
-session_name('issabelSession'); // همان کوکی چارچوب ایزابل — این صفحه مستقل بارگذاری می‌شود
+/** MyTellPBX operator workspace launcher; GPL-2.0. */
+require_once __DIR__ . '/launcher-access.php';
+session_name('issabelSession');
 session_start();
-
-$loggedIn = !empty($_SESSION['issabel_user']);
-$isAdmin  = false;
-if ($loggedIn) {
-    // عضویت در گروه ۱ (administrator) از پایگاه‌داده ACL — فقط‌خواندنی
-    try {
-        $acl = new PDO('sqlite:/var/www/db/acl.db');
-        $acl->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
-        $sql = 'SELECT COUNT(*) FROM acl_membership M JOIN acl_user U ON U.id = M.id_user WHERE U.name = ? AND M.id_group = 1';
-        $st = $acl->prepare($sql);
-        $st->execute(array($_SESSION['issabel_user']));
-        $isAdmin = ((int)$st->fetchColumn()) > 0;
-    } catch (Exception $e) {
-        $isAdmin = false;
-    }
+$username = isset($_SESSION['issabel_user']) ? $_SESSION['issabel_user'] : null;
+// Release the panel's session lock before querying ACL or navigating to Desk.
+session_write_close();
+$status = mytellDeskLauncherStatus($username, function ($identity) {
+    return mytellDeskAclAllows(mytellDeskOpenAcl(), $identity);
+});
+header('Cache-Control: no-store');
+header('Referrer-Policy: same-origin');
+if ($status === 303) {
+    // Existing Desk sessions continue; first sign-in uses its Panel-account flow.
+    // Never impersonate/reset the local administrator or carry a token in a URL.
+    header('Location: /MytellDesk/', true, 303);
+    exit;
 }
-$token = '';
-$error = '';
-
-if ($loggedIn && !$isAdmin) {
-    // بدون مجوز — نه توکن، نه خطای سرویس
-} elseif ($loggedIn) {
-    $bridgePw = '';
-    // فایل اختصاصی رمز پل: هر «کلید=مقدار» خطی پارس می‌شود؛ وگرنه کل
-    // محتوای تک‌خطی فایل — هرچند درونش «=» باشد (مثل پایه۶۴) — خودِ
-    // گذرواژه است، چون کار این فایل فقط همین است. فایل env عمومی فقط
-    // قالب کلید=مقدار دارد.
-    $pwFiles = array('/etc/mytellpbx/opdesk-bridge.pw', '/etc/mytellpbx/opdesk.env');
-    foreach ($pwFiles as $envFile) {
-        $dedicatedPw = ($envFile === '/etc/mytellpbx/opdesk-bridge.pw');
-        if (!is_readable($envFile)) {
-            continue;
-        }
-        foreach (file($envFile, FILE_IGNORE_NEW_LINES) as $line) {
-            if (preg_match('/^OPDESK_BRIDGE_PW=(.+)$/', $line, $m)) {
-                $bridgePw = trim($m[1]);
-                break;
-            }
-        }
-        if ($bridgePw === '' && $dedicatedPw) {
-            $raw = trim((string)file_get_contents($envFile));
-            if ($raw !== '' && strpos($raw, "\n") === false) {
-                $bridgePw = $raw;
-            }
-        }
-        if ($bridgePw !== '') {
-            break;
-        }
-    }
-    if ($bridgePw !== '') {
-        $ch = curl_init('http://127.0.0.1:8765/api/auth/login');
-        $payload = json_encode(array('login' => 'admin', 'password' => $bridgePw));
-        if ($payload !== false) {
-            curl_setopt_array($ch, array(
-                CURLOPT_POST => true,
-                CURLOPT_POSTFIELDS => $payload,
-                CURLOPT_HTTPHEADER => array('Content-Type: application/json'),
-                CURLOPT_RETURNTRANSFER => true,
-                CURLOPT_TIMEOUT => 5,
-            ));
-            $resp = curl_exec($ch);
-            $code = (int)curl_getinfo($ch, CURLINFO_HTTP_CODE);
-            curl_close($ch);
-            if ($code === 200 && is_string($resp) && $resp !== '') {
-                $d = json_decode($resp, true);
-                if (is_array($d) && !empty($d['access_token'])
-                    && is_string($d['access_token'])
-                    && preg_match('/^[A-Za-z0-9._-]+$/', $d['access_token'])) {
-                    $token = $d['access_token'];
-                }
-            }
-        }
-    }
-    if ($token === '') {
-        $error = 'اتصال به میز کار اپراتور برقرار نشد؛ لطفاً سرویس را بررسی کنید.';
-    }
-}
+http_response_code($status);
+$messages = array(
+    401 => array('ابتدا وارد پنل شوید', 'برای دسترسی به میز کار اپراتور، با حساب پنل وارد شوید.'),
+    403 => array('دسترسی محدود است', 'ورود به میز کار از این صفحه برای مدیران مرکز تلفن مجاز است.'),
+    503 => array('بررسی دسترسی ممکن نشد', 'ارتباط با اطلاعات حساب پنل برقرار نشد. کمی بعد دوباره تلاش کنید.'),
+);
+$message = $messages[$status];
 ?>
-<!DOCTYPE html>
-<html lang="fa" dir="rtl">
+<!doctype html>
+<html lang="fa" dir="rtl" data-theme="light">
 <head>
 <meta charset="utf-8">
-<title>میز کار اپراتور | MyTellPBX</title>
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>میز کار اپراتور | مای‌تل</title>
+<link rel="stylesheet" href="/themes/mytel/css/fonts.css">
+<script>try{if(localStorage.getItem('mt-theme')==='dark')document.documentElement.dataset.theme='dark';}catch(e){}</script>
 <style>
-body{font-family:Vazirmatn,Tahoma,sans-serif;background:#0B1526;color:#fff;
-     display:flex;align-items:center;justify-content:center;min-height:100vh;margin:0}
-.card{background:#1a2332;padding:40px 60px;border-radius:16px;text-align:center}
-h2{margin:0 0 12px;font-size:20px}
-p{color:#8b95a5;font-size:14px;margin:6px 0}
-a{color:#FF8A00;text-decoration:none;font-weight:700}
-.spinner{display:inline-block;width:32px;height:32px;border:3px solid #2E3194;
-         border-top-color:#FF8A00;border-radius:50%;animation:sp 1s linear infinite;margin:16px 0}
-@keyframes sp{to{transform:rotate(360deg)}}
+:root{color-scheme:light;--bg:#f3f6fb;--surface:#fff;--text:#14263e;--muted:#52647c;--border:#d6e1ef;--accent:#245bc9}
+:root[data-theme=dark]{color-scheme:dark;--bg:#0c1625;--surface:#142337;--text:#e6edf7;--muted:#b1c2d9;--border:#344a66;--accent:#8db7ff}
+*{box-sizing:border-box}body{margin:0;min-height:100vh;display:grid;place-items:center;padding:24px;background:var(--bg);color:var(--text);font-family:Vazirmatn,Tahoma,sans-serif}
+main{width:min(100%,520px);padding:clamp(24px,5vw,40px);border:1px solid var(--border);border-radius:16px;background:var(--surface)}
+h1{font-size:1.35rem;line-height:1.6;margin:0 0 12px}p{font-size:1rem;line-height:1.9;color:var(--muted);margin:0 0 24px}
+a{display:inline-flex;align-items:center;justify-content:center;min-height:44px;padding:8px 18px;border:1px solid var(--accent);border-radius:9px;color:var(--accent);font-weight:700;text-decoration:none}
+a:focus-visible{outline:3px solid var(--accent);outline-offset:4px}a:hover{text-decoration:underline}
 </style>
 </head>
-<body>
-<div class="card">
-<?php if (!$loggedIn): ?>
-  <h2>🔑 لطفاً وارد پنل شوید</h2>
-  <p>برای دسترسی به میز کار اپراتور ابتدا باید وارد پنل شوید.</p>
-  <p><a href="/">ورود به پنل</a></p>
-<?php elseif (!$isAdmin): ?>
-  <h2>⛔ دسترسی ندارید</h2>
-  <p>میز کار اپراتور فقط برای مدیران سیستم است.</p>
-  <p><a href="/">بازگشت به پنل</a></p>
-<?php elseif ($token !== ''): ?>
-  <h2>🎧 در حال ورود به میز کار اپراتور…</h2>
-  <div class="spinner"></div>
-  <p>در حال انتقال امن…</p>
-  <script>
-  var t = <?= json_encode($token, JSON_HEX_APOS | JSON_HEX_QUOT) ?>;
-  var u = '/MytellDesk/#t=' + encodeURIComponent(t);
-  setTimeout(function(){ window.location.replace(u); }, 500);
-  </script>
-<?php else: ?>
-  <h2>⚠️ <?= htmlspecialchars($error, ENT_QUOTES, 'UTF-8') ?></h2>
-  <p>سرویس میز کار اپراتور (mytellpbx-opdesk) باید فعال باشد.</p>
-  <p><a href="/">بازگشت به پنل</a></p>
-<?php endif; ?>
-</div>
-</body>
-</html>
+<body><main aria-labelledby="status-title">
+<h1 id="status-title"><?= htmlspecialchars($message[0], ENT_QUOTES, 'UTF-8') ?></h1>
+<p role="status"><?= htmlspecialchars($message[1], ENT_QUOTES, 'UTF-8') ?></p>
+<a href="/">بازگشت به پنل</a>
+</main></body></html>

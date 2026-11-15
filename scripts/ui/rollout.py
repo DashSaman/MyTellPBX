@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Hash-checked, journaled UI rollout with a narrow opt-in Apply/calendar profile.
+"""Hash-checked, journaled rollout with explicit narrow presentation/report profiles.
 
 Default operation is a read-only preflight. Apply requires an independent READY
 line bound to the exact manifest plus an explicit expected server hostname.
@@ -14,8 +14,10 @@ import json
 import os
 import pathlib
 import re
+import secrets
 import shutil
 import socket
+import stat
 import tempfile
 
 ROOTS = {"panel": "/var/www/html/themes/mytel", "admin": "/var/www/html/admin",
@@ -40,6 +42,17 @@ SUBMIT_PATHS = {'views/header.php', 'assets/mytel/apply.js', 'assets/mytel/apply
                 'assets/mytel/feedback.js', 'assets/mytel/save.js', 'modules/sipsettings/page.sipsettings.php',
                 'modules/sipsettings/functions.inc.php', 'libraries/mytell-sip-save.php'}
 SUBMIT_CHECKS = SCOPED_CHECKS | {'save-browser', 'toast-lifecycle', 'sip-save-transaction'}
+POLISH_PROFILE = 'panel-polish-desk-entry-v760'
+POLISH_PANEL = PANEL | {'css/base.css', 'css/theme-dark.css', 'css/theme-toggle.css'}
+POLISH_ADMIN = {'views/header.php', 'assets/mytel/workspace.css', 'assets/mytel/workspace.js'}
+POLISH_CHECKS = {'offline-tests', 'js-syntax', 'php-syntax', 'polish-browser',
+                 'entry-auth', 'apply-browser', 'calendar-tests'}
+ASTERNIC_PROFILE = 'asternic-trunk-direction-v760'
+ASTERNIC_PATHS = {'modules/asternic_cdr/page.asternic_cdr.php',
+                  'modules/asternic_cdr/functions.inc.php',
+                  'modules/asternic_cdr/mytell-direction.php'}
+ASTERNIC_CHECKS = {'offline-tests', 'php-syntax', 'cdr-direction',
+                   'cdr-mariadb', 'cdr-readonly-preview'}
 APPLY_PATHS = {'functions.inc.php', 'libraries/view.functions.php', 'libraries/mytell-apply.php'}
 CALENDAR_PATHS = {'modules/calendar/index.php', 'modules/calendar/themes/default/calendar_gui.tpl',
                   'modules/calendar/themes/default/js/javascript.js', 'modules/calendar/scenarios/rest/CalendarEvent.class.php'}
@@ -84,6 +97,13 @@ def allowed(item, profile=None):
     root, relative = item["root"], item["path"]
     if root not in ALLOW:
         return False
+    if profile == ASTERNIC_PROFILE:
+        return root == 'admin' and relative in ASTERNIC_PATHS
+    if profile == POLISH_PROFILE:
+        return ((root == 'panel' and relative in POLISH_PANEL) or
+                (root == 'admin' and relative in POLISH_ADMIN) or
+                (root == 'legacy' and relative in {'modules/mytellpbxopdesk/index.php',
+                                                  'modules/mytellpbxopdesk/launcher-access.php'}))
     if profile == SUBMIT_PROFILE:
         return root == 'admin' and relative in SUBMIT_PATHS
     if profile == SCOPED_PROFILE:
@@ -96,6 +116,10 @@ def allowed(item, profile=None):
 
 
 def priority(item):
+    if item['root'] == 'admin' and item['path'] == 'modules/asternic_cdr/mytell-direction.php':
+        return 10  # Install the shared read-only classifier before either caller.
+    if item['root'] == 'legacy' and item['path'] == 'modules/mytellpbxopdesk/launcher-access.php':
+        return 10  # Publish dependencies before the PHP entrypoint; rollback reverses this.
     if item["root"] == "desk":
         return 40 if item["path"] == "dist/index.html" else 20 if item["path"].startswith("src/") else 10
     return 30 if item["path"].endswith((".tpl", ".php", ".html")) else 10
@@ -113,7 +137,10 @@ def valid_hash(value, nullable=False):
 
 def validate(artifact, manifest, roots, expected="before"):
     outside_served(artifact, roots)
-    if set(roots) != set(ROOTS) or any(not root.is_dir() for root in roots.values()):
+    profile = manifest.get('profile')
+    required_roots = ({'admin'} if profile == ASTERNIC_PROFILE else
+                      {'panel', 'admin', 'legacy'} if profile == POLISH_PROFILE else set(ROOTS))
+    if set(roots) != set(ROOTS) or any(not roots[name].is_dir() for name in required_roots):
         raise ValueError("All installed UI roots are required")
     if expected not in ("before", "after"):
         raise ValueError("Unknown validation phase")
@@ -121,8 +148,7 @@ def validate(artifact, manifest, roots, expected="before"):
         raise ValueError("Unsupported or empty UI manifest")
     if not re.fullmatch(r"[0-9a-f]{40}|[0-9a-f]{64}", manifest.get("source_id", "")):
         raise ValueError("An exact Git tree ID is required")
-    profile = manifest.get('profile')
-    if profile not in (None, SCOPED_PROFILE, SUBMIT_PROFILE):
+    if profile not in (None, SCOPED_PROFILE, SUBMIT_PROFILE, POLISH_PROFILE, ASTERNIC_PROFILE):
         raise ValueError('Unknown release profile')
     records = manifest.get("checks", [])
     if not isinstance(records, list) or any(not isinstance(item, dict) or not isinstance(item.get("check"), str) or type(item.get("rc")) is not int for item in records):
@@ -130,7 +156,10 @@ def validate(artifact, manifest, roots, expected="before"):
     checks = {item["check"]: item["rc"] for item in records}
     if len(checks) != len(records):
         raise ValueError("Duplicate build checks")
-    required = SUBMIT_CHECKS if profile == SUBMIT_PROFILE else SCOPED_CHECKS if profile == SCOPED_PROFILE else REQUIRED_CHECKS
+    required = (ASTERNIC_CHECKS if profile == ASTERNIC_PROFILE else
+                POLISH_CHECKS if profile == POLISH_PROFILE else
+                SUBMIT_CHECKS if profile == SUBMIT_PROFILE else
+                SCOPED_CHECKS if profile == SCOPED_PROFILE else REQUIRED_CHECKS)
     if not required.issubset(checks) or any(item["rc"] != 0 for item in records):
         raise ValueError("Required build checks did not pass")
     targets, plan = set(), []
@@ -186,7 +215,105 @@ def sync_file(path):
             os.fsync(stream.fileno())
 
 
+def open_parent(path):
+    """Walk real directory objects; an untrusted parent cannot redirect a write."""
+    absolute = pathlib.Path(os.path.abspath(str(path)))
+    flags = os.O_RDONLY | os.O_DIRECTORY | os.O_NOFOLLOW
+    descriptor = os.open(absolute.anchor, flags)
+    try:
+        for part in absolute.parent.parts[1:]:
+            next_directory = os.open(part, flags, dir_fd=descriptor)
+            os.close(descriptor)
+            descriptor = next_directory
+        return descriptor, absolute.name
+    except Exception:
+        os.close(descriptor)
+        raise
+
+
+def same_parent(path, descriptor):
+    current, _ = open_parent(path)
+    try:
+        before, after = os.fstat(descriptor), os.fstat(current)
+        if (before.st_dev, before.st_ino) != (after.st_dev, after.st_ino):
+            raise ValueError("Destination parent changed during atomic update")
+    finally:
+        os.close(current)
+
+
 def atomic_bytes(target, data, metadata=None, preserve_mtime=False):
+    if os.name != "posix":
+        # Windows is used for disposable offline fixtures, never PBX rollout.
+        return atomic_bytes_fixture(target, data, metadata, preserve_mtime)
+    parent, name = open_parent(target)
+    temporary = ".mt-ui-" + secrets.token_hex(12)
+    descriptor = previous_fd = metadata_parent = None
+    try:
+        previous = os.fstat(parent)
+        if metadata is not None:
+            metadata_parent, metadata_name = open_parent(metadata)
+            previous_fd = os.open(metadata_name, os.O_RDONLY | os.O_NOFOLLOW | os.O_NONBLOCK, dir_fd=metadata_parent)
+            previous = os.fstat(previous_fd)
+            if not stat.S_ISREG(previous.st_mode):
+                raise ValueError("Non-regular atomic metadata source")
+        descriptor = os.open(temporary, os.O_WRONLY | os.O_CREAT | os.O_EXCL | os.O_NOFOLLOW, 0o600, dir_fd=parent)
+        with os.fdopen(descriptor, "wb", closefd=False) as stream:
+            stream.write(data)
+            stream.flush()
+        os.fchown(descriptor, previous.st_uid, previous.st_gid)
+        os.fchmod(descriptor, stat.S_IMODE(previous.st_mode) if previous_fd is not None else 0o644)
+        if previous_fd is not None and hasattr(os, "listxattr"):
+            for attribute in os.listxattr(previous_fd):
+                os.setxattr(descriptor, attribute, os.getxattr(previous_fd, attribute))
+        if preserve_mtime and previous_fd is not None:
+            os.utime(descriptor, ns=(previous.st_atime_ns, previous.st_mtime_ns))
+        else:
+            os.utime(descriptor, None)
+        os.fsync(descriptor)
+        same_parent(target, parent)
+        if metadata is None:
+            # A first-install helper/journal must never overwrite a file that
+            # appeared after preflight. Hard-link creation is atomic/exclusive.
+            os.link(temporary, name, src_dir_fd=parent, dst_dir_fd=parent, follow_symlinks=False)
+            os.unlink(temporary, dir_fd=parent)
+        else:
+            os.replace(temporary, name, src_dir_fd=parent, dst_dir_fd=parent)
+        os.fsync(parent)
+        same_parent(target, parent)
+    finally:
+        if descriptor is not None: os.close(descriptor)
+        if previous_fd is not None: os.close(previous_fd)
+        if metadata_parent is not None: os.close(metadata_parent)
+        try: os.unlink(temporary, dir_fd=parent)
+        except FileNotFoundError: pass
+        os.close(parent)
+
+
+def atomic_remove(target, expected):
+    """Remove only the reviewed new file, without following a changed parent."""
+    if os.name != "posix":
+        if digest(target) != expected: raise ValueError("Rollback content changed")
+        target.unlink()
+        return
+    parent, name = open_parent(target)
+    try:
+        descriptor = os.open(name, os.O_RDONLY | os.O_NOFOLLOW | os.O_NONBLOCK, dir_fd=parent)
+        with os.fdopen(descriptor, "rb") as stream:
+            identity = os.fstat(stream.fileno())
+            if not stat.S_ISREG(identity.st_mode) or hashlib.sha256(stream.read()).hexdigest() != expected:
+                raise ValueError("Rollback content changed")
+        visible = os.stat(name, dir_fd=parent, follow_symlinks=False)
+        if (identity.st_dev, identity.st_ino) != (visible.st_dev, visible.st_ino):
+            raise ValueError("Rollback target replaced")
+        same_parent(target, parent)
+        os.unlink(name, dir_fd=parent)
+        os.fsync(parent)
+        same_parent(target, parent)
+    finally:
+        os.close(parent)
+
+
+def atomic_bytes_fixture(target, data, metadata=None, preserve_mtime=False):
     if not target.parent.is_dir():
         raise ValueError("Destination parent does not exist: " + str(target.parent))
     fd, temporary = tempfile.mkstemp(prefix=".mt-ui-", dir=str(target.parent))
@@ -253,8 +380,7 @@ def rollback(backup, roots):
         if current != item["after"]:
             raise ValueError("Live drift during rollback: " + item["path"])
         if item["before"] is None:
-            target.unlink()  # Exact new manifest file only; no directory removal.
-            sync_directory(target.parent)
+            atomic_remove(target, item["after"])  # Exact file only; no directory removal.
         else:
             atomic_bytes(target, data, original, preserve_mtime=True)
         if digest(target) != item["before"]:
@@ -303,7 +429,7 @@ def apply(artifact, roots, backup, review):
             target = within(roots[item["root"]], item["path"])
             if digest(target) != item["before"]:
                 raise ValueError("Live file changed during deployment")
-            atomic_bytes(target, data, target if target.exists() else None)
+            atomic_bytes(target, data, target if item["before"] is not None else None)
         validate(artifact, manifest, roots, "after")
         journal["state"] = "DEPLOYED_AWAITING_BROWSER_VERIFICATION"
         journal_write(backup, journal)

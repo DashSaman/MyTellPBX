@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """MyTellPBX v7.2.0 part 1 — rename desk URL /opdesk/ -> /MytellDesk/.
 
-Server-side (192.168.8.171):
+Server-side (your existing PBX):
   1) Apache: rewrite the proxy conf for the new path + permanent 301 from
      the old path, keeping root /api/, /ws, /sip-ws fallbacks and no-cache.
   2) Bridge module: redirect target /opdesk/#t= -> /MytellDesk/#t=.

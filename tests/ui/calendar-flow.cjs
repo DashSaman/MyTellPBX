@@ -42,11 +42,19 @@ const detail={...fixture,subject:fixture.title,description:'رویداد آزم�
     if(u.pathname==='/modules/calendar/themes/default/js/javascript.js')return route.fulfill({path:path.join(candidate,'legacy',u.pathname.slice(1))});
     if(u.pathname==='/index.php'&&u.searchParams.get('menu')==='calendar'){
      const response=await route.fetch();let html=await response.text();
-     html=html.replace('</head>','<link rel="stylesheet" href="/themes/mytel/css/workspace.css?v=752"><link rel="stylesheet" href="/themes/mytel/css/mt-calendar.css?v=752"></head>');
-     html=html.replace(/(<script[^>]+src="[^"]*\/js\/mt-calendar.js[^>]*>)/,'<script src="/themes/mytel/js/calendar-core.js?v=752"></script><script src="/themes/mytel/js/calendar-editor.js?v=752"></script>$1');
-     html=html.replace('<input type="hidden" name="server_year"','<input type="hidden" name="server_timezone" value="Europe/Berlin"><input type="hidden" name="server_year"');
+     // Installed v752 pages already load these assets. Reinjecting the editor
+     // builds duplicate date controls and creates a false lifecycle failure.
+     for(const file of ['workspace.css','mt-calendar.css'])if(!html.includes('/css/'+file))
+      html=html.replace('</head>','<link rel="stylesheet" href="/themes/mytel/css/'+file+'?v=752"></head>');
+     for(const file of ['calendar-core.js','calendar-editor.js'])if(!html.includes('/js/'+file))
+      html=html.replace(/(<script[^>]+src="[^"]*\/js\/mt-calendar.js[^>]*>)/,'<script src="/themes/mytel/js/'+file+'?v=752"></script>$1');
+     // This fixture intentionally uses Berlin server civil time in both browser
+     // zones; replace the existing server-zone field rather than duplicating it.
+     if(html.includes('name="server_timezone"'))
+      html=html.replace(/(<input\b[^>]*\bname="server_timezone"[^>]*\bvalue=)"[^"]*"/g,'$1"Europe/Berlin"');
+     else html=html.replace('<input type="hidden" name="server_year"','<input type="hidden" name="server_timezone" value="Europe/Berlin"><input type="hidden" name="server_year"');
      html=html.replace('<table class="tabForm"','<table class="mt-calendar-layout"');
-     html=html.replace('</body>','<script src="/themes/mytel/js/workspace.js?v=752"></script></body>');
+     if(!html.includes('/js/workspace.js'))html=html.replace('</body>','<script src="/themes/mytel/js/workspace.js?v=752"></script></body>');
      return route.fulfill({response,body:html});
     }
    }

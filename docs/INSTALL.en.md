@@ -8,7 +8,7 @@ script straight into bash without review:
 
 ```
 curl -fsSL -o install-mytellpbx.sh \
-  https://github.com/DashSaman/MyTellPBX/releases/download/v7.5.1/install-mytellpbx.sh
+  https://github.com/DashSaman/MyTellPBX/releases/download/v7.6.0/install-mytellpbx.sh
 ```
 
 ```
@@ -39,10 +39,30 @@ On success the panel URL and the credentials-file path are printed.
      name is visible anywhere in the UI)
    - The Apply Config fix
    - Unique random passwords in a root-only credentials file
+3. **MytelDesk with CPU VAD**: the exact pinned public release, private Node and
+   Python3.11 runtimes, hash-locked dependencies and bundled verified model.
+   The product's installer and doctor run real CPU inference before success.
+   Existing recording/retention policy stays unchanged.
 
 The install is staged and resumable: if interrupted, re-running the same
-command continues from the completed stage and **never rotates existing
-credentials**.
+command with the same release/bundle hash continues from the completed stage and
+**never rotates existing credentials**. Unknown legacy or cross-version installer
+state is refused. Do not delete the ownership receipt or credentials to force an
+OS reinstall over an existing PBX; use separately reviewed scoped maintenance.
+
+For a domain instead of the server's detected HTTPS address, set
+`MYTELL_DESK_PUBLIC_URL=https://pbx.example.com`. Configure trusted TLS and valid
+SIP/WebRTC extensions on the PBX for browser calling; setting this URL does not
+issue a certificate or configure trunks. HTTPS access to GitHub, nodejs.org,
+files.pythonhosted.org and official Rocky repositories is required for Desk/VAD.
+
+Open `/MytellDesk/` and choose **Panel account**. The native launcher requires an
+administrator panel session and redirects there; a first Desk visit still signs
+in using panel credentials. Existing Desk tokens remain usable. A separate local
+Desk admin has a unique password in `/etc/myteldesk/initial-admin.txt`. Maintenance
+uses `myteldesk doctor` and the standalone product's documented rollback. Legacy
+Desk deployments require reviewed migration; the base installer never resets
+their accounts or patches immutable release code.
 
 ## Credentials
 
@@ -101,10 +121,13 @@ firewalld **stays enabled**; only these ports are opened.
 - **Full install log**: `/var/log/mytelpbx-install.log`
 - **Resume an interrupted install**: run the same command again; finished
   stages are skipped.
-- **"existing PBX packages detected"**: the server is not fresh; see
-  Removal below.
-- **"bundle checksum mismatch"**: delete `/tmp/mytelpbx-bundle-7.5.1.tgz`
-  and run again.
+- **"existing PBX packages detected"**: the server is not fresh; stop the base
+  installer and use reviewed maintenance. Removing installer state is not a fix.
+- **"different or invalid installer source"**: preserve the state/credentials;
+  resume with the original exact release or review a scoped migration.
+- **"bundle checksum mismatch"**: the per-run private download workspace is
+  discarded; check the official release checksum/network and rerun the same
+  installer. Do not bypass integrity checks or delete credential files.
 - **Panel not loading**: check `systemctl status httpd mariadb asterisk`.
 - **Login fails**: `cat /root/mytelpbx-credentials.txt`.
 

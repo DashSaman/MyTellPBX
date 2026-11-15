@@ -19,18 +19,19 @@ SKIN_END = "/* MyTellPBX legacy coverage v740 END */"
 START = "/* MyTellPBX workspace v740 BEGIN */"
 END = "/* MyTellPBX workspace v740 END */"
 HEAD = """/* MyTellPBX workspace v740 BEGIN */
-$html .= '<script src="assets/mytel/workspace.js?v=752"></script>';
+$html .= '<script src="assets/mytel/workspace.js?v=760"></script>';
 /* MyTellPBX workspace v740 END */
 """
 STYLE = """/* MyTellPBX workspace v740 BEGIN */
-$html .= '<link rel="stylesheet" href="assets/mytel/workspace.css?v=752">';
+$html .= '<link rel="stylesheet" href="assets/mytel/workspace.css?v=760">';
 /* MyTellPBX workspace v740 END */
 """
 
 
 def remove_current(text):
-    text = text.replace("\n" + HEAD.replace('?v=752', '?v=740'), "").replace(STYLE.replace('?v=752', '?v=740'), "")
-    text = text.replace("\n" + HEAD, "").replace(STYLE, "")
+    for version in ('740', '752', '760'):
+        text = text.replace("\n" + HEAD.replace('?v=760', '?v=' + version), "")
+        text = text.replace(STYLE.replace('?v=760', '?v=' + version), "")
     if START in text or END in text:
         raise ValueError("Workspace PHP marker changed; refusing to discard edits")
     return text
