@@ -27,6 +27,47 @@
         });
     }
 
+    function fitNativeDropdown(group) {
+        var menu = group.querySelector('.navbar-dropdown');
+        if (!menu) return;
+        menu.classList.remove('mt-native-menu-fit');
+        ['--mt-menu-shift', '--mt-menu-x', '--mt-menu-y', '--mt-menu-z'].forEach(function (name) { menu.style.removeProperty(name); });
+        if (!window.matchMedia('(min-width:1024px)').matches || !menu.getClientRects().length) return;
+        var rect = menu.getBoundingClientRect();
+        var shift = Math.min(0, innerWidth - 8 - rect.right);
+        if (rect.left + shift < 8) shift = 8 - rect.left;
+        if (!shift) return;
+        // Individual translate composes with native transform/animations. Retain
+        // any existing translate coordinates too, including calc() expressions.
+        var value = getComputedStyle(menu).translate || 'none';
+        var coordinates = [], token = '', depth = 0;
+        (value === 'none' ? '' : value).split('').forEach(function (ch) {
+            if (ch === '(') depth++;
+            if (ch === ')') depth--;
+            if (/\s/.test(ch) && !depth) { if (token) coordinates.push(token); token = ''; }
+            else token += ch;
+        });
+        if (token) coordinates.push(token);
+        menu.style.setProperty('--mt-menu-x', coordinates[0] || '0px');
+        menu.style.setProperty('--mt-menu-y', coordinates[1] || '0px');
+        menu.style.setProperty('--mt-menu-z', coordinates[2] || '0px');
+        menu.style.setProperty('--mt-menu-shift', shift + 'px');
+        menu.classList.add('mt-native-menu-fit');
+    }
+
+    function initNativeDropdowns() {
+        document.querySelectorAll('.navbar-start > .navbar-item.has-dropdown').forEach(function (group) {
+            var heading = group.querySelector('.navbar-link');
+            if (heading && (!heading.hasAttribute('href') || heading.tabIndex < 0) && heading.getAttribute('aria-disabled') !== 'true') heading.tabIndex = 0;
+            if (!group.__mtDropdownFitBound) {
+                group.__mtDropdownFitBound = true;
+                group.addEventListener('mouseenter', function () { fitNativeDropdown(group); });
+                group.addEventListener('focusin', function () { fitNativeDropdown(group); });
+            }
+            fitNativeDropdown(group);
+        });
+    }
+
     function paint() {
         var button = document.querySelector('.mt-admin-theme-toggle');
         if (!button) return;
@@ -63,6 +104,7 @@
         });
         paint();
         syncNativeMenus();
+        initNativeDropdowns();
     }
 
     document.addEventListener('click', function (event) {
@@ -96,6 +138,13 @@
         }
     });
     new MutationObserver(paint).observe(root, { attributes: true, attributeFilter: ['data-mt-theme'] });
+    var menuFitPending = false;
+    window.addEventListener('resize', function () {
+        if (menuFitPending) return;
+        menuFitPending = true;
+        window.requestAnimationFrame(function () { menuFitPending = false; initNativeDropdowns(); });
+    });
+    if (document.fonts && document.fonts.ready) document.fonts.ready.then(initNativeDropdowns);
     if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', init);
     else init();
     /* Native Unpoly can replace the navbar without re-running head scripts. */

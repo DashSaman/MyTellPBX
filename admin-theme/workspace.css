@@ -26,6 +26,9 @@
 :root body .navbar.is-dark .navbar-dropdown :is(a.navbar-item, .navbar-item) { color: var(--mt-text) !important; background: transparent !important; }
 :root body .navbar.is-dark .navbar-dropdown a.navbar-item:hover { background: var(--mt-primary-tint) !important; color: var(--mt-primary-fg) !important; }
 :root body .navbar.is-dark .navbar-dropdown a.navbar-item.is-active { color: var(--mt-primary-fg) !important; background: var(--mt-primary-tint) !important; box-shadow: inset 3px 0 0 var(--mt-primary-fg); border-radius: 0; }
+:root body .navbar.is-dark .navbar-item.has-dropdown:focus-within > .navbar-dropdown { display:block; }
+:root body .navbar.is-dark .navbar-item.has-dropdown:focus-within > .navbar-link { color:#FFFFFF!important; background:#254262!important; }
+:root body .navbar-dropdown.mt-native-menu-fit { translate:calc(var(--mt-menu-x, 0px) + var(--mt-menu-shift, 0px)) var(--mt-menu-y, 0px) var(--mt-menu-z, 0px); }
 :root body .navbar.is-dark .navbar-dropdown a.navbar-item::after { color: var(--mt-text-muted); font-size: 11px; opacity: 1; }
 :root body .navbar-divider { background: var(--mt-border) !important; }
 :root body .navbar.is-dark .mt-admin-theme-toggle {
