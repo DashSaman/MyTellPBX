@@ -75,7 +75,7 @@ class BrandAssetQueries(unittest.TestCase):
         with tempfile.TemporaryDirectory() as temporary:
             path = Path(temporary) / 'fixture.php'; path.write_text(prelude + transform(source), encoding='utf-8')
             result = subprocess.run([PHP, '-n', str(path)], input=json.dumps({'url':url,'tag':tag}).encode(),
-                stdin=None, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, timeout=30)
+                stdout=subprocess.PIPE, stderr=subprocess.STDOUT, timeout=30)
         output = result.stdout.decode('utf-8', 'replace')
         self.assertEqual(result.returncode, 0, output)
         self.assertNotIn('Warning:', output); self.assertNotIn('Fatal error:', output)
