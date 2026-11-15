@@ -10,24 +10,37 @@ const save=()=>fs.writeFileSync(path.join(out,'result.json'),JSON.stringify(resu
 async function check(name,width,theme,fn){try{await fn();result.checks.push({name,width,theme,pass:true});console.log('PASS '+name+' '+width+' '+theme);}catch(e){result.checks.push({name,width,theme,pass:false,error:e.message});console.log('FAIL '+name+' '+width+' '+theme+': '+e.message);}save();}
 (async()=>{
  assert(process.env.MT_PANEL_SESSION,'Caller-only authenticated panel session required');browser=await chromium.launch({executablePath:process.env.MT_CHROMIUM_PATH||undefined,channel:process.env.MT_CHROMIUM_PATH?undefined:'chrome',headless:true});
- for(const width of [1440,390])for(const theme of ['light','dark']){
+ for(const width of (process.env.MT_UI_WIDTHS||'1440,390').split(',').map(Number))for(const theme of ['light','dark']){
   const context=await browser.newContext({ignoreHTTPSErrors:process.env.MT_SELF_SIGNED==='1',serviceWorkers:'block',reducedMotion:'reduce',viewport:{width,height:1000}});
   const events={blocked:[],external:new Set()};await installRoutes(context,events);await context.addCookies([{name:'issabelSession',value:process.env.MT_PANEL_SESSION,url:origin}]);await context.addInitScript(t=>localStorage.setItem('mt-theme',t),theme);
   const p=await context.newPage();await p.goto(origin+'/index.php?menu=pbxadmin',{waitUntil:'domcontentloaded'});await p.goto(origin+'/admin/config.php?display=asteriskinfo',{waitUntil:'domcontentloaded'});await p.locator('.mt-pagedesc-toggle').waitFor();await p.evaluate(()=>document.fonts.ready);
   await check('legacy report content and help stay usable without hidden horizontal clipping',width,theme,async()=>{
    const m=await p.evaluate(()=>{const c=document.querySelector('#page_body > .content'),h=document.querySelector('.mt-pagedesc-toggle'),r=c.getBoundingClientRect(),b=h.getBoundingClientRect(),nav=document.querySelector('#page_body > div.rnav');return {width:r.width,helpLeft:b.left,helpRight:b.right,direction:getComputedStyle(document.body).direction,navPosition:getComputedStyle(nav).position,overflow:Math.max(document.body.scrollWidth,document.documentElement.scrollWidth)-innerWidth};});
-   assert.equal(m.direction,'ltr');assert(m.width>=(width<700?width-60:width-350),'Content width collapsed to '+m.width.toFixed(1));assert(m.helpLeft>=0&&m.helpRight<=width,'Help control is clipped');assert(m.overflow<=3);if(width>=700)assert.equal(m.navPosition,'fixed','Desktop native navigation position must remain intact');
+   assert.equal(m.direction,'ltr');assert(m.width>=(width<=700?width-60:width-350),'Content width collapsed to '+m.width.toFixed(1));assert(m.helpLeft>=0&&m.helpRight<=width,'Help control is clipped');assert(m.overflow<=3);if(width>700)assert.equal(m.navPosition,'fixed','Desktop native navigation position must remain intact');
   });
-  if(width<700)await check('mobile native menu supports keyboard activation and exposes its actual state',width,theme,async()=>{
+  if(width<1024)await check('mobile native menu supports keyboard activation and exposes its actual state',width,theme,async()=>{
    const burger=p.locator('.navbar-burger').first();assert(await burger.isVisible());assert(await burger.evaluate(el=>el.tabIndex>=0),'Menu trigger is absent from keyboard order');await burger.focus();await p.keyboard.press('Enter');
    const expanded=await burger.getAttribute('aria-expanded');assert.equal(expanded,'true');const id=await burger.getAttribute('aria-controls');assert(id,'Menu trigger lacks controlled region');assert(await p.locator('#'+id).isVisible());
    await p.keyboard.press('Escape');assert.equal(await burger.getAttribute('aria-expanded'),'false');assert(await burger.evaluate(el=>document.activeElement===el));
   });
-  if(width<700)await check('native menu button semantics include Space without duplicate activation',width,theme,async()=>{
+  if(width<1024)await check('native menu button semantics include Space without duplicate activation',width,theme,async()=>{
    const burger=p.locator('.navbar-burger').first(),id=await burger.getAttribute('data-target');assert(id);const target=p.locator('#'+id);
    if(await target.evaluate(el=>el.classList.contains('is-active')))await burger.click();
    await burger.focus();await p.keyboard.press('Space');assert(await target.evaluate(el=>el.classList.contains('is-active')),'Space did not open the menu');
    await burger.click();assert.equal(await target.evaluate(el=>el.classList.contains('is-active')),false);
+  });
+  if(width>=1024)await check('desktop menu options remain reachable when their group receives keyboard focus',width,theme,async()=>{
+   const groups=p.locator('.navbar-start > .navbar-item.has-dropdown');assert(await groups.count()>0);
+   for(let i=0;i<await groups.count();i++){
+    const group=groups.nth(i),link=group.locator(':scope > .navbar-link');await link.focus();const menu=group.locator(':scope > .navbar-dropdown');
+    assert(await link.evaluate(el=>document.activeElement===el),'Native menu group is absent from keyboard focus');
+    assert(await menu.isVisible(),'Keyboard focus did not reveal a native menu');
+    const r=await menu.boundingBox();assert(r.x>=0&&r.x+r.width<=width,'Native menu is clipped by viewport at '+r.x.toFixed(1)+' width '+r.width.toFixed(1));
+   }
+  });
+  if(width>=1024)await check('pointer-open native menus stay entirely inside the viewport',width,theme,async()=>{
+   const groups=p.locator('.navbar-start > .navbar-item.has-dropdown');assert(await groups.count()>0);
+   for(let i=0;i<await groups.count();i++){const group=groups.nth(i);await group.locator(':scope > .navbar-link').hover();const menu=group.locator(':scope > .navbar-dropdown');assert(await menu.isVisible());const r=await menu.boundingBox();assert(r.x>=0&&r.x+r.width<=width,'Pointer menu is clipped at '+r.x.toFixed(1)+' width '+r.width.toFixed(1));}
   });
   await p.screenshot({path:path.join(out,'report-'+width+'-'+theme+'.png'),fullPage:false,animations:'disabled',mask:[p.locator('input[type=text],input[type=password],textarea')],maskColor:'#7a8899'});
   await p.goto(origin+'/admin/config.php?display=vmblast',{waitUntil:'domcontentloaded'});await p.locator('.chosen-container-multi .chosen-search-input').waitFor();

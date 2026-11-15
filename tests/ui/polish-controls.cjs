@@ -57,7 +57,7 @@ function textContrasts(selector){
  }
  await page.locator('#main-menu').waitFor();await page.goto(origin+'/index.php?menu=pbxadmin',{waitUntil:'domcontentloaded'});
  const state=await login.storageState();await login.close();
- for(const width of [1440,390])for(const theme of ['light','dark']){
+ for(const width of (process.env.MT_UI_WIDTHS||'1440,390').split(',').map(Number))for(const theme of ['light','dark']){
   const context=await browser.newContext({storageState:state,ignoreHTTPSErrors:process.env.MT_SELF_SIGNED==='1',serviceWorkers:'block',reducedMotion:'reduce',viewport:{width,height:1000}});await guard(context);
   await context.addInitScript(t=>localStorage.setItem('mt-theme',t),theme);const p=await context.newPage();
   await p.goto(origin+'/index.php?menu=calendar',{waitUntil:'domcontentloaded'});await p.locator('.mt-jtoday .mt-jday-open').waitFor({state:'attached'});await p.evaluate(()=>document.fonts.ready);
