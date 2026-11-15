@@ -46,6 +46,15 @@ def validate_pin(value):
     for key, size in [('sha256', 64), ('source_commit', 40), ('source_tree', 40)]:
         if not isinstance(value.get(key), str) or not re.fullmatch('[0-9a-f]{' + str(size) + '}', value[key]):
             raise ValueError('Incomplete MytelDesk source pin')
+    previous = value.get('upgrades_from', [])
+    if not isinstance(previous, list): raise ValueError('Invalid supported Desk upgrades')
+    for item in previous:
+        if not isinstance(item, dict) or not isinstance(item.get('version'), str) or not re.fullmatch(r'[0-9]+\.[0-9]+\.[0-9]+', item['version']):
+            raise ValueError('Invalid supported Desk upgrade version')
+        if not isinstance(item.get('source_tree'), str) or not re.fullmatch('[0-9a-f]{40}', item['source_tree']):
+            raise ValueError('Invalid supported Desk upgrade source')
+        if tuple(map(int, item['version'].split('.'))) >= tuple(map(int, version.split('.'))):
+            raise ValueError('Supported Desk upgrades must precede the pinned version')
     return value
 
 
@@ -84,11 +93,14 @@ def relative_name(name):
     return parsed
 
 
-def verify_bundle(bundle, pin):
+def verify_bundle(bundle, pin, expected_manifest=None):
     pin = validate_pin(pin); bundle = Path(bundle)
     if bundle.is_symlink() or not bundle.is_dir(): raise ValueError('Invalid cached MytelDesk bundle')
-    manifest = json.loads((bundle / 'manifest.json').read_text(encoding='utf-8'))
-    if manifest.get('schema') != 1 or manifest.get('version') != pin['version'] or manifest.get('source_tree') != pin['source_tree']:
+    manifest_bytes = (bundle / 'manifest.json').read_bytes()
+    if expected_manifest is not None and manifest_bytes != expected_manifest:
+        raise ValueError('Cached MytelDesk manifest differs from the pinned archive')
+    manifest = json.loads(manifest_bytes.decode('utf-8'))
+    if not isinstance(manifest, dict) or type(manifest.get('schema')) is not int or manifest['schema'] != 1 or manifest.get('version') != pin['version'] or manifest.get('source_tree') != pin['source_tree']:
         raise ValueError('MytelDesk manifest does not match the release pin')
     files = manifest.get('files')
     if not isinstance(files, dict) or not files: raise ValueError('Empty MytelDesk manifest')
@@ -107,6 +119,16 @@ def verify_bundle(bundle, pin):
     if (bundle / 'SOURCE_TREE').read_text(encoding='ascii').strip() != pin['source_tree']:
         raise ValueError('MytelDesk source tree mismatch')
     return bundle
+
+
+def secure_bundle(bundle):
+    """The Linux CLI runs as root; refuse mutable or differently owned payloads."""
+    if os.name != 'posix': raise ValueError('MytelDesk execution requires a POSIX host')
+    for item in [Path(bundle)] + list(Path(bundle).rglob('*')):
+        if item.is_symlink(): raise ValueError('Executable MytelDesk cache symlink refused')
+        info = item.stat()
+        if info.st_uid != os.geteuid() or stat.S_IMODE(info.st_mode) & 0o022:
+            raise ValueError('Executable MytelDesk cache has unsafe ownership or permissions')
 
 
 def extract_verified(archive, destination, pin):
@@ -153,7 +175,6 @@ def obtain_bundle(pin, cache, fetch=download):
     archive = cache / ('myteldesk-' + pin['version'] + '-' + pin['sha256'][:12] + '.tar.gz')
     bundle = cache / ('bundle-' + pin['version'] + '-' + pin['source_tree'][:12])
     if archive.is_symlink() or bundle.is_symlink(): raise ValueError('MytelDesk cache symlink refused')
-    if bundle.exists(): return verify_bundle(bundle, pin)
     if not archive.exists():
         descriptor, temporary = tempfile.mkstemp(prefix='.download-', dir=str(cache)); os.close(descriptor)
         temporary = Path(temporary)
@@ -163,12 +184,73 @@ def obtain_bundle(pin, cache, fetch=download):
             if temporary.is_symlink() or digest(temporary) != pin['sha256']: raise ValueError('MytelDesk download checksum mismatch')
             os.replace(str(temporary), str(archive))
         finally:
-            if temporary.exists(): temporary.unlink()
+            if temporary.exists() or temporary.is_symlink(): temporary.unlink()
     if digest(archive) != pin['sha256']: raise ValueError('Cached MytelDesk archive checksum mismatch')
+    with tarfile.open(str(archive), 'r:gz') as source:
+        member = source.getmember('myteldesk-' + pin['version'] + '/manifest.json')
+        if not member.isfile() or member.size > 16 * 1024 * 1024: raise ValueError('Invalid pinned MytelDesk manifest')
+        expected_manifest = source.extractfile(member).read()
+    if bundle.exists(): return verify_bundle(bundle, pin, expected_manifest)
     with tempfile.TemporaryDirectory(prefix='.extract-', dir=str(cache)) as temporary:
         extracted = extract_verified(archive, Path(temporary) / 'payload', pin)
         os.replace(str(extracted), str(bundle))
-    return verify_bundle(bundle, pin)
+    return verify_bundle(bundle, pin, expected_manifest)
+
+
+def read_owned_state(path):
+    path = Path(path)
+    if path.is_symlink(): raise ValueError('Desk ownership state symlink refused')
+    if not path.exists(): return None
+    if not path.is_file(): raise ValueError('Invalid Desk ownership state path')
+    if os.name == 'posix':
+        info = path.stat()
+        if info.st_uid != os.geteuid() or stat.S_IMODE(info.st_mode) & 0o022:
+            raise ValueError('Desk ownership state has unsafe permissions')
+    value = json.loads(path.read_text(encoding='utf-8'))
+    if not isinstance(value, dict) or value.get('owner') != 'MytelDesk' or type(value.get('schema')) is not int or value['schema'] != 1:
+        raise ValueError('Unknown Desk ownership state; use reviewed migration')
+    return value
+
+
+def target_identity(pin):
+    return {key: pin[key] for key in ('version', 'source_tree', 'sha256')}
+
+
+def validate_existing_state(path, pin, attempt):
+    state = read_owned_state(path)
+    if state is None: return
+    allowed = [(pin['version'], pin['source_tree'])]
+    allowed.extend((item['version'], item['source_tree']) for item in pin.get('upgrades_from', []))
+    if state.get('status') == 'ready':
+        if (state.get('version'), state.get('tree')) not in allowed:
+            raise ValueError('Existing Desk source is newer or different; use its own updater or reviewed migration')
+        return
+    if state.get('version') is not None and (state.get('version'), state.get('tree')) not in allowed:
+        raise ValueError('Partial Desk source differs from the pinned release; use reviewed recovery')
+    if state.get('status') not in ('preparing', 'prepared'):
+        raise ValueError('Desk ownership state requires reviewed recovery')
+    attempt = Path(attempt)
+    if attempt.is_symlink() or not attempt.is_file():
+        raise ValueError('Partial Desk install has no matching bootstrap receipt; use reviewed recovery')
+    if os.name == 'posix' and (attempt.stat().st_uid != os.geteuid() or stat.S_IMODE(attempt.stat().st_mode) & 0o022):
+        raise ValueError('Desk bootstrap receipt has unsafe ownership or permissions')
+    receipt = json.loads(attempt.read_text(encoding='utf-8'))
+    if not isinstance(receipt, dict) or receipt.get('owner') != 'MyTellPBXDeskBootstrap' or receipt.get('schema') != 1 or receipt.get('phase') != 'failed' \
+            or receipt.get('target') != target_identity(pin) or receipt.get('state_sha256') != digest(path):
+        raise ValueError('Partial Desk state changed; preserve data and use reviewed recovery')
+
+
+def record_attempt(cache, pin, state_path, phase):
+    state = read_owned_state(state_path)
+    payload = dict(owner='MyTellPBXDeskBootstrap', schema=1, phase=phase, target=target_identity(pin),
+                   state_sha256=digest(state_path) if state is not None else None)
+    descriptor, temporary = tempfile.mkstemp(prefix='.attempt-', dir=str(cache))
+    try:
+        with os.fdopen(descriptor, 'w', encoding='utf-8') as output:
+            json.dump(payload, output, sort_keys=True); output.write('\n'); output.flush(); os.fsync(output.fileno())
+        os.chmod(temporary, 0o600); os.replace(temporary, str(Path(cache) / 'attempt.json'))
+    finally:
+        if os.path.exists(temporary): os.unlink(temporary)
 
 
 def run_command(argv):
@@ -234,16 +316,28 @@ def install(pin, cache, public_url=None, run=run_command, fetch=download,
             legacy_paths=LEGACY_PATHS, standalone_state=STANDALONE_STATE, launcher_source=None,
             web_root=Path('/var/www/html')):
     pin = validate_pin(pin); public_url = validate_public_url(public_url)
+    cache = Path(cache)
+    validate_existing_state(standalone_state, pin, cache / 'attempt.json')
     if not Path(standalone_state).is_file() and any(Path(path).exists() for path in legacy_paths):
         raise ValueError('Legacy Desk installation detected; use reviewed migration, not the fresh PBX installer')
-    cache = Path(cache); secure_directory(cache)
+    secure_directory(cache)
     print('MytelDesk ' + pin['version'] + ': verifying the pinned release and automatic CPU voice analysis.', flush=True)
     bundle = obtain_bundle(pin, cache, fetch)
+    secure_bundle(bundle)
     argv = [sys.executable, '-B', str(bundle / 'installer/install.py'), 'install', '--bundle', str(bundle)]
     if public_url: argv.extend(['--public-url', public_url])
-    run(argv)
-    run(['/usr/local/sbin/myteldesk', 'doctor'])
-    if launcher_source is not None: install_launcher(launcher_source, web_root)
+    try:
+        run(argv)
+        run(['/usr/local/sbin/myteldesk', 'doctor'])
+        ready = read_owned_state(standalone_state)
+        if not ready or ready.get('status') != 'ready' or ready.get('version') != pin['version'] or ready.get('tree') != pin['source_tree']:
+            raise ValueError('MytelDesk did not reach the pinned ready source; installation remains incomplete')
+        if launcher_source is not None: install_launcher(launcher_source, web_root)
+    except BaseException:
+        try: record_attempt(cache, pin, standalone_state, 'failed')
+        except (OSError, ValueError): pass  # Preserve the original failure; unknown state stays fail-closed.
+        raise
+    record_attempt(cache, pin, standalone_state, 'complete')
     return bundle
 
 

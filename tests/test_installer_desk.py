@@ -30,6 +30,16 @@ def pin(sha='a' * 64):
             'source_commit': 'a' * 40, 'source_tree': 'b' * 40}
 
 
+def ready_runner(path, release_pin, calls):
+    def run(argv):
+        calls.append(argv)
+        if 'install' in argv:
+            value = json.loads(path.read_text()) if path.exists() else {}
+            value.update(owner='MytelDesk', schema=1, status='ready', version=release_pin['version'], tree=release_pin['source_tree'])
+            path.write_text(json.dumps(value))
+    return run
+
+
 def make_archive(path, extra=None):
     files = {'installer/install.py': b'# upstream entry point\n', 'backend/vad/models/silero_vad.onnx': b'fixture model',
              'VERSION': b'1.1.0\n', 'SOURCE_TREE': ('b' * 40 + '\n').encode()}
@@ -117,10 +127,11 @@ class DeskHelperTests(unittest.TestCase):
 
     def test_install_runs_upstream_with_bytecode_disabled_then_real_doctor(self):
         archive = self.base / 'source.tgz'; release_pin = make_archive(archive); calls = []
+        state = self.base / 'state.json'
         with mock.patch.object(self.module, 'secure_directory', side_effect=lambda p: p.mkdir(parents=True, exist_ok=True)):
             self.module.install(release_pin, self.base / 'cache', 'https://pbx.example',
-                                run=lambda argv: calls.append(argv), fetch=lambda _u, p: p.write_bytes(archive.read_bytes()),
-                                legacy_paths=[], standalone_state=self.base / 'absent-state')
+                                run=ready_runner(state, release_pin, calls), fetch=lambda _u, p: p.write_bytes(archive.read_bytes()),
+                                legacy_paths=[], standalone_state=state)
         self.assertEqual(len(calls), 2)
         self.assertEqual(calls[0][0:2], [sys.executable, '-B'])
         self.assertIn('install', calls[0]); self.assertIn('--bundle', calls[0])
@@ -206,12 +217,12 @@ class DeskHelperTests(unittest.TestCase):
     def test_known_owned_older_release_may_upgrade_without_resetting_state_values(self):
         archive = self.base / 'source.tgz'; release_pin = make_archive(archive)
         release_pin['upgrades_from'] = [{'version':'1.0.0','source_tree':'c'*40}]
-        state = self.base / 'state.json'; original = json.dumps({'owner':'MytelDesk','schema':1,'status':'ready','version':'1.0.0','tree':'c'*40})
+        state = self.base / 'state.json'; original = json.dumps({'owner':'MytelDesk','schema':1,'status':'ready','version':'1.0.0','tree':'c'*40,'retained':'operator-value'})
         state.write_text(original); calls = []
         with mock.patch.object(self.module, 'secure_directory', side_effect=lambda p: p.mkdir(parents=True, exist_ok=True)):
-            self.module.install(release_pin, self.base / 'cache', run=lambda a: calls.append(a),
+            self.module.install(release_pin, self.base / 'cache', run=ready_runner(state, release_pin, calls),
                                 fetch=lambda _u,p: p.write_bytes(archive.read_bytes()), legacy_paths=[], standalone_state=state)
-        self.assertEqual(len(calls), 2); self.assertEqual(state.read_text(), original)
+        self.assertEqual(len(calls), 2); self.assertEqual(json.loads(state.read_text())['retained'], 'operator-value')
 
     def test_helper_failure_records_exact_partial_state_for_a_safe_same_pin_retry(self):
         archive = self.base / 'source.tgz'; release_pin = make_archive(archive); state = self.base / 'state.json'; cache = self.base / 'cache'
@@ -224,7 +235,7 @@ class DeskHelperTests(unittest.TestCase):
             receipt = json.loads((cache / 'attempt.json').read_text())
             self.assertEqual(receipt['state_sha256'], hashlib.sha256(state.read_bytes()).hexdigest())
             calls = []
-            self.module.install(release_pin, cache, run=lambda a: calls.append(a), legacy_paths=[], standalone_state=state)
+            self.module.install(release_pin, cache, run=ready_runner(state, release_pin, calls), legacy_paths=[], standalone_state=state)
             self.assertEqual(len(calls), 2)
 
     def test_zero_exit_without_pinned_ready_state_is_not_installation_success(self):

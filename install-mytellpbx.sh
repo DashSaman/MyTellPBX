@@ -371,8 +371,8 @@ verify_bundle() {
     [ -f "${BUNDLE_DIR}/manifest.json" ] || die "bundle manifest.json missing"
     [ -f "${BUNDLE_DIR}/SHA256SUMS" ]    || die "bundle SHA256SUMS missing"
 
-    # Verify a random sample of shipped hashes (quick integrity re-check)
-    ( cd "${BUNDLE_DIR}" && head -5 SHA256SUMS | sha256sum -c --quiet ) >>"$LOG" 2>&1 \
+    # Verify every shipped checksum after extraction, not just an initial sample.
+    ( cd "${BUNDLE_DIR}" && sha256sum -c --quiet SHA256SUMS ) >>"$LOG" 2>&1 \
         || die "bundle internal checksums failed"
 }
 
