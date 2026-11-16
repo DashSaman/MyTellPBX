@@ -372,7 +372,7 @@
             "These IPs are allowed to send faxes through MyTel.": "فقط نشانی‌های IP زیر مجازند از این سامانه فکس ارسال کنند.",
             "You must insert one IP per row. We recommend keeping localhost and 127.0.0.1 in the configuration because some processes could need them.": "هر نشانی IP را در یک سطر جدا وارد کنید. نگه‌داشتن localhost و 127.0.0.1 ضروری است، چون برخی فرایندهای داخلی سامانه به آن‌ها نیاز دارند.",
             /* email template subjects */
-            "Fax Issabel": "فکس مای‌تل",
+            "Fax Issabel": "فکس MytelPBX",
             "Fax attached (ID: {NAME_PDF})": "فکس پیوست شد (شناسه: {NAME_PDF})",
             /* backup_restore toolbar (untranslated in module) */
             "Upload": "بارگذاری",
@@ -638,7 +638,7 @@
             dash.innerHTML =
                 '<div class="mt-dash-head">' +
                     '<div><h1>نمای کلی مرکز تماس</h1>' +
-                    '<div class="mt-dash-sub">وضعیت زندهٔ سامانهٔ تلفنی مای‌تل</div></div>' +
+                    '<div class="mt-dash-sub">وضعیت زندهٔ سامانهٔ تلفنی MytelPBX</div></div>' +
                     '<div class="mt-dash-fresh"><span class="mt-dot"></span><span id="mt-fresh">در حال دریافت…</span></div>' +
                 '</div>' +
                 '<div class="mt-hero-row">' +
@@ -931,57 +931,71 @@
             }
         })();
 
-        /* ---- debrand: replace any remaining Issabel references in panel
-           module content (owner order 2026-11-05): text nodes, links, title.
-           Presentation text only: script/style/textarea/noscript/code/pre are
-           skipped (functional identifiers and config samples stay verbatim);
-           only external http(s) issabel domains are rewritten, internal
-           fragment/relative anchors like #issabel-panels keep working.
-           Dashboard applets (news feed) load async -> MutationObserver. ---- */
+        /* Known product chrome only. Customer records, submitted option text,
+           editable content, legal notices and technical identifiers stay exact.
+           Async product labels use the same policy as the native console. */
         (function panelDebrand() {
             if (window.__mtPanelDebrandDone) return;
             window.__mtPanelDebrandDone = true;
-            var SKIP_TAGS = { SCRIPT: 1, STYLE: 1, TEXTAREA: 1, NOSCRIPT: 1, CODE: 1, PRE: 1 };
-            var fixText = function (txt) {
-                return txt.replace(/issabelpbx/gi, 'MyTellPBX').replace(/issabel/gi, 'MyTellPBX');
-            };
-            /* reject text nodes inside skipped containers at ANY depth:
-               <pre><span>config path</span></pre> must stay verbatim too */
-            var inSkipped = function (el) {
-                while (el) {
-                    if (SKIP_TAGS[el.tagName]) return true;
-                    el = el.parentElement;
-                }
-                return false;
-            };
-            var acceptNode = function (node) {
-                return inSkipped(node.parentElement) ? NodeFilter.FILTER_REJECT : NodeFilter.FILTER_ACCEPT;
-            };
-            var debrandNode = function (root) {
-                var walker = document.createTreeWalker(root, NodeFilter.SHOW_TEXT, { acceptNode: acceptNode }, false);
+            /* Only known product labels in product chrome are presentation inputs.
+               Record values, option text (which can be the submitted value), editable
+               notes, configuration samples and legal attribution are never rewritten. */
+            var PRESERVE = 'script,style,textarea,input,select,option,pre,code,noscript,table,[role="grid"],[contenteditable],[data-mt-preserve],.legal,.license,.copyright,[rel="license"]';
+            var CONTEXT = '.navbar-brand,.mt-brand,.mt-footer-brand-link,.logo a,#footer a,h1,h2,h3,h4,.moduleTitle,.neo-modal-issabel-popup-title,[data-mt-brand]';
+            var PRODUCT = '(?:Issabel(?:\\s*PBX)?|MyTell\\s*PBX|Mytel\\s*PBX)';
+            var LABEL = new RegExp('^(?:' + PRODUCT + '(?:\\s+(?:Advanced Settings|System Status|Notices|Statistics))?|(?:About|Welcome to|Login to)\\s+' + PRODUCT + ')$', 'i');
+            function knownLabel(text) { return LABEL.test((text || '').replace(/\s+/g, ' ').trim()); }
+            function context(el) { return el && !el.closest(PRESERVE) ? el.closest(CONTEXT) : null; }
+            function knownContext(el) {
+                var host = context(el);
+                return host && (knownLabel(host.textContent) || host.matches('.navbar-brand,.mt-brand,.mt-footer-brand-link,.logo a,[data-mt-brand]'));
+            }
+            function fixText(text) { return text.replace(/issabel(?:\s*pbx)?|mytell\s*pbx|mytel\s+pbx/gi, 'MytelPBX'); }
+            function debrandNode(root) {
+                var walker = document.createTreeWalker(root, NodeFilter.SHOW_TEXT, { acceptNode: function (node) {
+                    var host = context(node.parentElement);
+                    return host && knownLabel(host.textContent) ? NodeFilter.FILTER_ACCEPT : NodeFilter.FILTER_REJECT;
+                } }, false);
                 var node;
                 while ((node = walker.nextNode())) {
-                    var txt = node.nodeValue;
-                    if (!txt) continue;
-                    var fixed = fixText(txt);
-                    if (fixed !== txt) node.nodeValue = fixed;
+                    var fixed = fixText(node.nodeValue);
+                    if (fixed !== node.nodeValue) node.nodeValue = fixed;
                 }
-            };
-            var debrandLinks = function (root) {
-                var links = root.querySelectorAll ? root.querySelectorAll('a[href]') : [];
-                Array.prototype.forEach.call(links, function (a) {
-                    var href = a.getAttribute('href') || '';
-                    /* only the URL's HOSTNAME may carry the brand name;
-                       query strings and fragments are not part of the host */
-                    if (/^https?:\/\/[^\/?#]*issabel/i.test(href)) {
-                        a.setAttribute('href', 'https://mytel.one');
-                    }
+            }
+            function debrandLinks(root) {
+                root.querySelectorAll('a[href]').forEach(function (a) {
+                    if (!knownContext(a) || !knownLabel(a.textContent)) return;
+                    try {
+                        var url = new URL(a.getAttribute('href'), document.baseURI);
+                        if (/^https?:$/.test(url.protocol) && !url.username && !url.password &&
+                            (url.hostname === 'issabel.org' || url.hostname === 'www.issabel.org')) {
+                            a.setAttribute('href', 'https://mytel.one');
+                        }
+                    } catch (e) { /* Leave unknown links verbatim. */ }
                 });
-            };
+            }
+            function debrandAttributes(root) {
+                root.querySelectorAll('[title],[aria-label],img[alt]').forEach(function (el) {
+                    if (!knownContext(el)) return;
+                    ['title', 'aria-label', 'alt'].forEach(function (name) {
+                        var value = el.getAttribute(name);
+                        if (value && knownLabel(value)) {
+                            var fixed = fixText(value);
+                            if (fixed !== value) el.setAttribute(name, fixed);
+                        }
+                    });
+                });
+            }
+            function debrandTitle() {
+                if (!knownLabel(document.title)) return;
+                var fixed = fixText(document.title);
+                if (fixed !== document.title) document.title = fixed;
+            }
             var run = function () {
                 debrandNode(document.body);
                 debrandLinks(document.body);
-                if (/issabel/i.test(document.title)) document.title = fixText(document.title);
+                debrandAttributes(document.body);
+                debrandTitle();
             };
             run();
             $(document).ajaxComplete(function () { setTimeout(run, 150); });
@@ -991,7 +1005,7 @@
                     if (pending) return;
                     pending = setTimeout(function () { pending = null; run(); }, 250);
                 });
-                obs.observe(document.body, { childList: true, subtree: true });
+                obs.observe(document.body, { childList: true, subtree: true, characterData: true, attributes: true, attributeFilter: ['title', 'aria-label', 'alt', 'href'] });
             }
         })();
 
@@ -1412,7 +1426,7 @@
                 a.rel = 'noopener';
                 a.setAttribute(
                     'aria-label',
-                    'تلفن وب مای‌تل، بازشدن در برگه جدید'
+                    'تلفن وب MytelPBX، بازشدن در برگه جدید'
                 );
             }
 
@@ -1423,7 +1437,7 @@
                         : '<i class="fa fa-phone"></i>') +
                 '</span>' +
                 '<span class="mt-home-card__text">' +
-                    '<b>' + (desk ? 'مای‌تل دسک' : 'تلفن وب مای‌تل') + '</b>' +
+                    '<b>' + (desk ? 'مای‌تل دسک' : 'تلفن وب MytelPBX') + '</b>' +
                     '<small>' +
                         (desk
                             ? 'میز کار اپراتور مرکز تماس'

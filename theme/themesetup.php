@@ -40,8 +40,8 @@ function themeSetup(&$smarty, $selectedMenu, $pdbACL, $pACL, $idUser)
     $smarty->assign('arrMainMenu', $arrMainMenu);
     $smarty->assign("LANG", $lang);
     $smarty->assign("THEME_DIR", ($lang == 'fa' || $lang == 'pe') ? 'rtl' : 'ltr');
-    $smarty->assign("BRAND_NAME", 'مای‌تل');
-    $smarty->assign("BRAND_NAME_LATIN", 'MyTel');
+    $smarty->assign("BRAND_NAME", 'MytelPBX');
+    $smarty->assign("BRAND_NAME_LATIN", 'MytelPBX');
     $smarty->assign("BRAND_TAGLINE", 'سامانه مدیریت مرکز تماس');
 
     /* MyTellDesk (v7.2.0): admin-only entry points — the bridge itself

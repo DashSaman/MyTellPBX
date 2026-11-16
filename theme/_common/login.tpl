@@ -10,7 +10,7 @@
 	<meta http-equiv="X-UA-Compatible" content="IE=edge">
 	<meta name="viewport" content="width=device-width, initial-scale=1.0" />
 	<meta name="description" content="سامانه مدیریت مرکز تماس" />
-	<title>مای‌تل | سامانه مدیریت مرکز تماس</title>
+	<title>MytelPBX | سامانه مدیریت مرکز تماس</title>
 	<script>
 	/* MyTellPBX theme pre-paint (shared choice with the panel shell) */
 	(function () {
@@ -40,8 +40,8 @@
 
 	<div class="mt-login-brandpane">
 		<div class="mt-login-brandpane-inner">
-			<img class="mt-login-logo" src="{$WEBPATH}themes/{$THEMENAME}/images/mytel-logo.png" alt="مای‌تل" />
-			<h1 class="mt-login-brandname">مای‌تل</h1>
+			<img class="mt-login-logo" src="{$WEBPATH}themes/{$THEMENAME}/images/mytel-logo.png" alt="MytelPBX" />
+			<h1 class="mt-login-brandname">MytelPBX</h1>
 			<p class="mt-login-tagline">سامانه مدیریت مرکز تماس</p>
 			<p class="mt-login-brand-statement">ارتباط سازمانی، روی زیرساخت شما</p>
 			<a href="https://mytel.one" target="_blank" rel="noopener" class="mt-login-site-link">
@@ -95,7 +95,7 @@
 			{if $MT_HAS_STANDALONE_PHONE}
 			<a href="/Phone/" target="_blank" rel="noopener" class="mt-webphone-link">
 				<i class="fa fa-phone"></i>
-				<span>تلفن وب مای‌تل <small>WebPhone</small></span>
+				<span>تلفن وب MytelPBX <small>WebPhone</small></span>
 				<i class="fa fa-angle-left mt-arrow"></i>
 			</a>
 			{else}
@@ -109,7 +109,7 @@
 			<div class="mt-login-foot">
 				<a href="https://mytel.one" target="_blank" rel="noopener" class="mt-foot-link">
 					<img src="{$WEBPATH}themes/{$THEMENAME}/images/mytel-logo.png" alt="" width="18" height="18" class="mt-foot-logo" />
-					<span>مای‌تل</span>
+					<span>MytelPBX</span>
 				</a>
 				<span class="mt-dot">&bull;</span>
 				<span dir="rtl">&copy; ۲۰۰۵–۲۰۲۷</span>

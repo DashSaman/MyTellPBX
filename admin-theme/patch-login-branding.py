@@ -16,7 +16,7 @@ import tempfile
 
 REPLACEMENTS = {
     r'echo -e "  O \e[96m@ \e[91m@    \e[0mIssabel is a product meant to be configured through a web browser."':
-        r'echo -e "\e[1;36mMyTellPBX\e[0m is a product meant to be configured through a web browser."',
+        r'echo -e "\e[1;36mMytelPBX\e[0m is a product meant to be configured through a web browser."',
     r'echo -e "  \e[31;1m@ \e[35m@ \e[39mO    \e[0mAny changes made from within the command line may corrupt the system"':
         r'echo -e "Any changes made from within the command line may corrupt the system"',
     r'echo -e "  \e[33;1m@ \e[39mO O    \e[0mconfiguration and produce unexpected behavior; in addition, changes"':
@@ -24,23 +24,27 @@ REPLACEMENTS = {
     r'echo -e "\e[1m    O      \e[0mmade to system files through here may be lost when doing an update."':
         r'echo -e "made to system files through here may be lost when doing an update."',
     'echo "To access your Issabel System, using a separate workstation (PC/MAC/Linux)"':
-        'echo "To access your MyTellPBX System, using a separate workstation (PC/MAC/Linux)"',
+        'echo "To access your MytelPBX System, using a separate workstation (PC/MAC/Linux)"',
     r'echo -e "\e[1mYour opportunity to give back: \e[4mhttp://www.patreon.com/issabel\e[0m"':
-        r'echo -e "\e[1mMyTellPBX support: \e[4mhttps://mytel.one\e[0m"',
+        r'echo -e "\e[1mMytelPBX support: \e[4mhttps://mytel.one\e[0m"',
 }
+PREVIOUS_OUTPUTS = {line.replace('MytelPBX', 'MyTellPBX'): line
+                    for line in REPLACEMENTS.values()}
 
 
 def transform_motd(text):
     lines = text.splitlines(keepends=True)
     plain = [line.rstrip('\r\n') for line in lines]
-    old_counts = [plain.count(line) for line in REPLACEMENTS]
-    new_counts = [plain.count(line) for line in REPLACEMENTS.values()]
-    if all(count == 1 for count in new_counts) and not any(old_counts):
+    prior_only = [old for old, new in PREVIOUS_OUTPUTS.items() if old != new]
+    if (all(plain.count(line) == 1 for line in REPLACEMENTS.values())
+            and not any(plain.count(line) for line in list(REPLACEMENTS) + prior_only)):
         return text
-    if not all(count == 1 for count in old_counts) or any(new_counts):
-        raise ValueError('Unknown, partial or duplicate login banner; refusing to overwrite owner edits')
-    return ''.join(REPLACEMENTS.get(line.rstrip('\r\n'), line.rstrip('\r\n'))
-                   + line[len(line.rstrip('\r\n')):] for line in lines)
+    for replacements in (REPLACEMENTS, PREVIOUS_OUTPUTS):
+        if (all(plain.count(line) == 1 for line in replacements)
+                and not any(plain.count(new) for old, new in replacements.items() if old != new)):
+            return ''.join(replacements.get(line.rstrip('\r\n'), line.rstrip('\r\n'))
+                           + line[len(line.rstrip('\r\n')):] for line in lines)
+    raise ValueError('Unknown, partial or duplicate login banner; refusing to overwrite owner edits')
 
 
 def regular_file(root, relative):
@@ -116,7 +120,7 @@ def main():
             print(('WOULD UPDATE ' if before != after else 'UNCHANGED ') + str(path))
     else:
         changed = apply(args.root, args.backup_root)
-        print('MyTellPBX login branding: ' + ('updated' if changed else 'unchanged'))
+        print('MytelPBX login branding: ' + ('updated' if changed else 'unchanged'))
 
 
 if __name__ == '__main__':

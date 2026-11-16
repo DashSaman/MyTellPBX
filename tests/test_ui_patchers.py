@@ -299,8 +299,10 @@ class FooterBrandingTests(unittest.TestCase):
     def test_known_homepage_changes_but_legal_and_lookalike_urls_survive(self):
         legal = '<p>Copyright Issabel Foundation; GPL-2.0 <a href="https://issabel.org/license">License</a></p>\n'
         owner = '<a href="https://issabel.org.customer.example/owner">Operator link</a>\n'
+        redirect = '<a href="https://customer.example/redirect?target=https://issabel.org">Customer</a>\n'
+        prefixed = "<?php $customer = 'prefixhttps://issabel.org'; ?>\n"
         internal = "<?php $issabel_internal = 'retained'; ?>\n"
-        before = '<a href="http://www.issabel.org">IssabelPBX</a>\n' + legal + owner + internal
+        before = '<a href="http://www.issabel.org">IssabelPBX</a>\n' + legal + owner + redirect + prefixed + internal
         with tempfile.TemporaryDirectory() as directory:
             path = pathlib.Path(directory) / 'footer_content.php'
             path.write_bytes(before.encode('utf-8'))
@@ -310,6 +312,8 @@ class FooterBrandingTests(unittest.TestCase):
             self.assertIn('<a href="https://mytel.one">MytelPBX</a>', after)
             self.assertIn(legal, after)
             self.assertIn(owner, after)
+            self.assertIn(redirect, after)
+            self.assertIn(prefixed, after)
             self.assertIn(internal, after)
             self.assertEqual(path.with_suffix('.php.bak-mt').read_text(encoding='utf-8'), before)
             with contextlib.redirect_stdout(io.StringIO()):

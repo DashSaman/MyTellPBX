@@ -43,10 +43,15 @@ const fixture=`<!doctype html><html lang="en" dir="ltr"><head><title>IssabelPBX 
   await page.evaluate(()=>{const h=document.createElement('h2');h.id='async-brand';h.textContent='IssabelPBX Advanced Settings';document.body.append(h);const td=document.createElement('td');td.id='async-customer';td.textContent='Issabel New Customer';document.querySelector('#customers tr').append(td);});
   await page.waitForTimeout(500);
   await check('async branding preserves async customer data',async()=>{assert.equal(await page.locator('#async-brand').textContent(),'MytelPBX Advanced Settings');assert.equal(await page.locator('#async-customer').textContent(),'Issabel New Customer');});
+  for(const [label,title]of[['customer title remains exact','Issabel Services - Customer'],['legal title remains exact','Issabel Foundation License']]){
+   await page.evaluate(value=>{document.title=value;document.body.append(document.createElement('span'));},title);
+   await page.waitForTimeout(350);
+   await check(label,async()=>assert.equal(await page.title(),title));
+  }
   await check('no network requests',async()=>assert.deepEqual(blocked,[]));
   await context.close();
  }}finally{await browser.close();}
- report.pass=report.cases.length===20&&report.cases.every(c=>c.pass);
+ report.pass=report.cases.length===24&&report.cases.every(c=>c.pass);
  if(process.env.MT_TEST_OUTPUT){fs.mkdirSync(process.env.MT_TEST_OUTPUT,{recursive:true});fs.writeFileSync(path.join(process.env.MT_TEST_OUTPUT,'branding-context.json'),JSON.stringify(report,null,2)+'\n');}
  console.log(JSON.stringify(report,null,2));if(!report.pass)process.exitCode=1;
 })().catch(error=>{console.error(error.message);process.exitCode=2;});

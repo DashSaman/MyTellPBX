@@ -133,12 +133,12 @@
                            href="/Phone/"
                            target="_blank"
                            rel="noopener"
-                           aria-label="تلفن وب مای‌تل، بازشدن در برگه جدید">
+                           aria-label="تلفن وب MytelPBX، بازشدن در برگه جدید">
                             <span class="mt-home-card__icon" aria-hidden="true">
                                 <i class="fa fa-phone"></i>
                             </span>
                             <span class="mt-home-card__text">
-                                <b>تلفن وب مای‌تل</b>
+                                <b>تلفن وب MytelPBX</b>
                                 <small>تماس صوتی از مرورگر</small>
                             </span>
                             <span class="mt-home-card__action" aria-hidden="true">
@@ -250,11 +250,11 @@ $(document).ready(function(e) {
         <script src="{$WEBPATH}themes/{$THEMENAME}/js/neon-api.js"></script>
         <script src="{$WEBPATH}themes/{$THEMENAME}/js/jquery.validate.min.js"></script>
         <script src="{$WEBPATH}themes/{$THEMENAME}/js/loadingoverlay.js"></script>
-        <script src="{$WEBPATH}themes/{$THEMENAME}/js/mytel-loader.js?v=122"></script>
+        <script src="{$WEBPATH}themes/{$THEMENAME}/js/mytel-loader.js?v=7.6.2"></script>
         <script src="{$WEBPATH}themes/{$THEMENAME}/js/neon-custom.js"></script>
         <script src="{$WEBPATH}themes/{$THEMENAME}/vendor/echarts/echarts.min.js"></script>
         <script src="{$WEBPATH}themes/{$THEMENAME}/js/mytel-charts.js?v=100"></script>
-        <script src="{$WEBPATH}themes/{$THEMENAME}/js/theme.js?v=761"></script>
+        <script src="{$WEBPATH}themes/{$THEMENAME}/js/theme.js?v=7.6.2"></script>
         <script src="{$WEBPATH}themes/{$THEMENAME}/js/calendar-core.js?v=752"></script>
         <script src="{$WEBPATH}themes/{$THEMENAME}/js/calendar-editor.js?v=752"></script>
         <script src="{$WEBPATH}themes/{$THEMENAME}/js/mt-calendar.js?v=752"></script>

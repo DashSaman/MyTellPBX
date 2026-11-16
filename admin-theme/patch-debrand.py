@@ -10,6 +10,7 @@ Usage (root): python3 patch-debrand.py
 Idempotent; .bak-mt backups.
 """
 import pathlib
+import re
 import shutil
 import sys
 
@@ -20,12 +21,14 @@ SUB_JS = ADMIN / "assets/mytel/sub.js"
 
 # ---- footer_content.php replacements ----
 FC_REPLACEMENTS = [
-    ('issabel.org', 'mytel.one'),
-    ('IssabelPBX', 'MyTellPBX'),
+    ('>IssabelPBX<', '>MytelPBX<'),
+    ('>Issabel PBX<', '>MytelPBX<'),
+    ('>MyTellPBX<', '>MytelPBX<'),
+    ('>MyTell PBX<', '>MytelPBX<'),
 ]
 
 # ---- sub.js additive block ----
-DEBRAND_JS = """
+DEBRAND_JS = r"""
 
 /* ============ MyTellPBX v7.3.5: debrand IssabelPBX → MyTellPBX ============ */
 (function () {
@@ -33,57 +36,65 @@ DEBRAND_JS = """
     if (window.__mtDebrandDone) return;
     window.__mtDebrandDone = true;
 
-    /* Replace text nodes containing IssabelPBX / Issabel brand references
-       (case-insensitive). Presentation text only: script/style/textarea/
-       noscript/code/pre are skipped so functional identifiers, config
-       samples and editable values stay verbatim; no length cap so long
-       visible paragraphs are covered too. */
-    var SKIP_TAGS = { SCRIPT: 1, STYLE: 1, TEXTAREA: 1, NOSCRIPT: 1, CODE: 1, PRE: 1 };
-    /* reject text nodes inside skipped containers at ANY depth */
-    function inSkipped(el) {
-        while (el) {
-            if (SKIP_TAGS[el.tagName]) return true;
-            el = el.parentElement;
-        }
-        return false;
+    /* Only known product labels in product chrome are presentation inputs.
+       Record values, option text (which can be the submitted value), editable
+       notes, configuration samples and legal attribution are never rewritten. */
+    var PRESERVE = 'script,style,textarea,input,select,option,pre,code,noscript,table,[role="grid"],[contenteditable],[data-mt-preserve],.legal,.license,.copyright,[rel="license"]';
+    var CONTEXT = '.navbar-brand,.mt-brand,.mt-footer-brand-link,.logo a,#footer a,h1,h2,h3,h4,.moduleTitle,.neo-modal-issabel-popup-title,[data-mt-brand]';
+    var PRODUCT = '(?:Issabel(?:\\s*PBX)?|MyTell\\s*PBX|Mytel\\s*PBX)';
+    var LABEL = new RegExp('^(?:' + PRODUCT + '(?:\\s+(?:Advanced Settings|System Status|Notices|Statistics))?|(?:About|Welcome to|Login to)\\s+' + PRODUCT + ')$', 'i');
+    function knownLabel(text) { return LABEL.test((text || '').replace(/\s+/g, ' ').trim()); }
+    function context(el) { return el && !el.closest(PRESERVE) ? el.closest(CONTEXT) : null; }
+    function knownContext(el) {
+        var host = context(el);
+        return host && (knownLabel(host.textContent) || host.matches('.navbar-brand,.mt-brand,.mt-footer-brand-link,.logo a,[data-mt-brand]'));
     }
-    function acceptNode(node) {
-        return inSkipped(node.parentElement) ? NodeFilter.FILTER_REJECT : NodeFilter.FILTER_ACCEPT;
-    }
+    function fixText(text) { return text.replace(/issabel(?:\s*pbx)?|mytell\s*pbx|mytel\s+pbx/gi, 'MytelPBX'); }
     function debrandNode(root) {
-        var walker = document.createTreeWalker(root, NodeFilter.SHOW_TEXT, { acceptNode: acceptNode }, false);
+        var walker = document.createTreeWalker(root, NodeFilter.SHOW_TEXT, { acceptNode: function (node) {
+            var host = context(node.parentElement);
+            return host && knownLabel(host.textContent) ? NodeFilter.FILTER_ACCEPT : NodeFilter.FILTER_REJECT;
+        } }, false);
         var node;
         while ((node = walker.nextNode())) {
-            var txt = node.nodeValue;
-            if (!txt) continue;
-            var orig = txt;
-            txt = txt.replace(/issabelpbx/gi, 'MyTellPBX');
-            txt = txt.replace(/issabel/gi, 'MyTellPBX');
-            if (txt !== orig) node.nodeValue = txt;
+            var fixed = fixText(node.nodeValue);
+            if (fixed !== node.nodeValue) node.nodeValue = fixed;
         }
     }
-
-    /* Rewrite only external http(s) links whose HOSTNAME contains issabel
-       (query strings and fragments are not part of the host); internal
-       fragment/relative targets are left untouched. */
     function debrandLinks(root) {
         root.querySelectorAll('a[href]').forEach(function (a) {
-            var href = a.getAttribute('href') || '';
-            if (/^https?:\/\/[^\/?#]*issabel/i.test(href)) {
-                a.setAttribute('href', 'https://mytel.one');
-            }
+            if (!knownContext(a) || !knownLabel(a.textContent)) return;
+            try {
+                var url = new URL(a.getAttribute('href'), document.baseURI);
+                if (/^https?:$/.test(url.protocol) && !url.username && !url.password &&
+                    (url.hostname === 'issabel.org' || url.hostname === 'www.issabel.org')) {
+                    a.setAttribute('href', 'https://mytel.one');
+                }
+            } catch (e) { /* Leave unknown links verbatim. */ }
         });
     }
-
+    function debrandAttributes(root) {
+        root.querySelectorAll('[title],[aria-label],img[alt]').forEach(function (el) {
+            if (!knownContext(el)) return;
+            ['title', 'aria-label', 'alt'].forEach(function (name) {
+                var value = el.getAttribute(name);
+                if (value && knownLabel(value)) {
+                    var fixed = fixText(value);
+                    if (fixed !== value) el.setAttribute(name, fixed);
+                }
+            });
+        });
+    }
     function debrandTitle() {
-        if (document.title && /issabel/i.test(document.title)) {
-            document.title = document.title.replace(/issabelpbx/gi, 'MyTellPBX').replace(/issabel/gi, 'MyTellPBX');
-        }
+        if (!knownLabel(document.title)) return;
+        var fixed = fixText(document.title);
+        if (fixed !== document.title) document.title = fixed;
     }
 
     function run() {
         debrandNode(document.body);
         debrandLinks(document.body);
+        debrandAttributes(document.body);
         debrandTitle();
     }
 
@@ -98,19 +109,13 @@ DEBRAND_JS = """
     }
     /* also observe mutations (module content loads) */
     if (window.MutationObserver) {
-        var obs = new MutationObserver(function (muts) {
-            for (var i = 0; i < muts.length; i++) {
-                for (var j = 0; j < muts[i].addedNodes.length; j++) {
-                    var n = muts[i].addedNodes[j];
-                    if (n.nodeType === 1) {
-                        debrandNode(n);
-                        debrandLinks(n);
-                    }
-                }
-            }
+        var pending = null;
+        var obs = new MutationObserver(function () {
+            if (pending) return;
+            pending = setTimeout(function () { pending = null; run(); }, 100);
         });
         if (document.body) {
-            obs.observe(document.body, { childList: true, subtree: true });
+            obs.observe(document.body, { childList: true, subtree: true, characterData: true, attributes: true, attributeFilter: ['title', 'aria-label', 'alt', 'href'] });
         }
     }
 })();
@@ -155,21 +160,27 @@ DEBRAND_MARK = "MyTellPBX v7.3.5: debrand IssabelPBX"
 
 def patch_file(path, replacements):
     text = path.read_text(encoding="utf-8")
-    changed = False
-    for old, new in replacements:
-        if old in text:
-            if not changed:
-                bak = path.with_suffix(path.suffix + ".bak-mt")
-                if not bak.exists():
-                    shutil.copy2(path, bak)
-                    print("BACKUP", bak.name)
-            text = text.replace(old, new)
-            changed = True
-            print("REPLACED", old, "->", new)
-    if changed:
-        path.write_text(text, encoding="utf-8")
-    else:
+    lines = []
+    for line in text.splitlines(keepends=True):
+        # These source lines are attribution, not product chrome. Preserve them.
+        if not re.search(r'copyright|licen[cs]e|foundation|\bGPL\b', line, re.I):
+            for old, new in replacements:
+                line = line.replace(old, new)
+            # A quoted bare vendor homepage is known branding. Paths, source
+            # links, queries, lookalike domains and PHP identifiers stay exact.
+            line = re.sub(r'''(?<=["'])https?://(?:www\.)?issabel\.org/?(?=["'])''',
+                          'https://mytel.one', line, flags=re.I)
+        lines.append(line)
+    after = ''.join(lines)
+    if after == text:
         print("ALREADY", path.name)
+        return
+    bak = path.with_suffix(path.suffix + ".bak-mt")
+    if not bak.exists():
+        shutil.copy2(path, bak)
+        print("BACKUP", bak.name)
+    path.write_text(after, encoding="utf-8")
+    print("UPDATED product footer", path.name)
 
 
 def append_js(path, marker, block):

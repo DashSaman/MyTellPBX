@@ -32,7 +32,7 @@
         var label = document.createElement("div");
         label.className = "mt-page-loader-label";
         var brand = document.createElement("b");
-        brand.textContent = "مای‌تل";
+        brand.textContent = "MytelPBX";
         var status = document.createElement("span");
         status.textContent = "در حال بارگذاری…";
         label.appendChild(brand);

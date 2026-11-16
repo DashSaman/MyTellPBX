@@ -68,7 +68,7 @@ $arrLang=array(
 
 
 /*Login to Issabel*/
-"Welcome to Elastix"=>"به مای‌تل خوش آمدید",
+"Welcome to Elastix"=>"به MytelPBX خوش آمدید",
 "Please enter your username and password"=>"لطفا شناسه کاربری و رمز عبور خود را وارد نمایید",
 "Username"=>"شناسه کاربری",
 "Password"=>"رمز عبور",
@@ -147,10 +147,10 @@ $arrLang=array(
 
 
 /* Start About Issabel */
-"About Issabel"=>"درباره مای‌تل",
-"About Issabel2"=>"درباره ویپ ایران",
+"About Issabel"=>"درباره MytelPBX",
+"About Issabel2"=>"درباره MytelPBX",
 "HELP"=>"کمک",
-"About Issabel Content"=>" مای‌تل محبوب ترین سیستم تلفنی ویپ فارسی زبان است که توسط گروه ویپ ایران ارائه و پشتیبانی می گردد.",
+"About Issabel Content"=>"MytelPBX سامانهٔ مدیریت مرکز تماس با رابط فارسی است. وب‌سایت و پشتیبانی: https://mytel.one",
 "About Issabel Closed"=>"بستن",
 /* End About Issabel */
 
@@ -325,7 +325,7 @@ $arrLang=array(
 "Change Issabel Password" => "تغییر گذرواژه",
 "You are not authorized to access to this page" => "شما اجازه دسترسی به این صفحه را ندارید.",
 "You need administrator privileges" => "شما به مجوز مدیریت احتیاج دارید",
-"Issabel Authentication" => "احراز هویت مای‌تل",
+"Issabel Authentication" => "احراز هویت MytelPBX",
 "Unauthorized" => "بدون اهزار هویت",
 "You are not authorized to access this page." => "شما اجازه دسترسی به این صفحه را ندارید",
 "You have not permissions to access to Flash Operator Panel. Please contact your administrator." => "اجازه دسترسی به پنل نظارتی را ندارید لطفا با مدیریت تماس بگیرید.",
@@ -335,7 +335,7 @@ $arrLang=array(
 "Change Issabel Password" => "تغییر گذرواژه",
 "Current Password" => "رمز جاری",
 "New Password" => "رمز جدید",
-"Issabel Website" => "رمز جدید",
+"Issabel Website" => "وب‌سایت MytelPBX",
 "Retype New Password" => "ورود دوباره رمز",
 "Search modules" => "جستجوی منو",
 
@@ -374,7 +374,7 @@ $arrLang=array(
 "Performance Graphic" => "نمودار کارایی",
 "Processes Status" => "وضعیت پردازش‌ها",
 "Communication Activity" => "آخر رخ‌دادها",
-"Welcome to Issabel" => "به مای‌تل خوش آمدید",
+"Welcome to Issabel" => "به MytelPBX خوش آمدید",
 "Panels" => "پنل‌ها",
 "Filter" => "پالایش",
 "Apply" => "اعمال",

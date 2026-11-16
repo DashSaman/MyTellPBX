@@ -12,12 +12,12 @@ DEST_DIR="/var/www/html/themes/mytel"
 THEME_NAME="mytel"
 
 if [ ! -f "$SRC_DIR/themesetup.php" ] || [ ! -d "$SRC_DIR/_common" ]; then
-    echo "ERROR: $SRC_DIR does not look like a MyTellPBX theme directory" >&2
+    echo "ERROR: $SRC_DIR does not look like a MytelPBX theme directory" >&2
     exit 1
 fi
 
 if [ ! -d /var/www/html/themes ] || [ ! -f /var/www/html/index.php ]; then
-    echo "ERROR: Issabel 5 web tree not found at /var/www/html" >&2
+    echo "ERROR: PBX web tree not found at /var/www/html" >&2
     exit 1
 fi
 
@@ -70,5 +70,5 @@ if systemctl is-active --quiet httpd; then
     echo "httpd reloaded"
 fi
 
-echo "MyTellPBX theme installed and activated."
+echo "MytelPBX theme installed and activated."
 echo "Open the panel and hard-refresh (Ctrl+Shift+R) to clear cached CSS."
