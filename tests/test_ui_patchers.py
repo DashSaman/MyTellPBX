@@ -20,6 +20,7 @@ def load(name, path):
 
 
 ADMIN = load("admin_workspace", "admin-theme/patch-admin-theme.py")
+DEBRAND = load("admin_branding", "admin-theme/patch-debrand.py")
 DESK = load("desk_workspace", "modules/mytellpbxopdesk/patches/patch-workspace.py")
 PHONE = load("phone_workspace", "webphone/patch-webphone.py")
 LEGACY_UI = load("legacy_presentation", "scripts/ui/legacy.py")
@@ -292,6 +293,28 @@ class PresentationContractTests(unittest.TestCase):
                 if path.is_file() and path.suffix in (".js", ".css", ".py", ".part"):
                     text = path.read_text(encoding="utf-8")
                     self.assertIsNone(re.search(r"github_pat_[A-Za-z0-9_]{20,}|ghp_[A-Za-z0-9]{20,}|-----BEGIN .*PRIVATE KEY-----", text), str(path))
+
+
+class FooterBrandingTests(unittest.TestCase):
+    def test_known_homepage_changes_but_legal_and_lookalike_urls_survive(self):
+        legal = '<p>Copyright Issabel Foundation; GPL-2.0 <a href="https://issabel.org/license">License</a></p>\n'
+        owner = '<a href="https://issabel.org.customer.example/owner">Operator link</a>\n'
+        internal = "<?php $issabel_internal = 'retained'; ?>\n"
+        before = '<a href="http://www.issabel.org">IssabelPBX</a>\n' + legal + owner + internal
+        with tempfile.TemporaryDirectory() as directory:
+            path = pathlib.Path(directory) / 'footer_content.php'
+            path.write_bytes(before.encode('utf-8'))
+            with contextlib.redirect_stdout(io.StringIO()):
+                DEBRAND.patch_file(path, DEBRAND.FC_REPLACEMENTS)
+            after = path.read_text(encoding='utf-8')
+            self.assertIn('<a href="https://mytel.one">MytelPBX</a>', after)
+            self.assertIn(legal, after)
+            self.assertIn(owner, after)
+            self.assertIn(internal, after)
+            self.assertEqual(path.with_suffix('.php.bak-mt').read_text(encoding='utf-8'), before)
+            with contextlib.redirect_stdout(io.StringIO()):
+                DEBRAND.patch_file(path, DEBRAND.FC_REPLACEMENTS)
+            self.assertEqual(path.read_text(encoding='utf-8'), after)
 
 
 class AuditHarnessTests(unittest.TestCase):

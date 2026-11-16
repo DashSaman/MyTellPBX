@@ -13,6 +13,7 @@ const panel=theme.slice(start,end+'\n        })();'.length);
 const fixture=`<!doctype html><html lang="en" dir="ltr"><head><title>IssabelPBX Advanced Settings</title></head><body>
 <header><a class="navbar-brand" id="brand" href="https://www.issabel.org/" title="IssabelPBX" aria-label="IssabelPBX"><img alt="IssabelPBX">IssabelPBX</a></header>
 <h2 id="heading">IssabelPBX Advanced Settings</h2>
+<h2 id="customer-heading" title="IssabelPBX">Issabel Services</h2>
 <table id="customers"><tbody><tr><td id="company">Issabel Services</td><td><a id="customer-link" href="https://issabel-customer.example/path">Issabel Customer</a></td></tr></tbody></table>
 <form id="native" action="/admin/config.php?display=extensions" method="post"><input name="company" value="Issabel Services"><select name="team"><option selected>Issabel support</option></select><textarea name="notes">Issabel customer notes</textarea><input type="radio" name="enabled" value="yes" checked><input type="radio" name="enabled" value="no"></form>
 <div contenteditable="true" id="notes"><span>Issabel customer notes</span></div>
@@ -31,7 +32,7 @@ const fixture=`<!doctype html><html lang="en" dir="ltr"><head><title>IssabelPBX 
   await page.evaluate(()=>{window.$=()=>({ajaxComplete(){}});});
   await page.addScriptTag({content:script});
   const check=async(label,fn)=>{let error;try{await fn();}catch(e){error=e.message;}report.cases.push({block:name,check:label,pass:!error,...(error?{error}: {})});};
-  await check('customer text remains exact',async()=>assert.equal(await page.locator('#company').textContent(),'Issabel Services'));
+  await check('customer text remains exact',async()=>{assert.equal(await page.locator('#company').textContent(),'Issabel Services');assert.equal(await page.locator('#customer-heading').textContent(),'Issabel Services');assert.equal(await page.locator('#customer-heading').getAttribute('title'),'IssabelPBX');});
   await check('user links remain exact',async()=>{assert.equal(await page.locator('#customer-link').getAttribute('href'),'https://issabel-customer.example/path');assert.equal(await page.locator('#entered-vendor-link').getAttribute('href'),'https://www.issabel.org/customer-account');});
   await check('native form data and LTR remain exact',async()=>{assert.deepEqual(await page.locator('#native').evaluate(form=>({fields:[...new FormData(form)],action:form.getAttribute('action'),method:form.method,html:form.innerHTML})),before);assert.equal(await page.locator('html').getAttribute('dir'),'ltr');});
   await check('editable notes remain exact',async()=>assert.equal(await page.locator('#notes').textContent(),'Issabel customer notes'));
