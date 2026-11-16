@@ -68,6 +68,7 @@ run_logged(){
 }
 normalize_framework_mysql(){ printf 'normalize\\n' >> "$EVENTS"; }
 fresh_pjsip_websocket(){ :; } # Component wiring has its own intercepted-client tests.
+wait_asterisk_ready(){ :; } # Strict native probes have separate intercepted-client tests.
 rm(){ printf 'rm %s\\n' "$*" >> "$EVENTS"; }
 sleep(){ :; }
 '''

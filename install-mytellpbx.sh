@@ -190,7 +190,7 @@ verify_asterisk_service() {
     local enabled_state
     enabled_state=$(systemctl is-enabled asterisk 2>>"$LOG") || die "self-check: asterisk is not enabled at boot"
     [ "${enabled_state}" = "enabled" ] || die "self-check: asterisk requires persistent enabled state"
-    asterisk -rx 'core show version' >>"$LOG" 2>&1 || die "self-check: asterisk CLI is not responding"
+    wait_asterisk_ready
 }
 
 # Whole-string validation (grep is line-oriented and would accept values
@@ -900,6 +900,7 @@ bootstrap_empty_framework() {
         guard_empty_framework_bootstrap "${root}"
         installer_ok=0
         run_logged /usr/src/issabelPBX/framework/install_amp --dbuser=root --installdb --scripted --language="${LANG_SEL}" && installer_ok=1
+        wait_asterisk_ready
         if framework_bootstrap_healthy "${root}"; then
             [ "${installer_ok}" = "1" ] || die "initializer reported failure; generated data retained for scoped repair"
             fresh_pjsip_websocket prepare
@@ -1029,7 +1030,38 @@ if __name__ == '__main__':
         print('Asterisk readiness command/log failed; inspect the private installer log', file=sys.stderr)
         raise SystemExit(1)
 PY
-    ) || die "native asterisk did not become ready before framework init"
+    ) || die "native asterisk readiness verification failed; existing data retained; scoped repair required"
+}
+
+verify_native_migrations_complete() {
+    local counts
+    counts=$("${PY_BIN}" - <<'PY'
+import os,pathlib,stat,sys
+spool=pathlib.Path('/var/spool/issabel-mysqldbscripts')
+try:
+    for path in reversed((spool,)+tuple(spool.parents)):
+        try: info=path.lstat()
+        except FileNotFoundError:
+            print('sql=0 sh=0 unsafe=0');sys.exit(0)
+        if not stat.S_ISDIR(info.st_mode): raise ValueError('unsafe directory')
+    before=info
+    counts={'sql':0,'sh':0,'unsafe':0}
+    with os.scandir(str(spool)) as entries:
+        for entry in entries:
+            suffix='sql' if entry.name.endswith('.sql') else 'sh' if entry.name.endswith('.sh') else None
+            if suffix is None: continue
+            counts[suffix]+=1
+            if not stat.S_ISREG(entry.stat(follow_symlinks=False).st_mode): counts['unsafe']+=1
+    after=spool.lstat()
+    key=lambda item:(item.st_dev,item.st_ino,item.st_mode,item.st_uid,item.st_gid,item.st_mtime_ns)
+    if key(before)!=key(after): raise ValueError('directory changed')
+    print('sql={sql} sh={sh} unsafe={unsafe}'.format(**counts))
+except (OSError,ValueError):
+    sys.exit(1)
+PY
+    ) || die "cannot verify native migration spool; existing data retained; scoped repair required"
+    [ "${counts}" = "sql=0 sh=0 unsafe=0" ] \
+        || die "native migration scripts remain (${counts}); existing data retained; scoped repair required"
 }
 
 stage_framework_init() {
@@ -1053,6 +1085,7 @@ stage_framework_init() {
     # panel admin password, applies pending DB scripts, saves /etc/issabel.conf).
     # The upstream tool can print internal errors yet exit 0 — verify outcomes.
     initialize_preserving_framework_keys / "${service_digest}"
+    verify_native_migrations_complete
     verify_mysql_root_password \
         || die "password init did not persist mysqlrootpwd (upstream tool misreported success)"
     verify_mysql_authentication
@@ -1080,6 +1113,7 @@ PHP
         run_logged /usr/local/fop2/create_fop2_manager_user.pl || true
     fi
 
+    wait_asterisk_ready
     mark_stage framework
 }
 
@@ -1343,14 +1377,13 @@ stage_selfcheck() {
 
     # framework completeness: modules registered + generated device configs.
     # A half-finished install_amp (DB briefly unreachable) reports success —
-    # catch it here and clear the framework marker so a re-run repairs it.
+    # Preserve the owned framework marker and generated data for scoped repair.
     ensure_credentials
     local mod_count=""
     mod_count=$(bootstrap_query_count 'SELECT COUNT(*) FROM asterisk.modules;') \
         || die "self-check: cannot read framework modules; existing stage marker retained"
     if ! { [ -n "${mod_count}" ] && [ "${mod_count}" -gt 5 ]; } || [ ! -f /etc/asterisk/pjsip_additional.conf ]; then
-        rm -f "${STATE_DIR}/stages/framework.done"
-        die "framework incomplete (modules=${mod_count:-0}); run the installer again to repair"
+        die "framework incomplete (modules=${mod_count:-0}); scoped repair required; existing data retained; framework stage marker retained"
     fi
 
     run_logged "${PY_BIN}" -B "${BUNDLE_DIR}/installer/prepare-webrtc-dtls.py" --check \

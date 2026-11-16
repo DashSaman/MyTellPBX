@@ -123,6 +123,8 @@ class FirstBootTests(unittest.TestCase):
                                 ('static', 1), ('generated', 1), ('enabled-runtime', 1)]:
             with self.subTest(state=state):
                 body = 'STATE=' + repr(state) + '\nsystemctl(){ case "$1:$STATE" in is-active:inactive|is-enabled:disabled) return 1;; is-enabled:static|is-enabled:generated|is-enabled:enabled-runtime) printf \'%s\\n\' "$STATE";; is-enabled:*) printf \'enabled\\n\';; *) return 0;; esac; }\nasterisk(){ [ "$STATE" != cli-failed ]; }\nverify_asterisk_service\n'
+                # This fixture isolates activation/autostart; strict Python probes have their own inert fixtures.
+                body = "wait_asterisk_ready(){ asterisk -rx 'core show version'; }\n" + body
                 result = self.run_shell(body)
                 self.assertEqual(result.returncode == 0, expected == 0, result.stderr)
 

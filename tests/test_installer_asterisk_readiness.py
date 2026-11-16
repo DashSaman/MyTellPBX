@@ -1,4 +1,8 @@
-"""Cold native-unit readiness: real stage orchestration, all OS commands mocked."""
+"""Native readiness and visible automatic recovery; all OS commands mocked.
+
+These checks do not promise crash history after an explicit counter-resetting
+restart. Real Bash orchestration still executes every readiness checkpoint.
+"""
 import io
 import os
 from pathlib import Path
@@ -136,7 +140,9 @@ def fake_run(args, **options):
     with (root/'calls').open('a') as out:out.write('probe '+' '.join(args)+'\\n')
     if args[0]=='systemctl':
         assert args[1:3]==['show','asterisk']
-        return SimpleNamespace(returncode=0,stdout=b'ActiveState=active\\nSubState=running\\nMainPID=77\\nNRestarts=0\\nControlGroup=/system.slice/asterisk.service\\n',stderr=b'')
+        recovered=(root/'recovered').exists()
+        text='ActiveState=active\\nSubState=running\\nMainPID='+('78'if recovered else'77')+'\\nNRestarts='+('1'if recovered else'0')+'\\nControlGroup=/system.slice/asterisk.service\\n'
+        return SimpleNamespace(returncode=0,stdout=text.encode('ascii'),stderr=b'')
     assert args[1]=='-rx'
     counter=root/'cli-count'; count=int(counter.read_text() if counter.exists() else '0')+1;counter.write_text(str(count))
     if count==1:return SimpleNamespace(returncode=1,stdout=b'',stderr=b'Unable to connect: control socket absent\\n')
@@ -179,6 +185,73 @@ stage_framework_init
         self.assertIn('BOOTSTRAP', calls)
         self.assertNotIn('UNEXPECTED MUTATION', calls)
         self.assertNotIn('restart', calls); self.assertNotIn('safe_asterisk', calls)
+
+
+@unittest.skipUnless(BASH, 'Bash is required for real stage orchestration')
+class NativeRecoveredCrashStageTests(unittest.TestCase):
+    def setUp(self):
+        NativeReadinessStageTests.setUp(self)
+        # Keep even optional native executable metadata inside this fixture.
+        path=self.base/'definitions.sh'
+        path.write_text(path.read_text(encoding='utf-8').replace('/usr/local/fop2/create_fop2_manager_user.pl',(self.base/'missing-fop-helper').as_posix()),encoding='utf-8')
+    def scenario(self,mode,final_only=False):
+        header='''source {definitions}
+LOG={log}; CALLS={calls}; RECOVERED={recovered}; STATE_DIR={state}
+export FIXTURE_ROOT={base}
+REAL_PY={python}; BOOTSTRAP={bootstrap}; ADMIN_PASS=fixture-only-panel
+python_fixture() {{ shift 2; "$REAL_PY" "$BOOTSTRAP" "$@"; }}
+PY_BIN=python_fixture
+MODE={mode}
+event() {{ printf '%s\\n' "$*" >> "$CALLS"; }}
+stage_done() {{ return 1; }}; step() {{ :; }}; ensure_credentials() {{ :; }}
+framework_service_config() {{ printf absent; }}; guard_empty_framework_bootstrap() {{ :; }}
+normalize_framework_mysql() {{ :; }}
+rm() {{ [ "$*" = '-f /installamp' ] || exit 99; event DISPOSABLE_MARKER; }}
+systemctl() {{ event "unit $*"; [ "$1" != is-enabled ] || printf 'enabled\\n'; return 0; }}
+asterisk() {{ event "direct CLI $*"; printf 'Asterisk 20.12.0 built by fixture\\n'; }}
+run_logged() {{
+    case "$1" in
+        /usr/src/issabelPBX/framework/install_amp)
+            event INSTALL_AMP
+            [ "$MODE" != early ] || printf recovered > "$RECOVERED";;
+        /var/lib/asterisk/bin/retrieve_conf) event RETRIEVE;;
+        *) event 'UNEXPECTED NATIVE COMMAND'; return 99;;
+    esac
+}}
+framework_bootstrap_healthy() {{ event HEALTHY_SQL_57; return 0; }}
+fresh_pjsip_websocket() {{ event "PJSIP $*"; }}
+initialize_preserving_framework_keys() {{ event PASSWORD_INIT; [ "$MODE" != late ] || printf recovered > "$RECOVERED"; }}
+verify_native_migrations_complete() {{ :; }}
+verify_mysql_root_password() {{ return 0; }}; verify_mysql_authentication() {{ :; }}
+ensure_admin_credentials() {{ event ADMIN_VERIFY; }}; verify_amp_admin_password() {{ :; }}
+php() {{ cat >/dev/null; }}
+mark_stage() {{ event "MARK $1"; }}
+'''.format(definitions=repr((self.base/'definitions.sh').as_posix()),log=repr((self.base/'log').as_posix()),calls=repr((self.base/'calls').as_posix()),recovered=repr((self.base/'recovered').as_posix()),state=repr((self.base/'state').as_posix()),base=repr(self.base.as_posix()),python=repr(Path(sys.executable).as_posix()),bootstrap=repr((self.base/'python-bootstrap.py').as_posix()),mode=repr(mode))
+        body='printf recovered > "$RECOVERED"\nverify_asterisk_service\n'if final_only else'stage_framework_init\n'
+        script=self.base/'recovered-stage.sh';script.write_text(header+body,encoding='utf-8')
+        result=subprocess.run([BASH,'--noprofile','--norc',str(script)],stdin=subprocess.DEVNULL,stdout=subprocess.PIPE,stderr=subprocess.PIPE,encoding='utf-8',timeout=20)
+        return result,(self.base/'calls').read_text()
+    def test_recovered_crash_during_native_initializer_stops_before_pjsip_passwords_or_marker(self):
+        result,calls=self.scenario('early')
+        self.assertNotEqual(result.returncode,0,'Automatic recovery must not certify native initializer success')
+        self.assertIn('INSTALL_AMP',calls)
+        for forbidden in ['HEALTHY_SQL_57','PJSIP','PASSWORD_INIT','MARK framework']:self.assertNotIn(forbidden,calls)
+        self.assertIn('NRestarts=1',(self.base/'log').read_text())
+    def test_late_recovered_crash_stops_before_framework_completion(self):
+        result,calls=self.scenario('late')
+        self.assertNotEqual(result.returncode,0,'Recovery after password initialization must not certify completion')
+        self.assertIn('PJSIP activate',calls);self.assertIn('PASSWORD_INIT',calls);self.assertNotIn('MARK framework',calls)
+        self.assertIn('NRestarts=1',(self.base/'log').read_text())
+    def test_final_verifier_rejects_active_enabled_cli_success_after_automatic_restart(self):
+        result,calls=self.scenario('healthy',final_only=True)
+        self.assertNotEqual(result.returncode,0,'Active/enabled/CLI rc0 cannot hide an automatic restart')
+        self.assertIn('unit is-active',calls);self.assertIn('unit is-enabled',calls)
+        self.assertNotIn('unit start',calls);self.assertNotIn('unit restart',calls)
+    def test_healthy_initializer_finishes_with_one_start_and_no_restart_or_stop(self):
+        result,calls=self.scenario('healthy')
+        self.assertEqual(result.returncode,0,result.stderr);self.assertIn('MARK framework',calls)
+        self.assertEqual(calls.count('unit start asterisk'),1)
+        for forbidden in ['unit restart','unit stop','safe_asterisk','UNEXPECTED NATIVE COMMAND']:self.assertNotIn(forbidden,calls)
 
 
 if __name__ == '__main__': unittest.main()

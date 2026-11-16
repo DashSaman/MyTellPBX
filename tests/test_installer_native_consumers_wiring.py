@@ -59,6 +59,7 @@ run_logged(){
 guard_empty_framework_bootstrap(){ event EMPTY_GUARD; }
 normalize_framework_mysql(){ event NORMALIZE; }
 framework_bootstrap_healthy(){ return 0; }
+wait_asterisk_ready(){ :; } # Runtime probes are covered by the isolated readiness fixtures.
 rm(){ event MARKER_REMOVE "$@"; }
 stage_done(){ [ "$DONE" = 1 ]; }
 mark_stage(){ event COMPLETE "$@"; }
