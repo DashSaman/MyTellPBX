@@ -1,0 +1,30 @@
+{
+  "notice": "Inert MytelPBX native-start fixtures, GPL-2.0-only. Synthetic configuration; no real credentials or commands are executed.",
+  "files": {
+    "usr/sbin/service": "#!/bin/sh\n# Inert native dispatch fixture, GPL-2.0-only\nexit 0\n",
+    "usr/lib/systemd/system/asterisk.service": "# Inert native unit fixture, GPL-2.0-only\n[Service]\nType=simple\nExecStart=/usr/sbin/asterisk -f\n",
+    "usr/lib/systemd/system/issabel-firstboot.service": "# Inert native firstboot fixture, GPL-2.0-only\n[Service]\nType=oneshot\nExecStart=/usr/bin/true\n",
+    "usr/lib/systemd/system/amportal-reload.service": "# Inert native reload fixture, GPL-2.0-only\n[Service]\nType=oneshot\nExecStart=/usr/bin/true\n",
+    "usr/src/issabelPBX/framework/install_amp": "<?php\n// Inert already-repaired native installer fixture, GPL-2.0-only.\nexit(0);\n",
+    "usr/src/issabelPBX/framework/amp_conf/astetc/modules.conf": "; Inert native-start fixture, GPL-2.0-only\n[modules]\nautoload=yes\n#include modules_additional.conf\n#include modules_custom.conf\n",
+    "usr/src/issabelPBX/framework/amp_conf/astetc/modules_additional.conf": "; Inert native-start fixture, GPL-2.0-only\nnoload => cdr_mysql.so\n",
+    "usr/src/issabelPBX/framework/amp_conf/astetc/manager_general_additional.conf": "; Inert native-start fixture, GPL-2.0-only\n",
+    "usr/src/issabelPBX/framework/amp_conf/astetc/res_parking_additional.conf": "; Inert native-start fixture, GPL-2.0-only\n[general]\n",
+    "usr/src/issabelPBX/framework/amp_conf/astetc/cbmysql.conf": "; Inert native-start fixture, GPL-2.0-only\n",
+    "usr/src/issabelPBX/framework/amp_conf/astetc/cdr_mysql.conf": "; Inert native-start fixture, GPL-2.0-only\n",
+    "usr/src/issabelPBX/framework/amp_conf/astetc/dnsmgr.conf": "; Inert native-start fixture, GPL-2.0-only\n",
+    "usr/src/issabelPBX/framework/amp_conf/astetc/enum.conf": "; Inert native-start fixture, GPL-2.0-only\n",
+    "usr/src/issabelPBX/framework/amp_conf/astetc/indications.conf": "; Inert native-start fixture, GPL-2.0-only\n",
+    "usr/src/issabelPBX/framework/amp_conf/astetc/issabelpbx_module_admin.conf": "; Inert native-start fixture, GPL-2.0-only\n",
+    "usr/src/issabelPBX/framework/amp_conf/astetc/manager.conf": "; Inert native-start fixture, GPL-2.0-only\n#include manager_general_additional.conf\n#include manager_custom.conf\n",
+    "usr/src/issabelPBX/framework/amp_conf/astetc/meetme.conf": "; Inert native-start fixture, GPL-2.0-only\n",
+    "usr/src/issabelPBX/framework/amp_conf/astetc/modem.conf": "; Inert native-start fixture, GPL-2.0-only\n",
+    "usr/src/issabelPBX/framework/amp_conf/astetc/musiconhold.conf": "; Inert native-start fixture, GPL-2.0-only\n",
+    "usr/src/issabelPBX/framework/amp_conf/astetc/phone.conf": "; Inert native-start fixture, GPL-2.0-only\n",
+    "usr/src/issabelPBX/framework/amp_conf/astetc/phpagi.conf": "; Inert native-start fixture, GPL-2.0-only\n",
+    "usr/src/issabelPBX/framework/amp_conf/astetc/privacy.conf": "; Inert native-start fixture, GPL-2.0-only\n",
+    "usr/src/issabelPBX/framework/amp_conf/astetc/queues.conf": "; Inert native-start fixture, GPL-2.0-only\n",
+    "usr/src/issabelPBX/framework/amp_conf/astetc/res_mysql.conf": "; Inert native-start fixture, GPL-2.0-only\n",
+    "usr/src/issabelPBX/framework/amp_conf/astetc/res_parking.conf": "; Inert native-start fixture, GPL-2.0-only\n#include res_parking_additional.conf\n"
+  }
+}

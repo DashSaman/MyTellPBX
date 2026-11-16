@@ -665,7 +665,15 @@ stage_repos() {
     mark_stage repos
 }
 
+native_start() {
+    "${PY_BIN}" -B "${BUNDLE_DIR}/installer/prepare-native-start.py" "$1" \
+        --version "${MYTELLPBX_VERSION}" --bundle-sha256 "${MYTELLPBX_BUNDLE_SHA256}" >>"$LOG" 2>&1 \
+        || die "native startup interlock failed; existing state retained"
+}
+
 stage_native_platform() {
+    # Revalidate ownership on resumes before any native RPM can start services.
+    native_start --hold
     stage_done native-platform && return 0
     step "آماده‌سازی پیش‌نیازهای بومی مرکز تماس"
     ensure_asterisk_identity
@@ -1203,6 +1211,10 @@ stage_framework_init() {
     local service_digest
     service_digest=$(framework_service_config digest) || die "unrecognized initial service-key configuration retained"
     guard_empty_framework_bootstrap
+
+    run_logged "${PY_BIN}" -B "${BUNDLE_DIR}/installer/patch-native-include-order.py" \
+        || die "native include-order repair failed; asterisk not started"
+    native_start --prepare-config
 
     # The supported RPM owns one native systemd unit. Starting a manual
     # safe_asterisk helper as well can create competing unmanaged processes.

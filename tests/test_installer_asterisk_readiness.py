@@ -182,6 +182,7 @@ export FIXTURE_ROOT={base}
 REAL_PY={python}; BOOTSTRAP={bootstrap}
 python_fixture() {{ shift 2; "$REAL_PY" "$BOOTSTRAP" "$@"; }}
 PY_BIN=python_fixture
+native_start() {{ :; }} # Interlock has separate fake-systemd tests.
 stage_done() {{ return 1; }}; step() {{ :; }}; ensure_credentials() {{ :; }}
 framework_service_config() {{ printf absent; }}; guard_empty_framework_bootstrap() {{ :; }}
 bootstrap_empty_framework() {{ printf 'BOOTSTRAP\\n' >> "$CALLS"; exit 42; }}
@@ -194,7 +195,7 @@ asterisk() {{
     if [ "$count" = 1 ]; then printf 'Unable to connect: control socket absent\\n' >&2; return 1; fi
     printf 'Asterisk 20.12.0 built by fixture\\n'
 }}
-run_logged() {{ printf 'UNEXPECTED MUTATION %s\\n' "$*" >> "$CALLS"; return 99; }}
+run_logged() {{ case "$*" in *patch-native-include-order.py) return 0;; esac; printf 'UNEXPECTED MUTATION %s\\n' "$*" >> "$CALLS"; return 99; }}
 stage_framework_init
 '''.format(definitions=repr(definitions.as_posix()), log=repr((self.base/'log').as_posix()),
            calls=repr((self.base/'calls').as_posix()), counter=repr((self.base/'cli-count').as_posix()),
@@ -227,6 +228,7 @@ python_fixture() {{ shift 2; "$REAL_PY" "$BOOTSTRAP" "$@"; }}
 PY_BIN=python_fixture
 MODE={mode}
 event() {{ printf '%s\\n' "$*" >> "$CALLS"; }}
+native_start() {{ :; }} # Interlock has separate fake-systemd tests.
 stage_done() {{ return 1; }}; step() {{ :; }}; ensure_credentials() {{ :; }}
 framework_service_config() {{ printf absent; }}; guard_empty_framework_bootstrap() {{ :; }}
 normalize_framework_mysql() {{ :; }}
@@ -234,6 +236,7 @@ rm() {{ [ "$*" = '-f /installamp' ] || exit 99; event DISPOSABLE_MARKER; }}
 systemctl() {{ event "unit $*"; [ "$1" != is-enabled ] || printf 'enabled\\n'; return 0; }}
 asterisk() {{ event "direct CLI $*"; printf 'Asterisk 20.12.0 built by fixture\\n'; }}
 run_logged() {{
+    case "$*" in *patch-native-include-order.py) return 0;; esac
     case "$1" in
         /usr/src/issabelPBX/framework/install_amp)
             event INSTALL_AMP
