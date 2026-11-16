@@ -18,7 +18,7 @@ class NativeConsumerWiringTests(unittest.TestCase):
         self.base = Path(self.temp.name)
         self.bundle = self.base / 'bundle with spaces'
         for name in ['prepare-pjsip-websocket.py', 'pjsip-websocket-native.php',
-                     'prepare-geoip-module.py', 'geoip-update.py']:
+                     'prepare-geoip-module.py', 'geoip-update.py', 'prepare-webrtc-dtls.py']:
             path = self.bundle / 'installer' / name
             path.parent.mkdir(parents=True, exist_ok=True)
             path.write_text('fixture client only\n')
@@ -44,6 +44,7 @@ fixture_python(){
       */prepare-pjsip-websocket.py) event WEBSOCKET "$@"; [ "$FAIL" != "$3" ];;
       */geoip-update.py) event DATA "$@"; [ "$FAIL" != data ];;
       */prepare-geoip-module.py) event MODULE "$@"; [ "$FAIL" != module ];;
+      */prepare-webrtc-dtls.py) event DTLS "$@"; [ "$FAIL" != dtls ];;
       *) return 99;;
     esac
 }
@@ -119,6 +120,27 @@ mark_stage(){ event COMPLETE "$@"; }
     def test_missing_geoip_consumer_refuses_before_data_or_module_execution(self):
         (self.bundle / 'installer/prepare-geoip-module.py').unlink()
         result, events = self.run_fixture('stage_geoip')
+        self.assertNotEqual(result.returncode, 0)
+        self.assertEqual(events, [])
+
+    def test_dtls_validation_runs_even_when_stage_was_already_completed(self):
+        for done in (False, True):
+            with self.subTest(done=done):
+                result, events = self.run_fixture('stage_webrtc_dtls', done=done)
+                self.assertEqual(result.returncode, 0, result.stderr)
+                self.assertEqual([e[0] for e in events], ['DTLS', 'COMPLETE', 'CONTINUED'])
+                self.assertEqual(events[0][1:3], ['-B', self.bundle.as_posix() + '/installer/prepare-webrtc-dtls.py'])
+                self.assertEqual(events[0][3:], ['--backup-root', (self.base / 'state/webrtc-dtls').as_posix()])
+                self.assertEqual(events[1][1:], ['webrtc-dtls'])
+
+    def test_invalid_dtls_does_not_mark_completion_or_continue(self):
+        result, events = self.run_fixture('stage_webrtc_dtls', fail='dtls', done=True)
+        self.assertNotEqual(result.returncode, 0)
+        self.assertEqual([e[0] for e in events], ['DTLS'])
+
+    def test_missing_dtls_helper_refuses_without_invoking_other_consumers(self):
+        (self.bundle / 'installer/prepare-webrtc-dtls.py').unlink()
+        result, events = self.run_fixture('stage_webrtc_dtls')
         self.assertNotEqual(result.returncode, 0)
         self.assertEqual(events, [])
 
