@@ -190,14 +190,20 @@ def overrides(root, generated=False):
     seen = []
     for path in sorted(directory.glob('*.conf')):
         source = config_input(root, path)
-        for line in source.read_text(errors='strict').splitlines():
-            if re.match(r'^\s*websocket_enabled\s*(?:=>|=)', line, re.I):
+        # Asterisk configuration comments need not be UTF-8. Inspect only the
+        # ASCII directive syntax and leave every original byte untouched.
+        content = source.read_bytes()
+        if b'\0' in content:
+            raise ValueError('Binary native configuration retained')
+        for line in content.splitlines():
+            if re.match(rb'^\s*websocket_enabled\s*(?:=>|=)', line, re.I):
                 seen.append((path.name, line))
-            if re.match(r'^\s*noload\s*(?:=>|=)\s*res_pjsip_transport_websocket(?:\.so)?\s*(?:;.*)?$', line, re.I):
+            # An unknown non-ASCII suffix on this module choice is retained too.
+            if re.match(rb'^\s*noload\s*(?:=>|=)\s*res_pjsip_transport_websocket(?:\.so)?(?:\s*(?:;.*)?|\s*[^\x00-\x7f].*)$', line, re.I):
                 return True
     if generated:
         return len(seen) != 1 or seen[0][0] != 'sip_general_additional.conf' or re.fullmatch(
-            r'\s*websocket_enabled\s*(?:=>|=)\s*no\s*(?:;.*)?', seen[0][1], re.I) is None
+            rb'\s*websocket_enabled\s*(?:=>|=)\s*no\s*(?:;.*)?', seen[0][1], re.I) is None
     return bool(seen)
 
 

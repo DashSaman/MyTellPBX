@@ -77,6 +77,11 @@ class NativeConfigBytesTests(unittest.TestCase):
         self.assertTrue(WS.overrides(self.root));self.assertTrue(WS.overrides(self.root,generated=True))
         self.assertEqual(path.read_bytes(),raw)
 
+    def test_nonascii_suffix_on_known_module_noload_is_preserved(self):
+        raw=b'noload => res_pjsip_transport_websocket.so\xe5\n';path=self.write('modules.conf',raw)
+        self.assertTrue(WS.overrides(self.root));self.assertTrue(WS.overrides(self.root,generated=True))
+        self.assertEqual(path.read_bytes(),raw)
+
     def test_duplicate_or_custom_generated_choice_is_still_refused(self):
         self.write('sip_general_additional.conf',b'; legacy \xe5\nwebsocket_enabled=no\n')
         self.write('sip_general_custom.conf',b'websocket_enabled=no\n')
