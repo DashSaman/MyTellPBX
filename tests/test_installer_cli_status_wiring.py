@@ -45,7 +45,7 @@ stage_done(){ event STAGE_DONE "$@"; [ "$DONE" = 1 ]; }
 preflight(){ :; }; acquire_lock(){ :; }; write_install_source(){ :; }
 initialize_workspace(){ :; }; verify_bundle(){ :; }; ensure_credentials(){ :; }
 repair_platform_catalog(){ event CATALOG "$@"; }
-stage_repos(){ :; }; stage_update(){ :; }; stage_packages1(){ :; }; stage_tls(){ :; }
+stage_repos(){ :; }; stage_native_platform(){ :; }; stage_update(){ :; }; stage_packages1(){ :; }; stage_tls(){ :; }
 stage_packages2(){ event PACKAGES2 "$DONE"; }
 stage_post_base(){ event POST_BASE; }; stage_framework_init(){ event FRAMEWORK; }
 stage_mytel_layer(){ :; }; stage_webrtc_dtls(){ :; }; stage_geoip(){ :; }; stage_myteldesk(){ :; }

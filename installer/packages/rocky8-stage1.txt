@@ -50,3 +50,6 @@ langpacks-pt_BR
 langpacks-fa
 langpacks-fr
 mailx
+tar
+xz
+issabel-config_helpers

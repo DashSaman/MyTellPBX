@@ -490,19 +490,55 @@ verify_bundle() {
     [ "${got}" = "${MYTELLPBX_BUNDLE_SHA256}" ] \
         || die "bundle checksum mismatch (expected ${MYTELLPBX_BUNDLE_SHA256}, got ${got})"
 
-    # Safety checks BEFORE extraction: reject absolute paths, parent refs,
-    # symlinks and hardlinks inside the archive.
-    if tar -tzf "${BUNDLE_FINAL}" 2>>"$LOG" | grep -E '(^/|(^|/)\.\.($|/))' >/dev/null; then
-        die "bundle contains unsafe path names"
-    fi
-    if tar -tvzf "${BUNDLE_FINAL}" 2>>"$LOG" | awk '{print substr($1,1,1)}' | grep -Eq '^(l|h)$'; then
-        die "bundle contains links"
-    fi
-
-    rm -rf "${BUNDLE_ROOT}"
-    mkdir -p "${BUNDLE_ROOT}"
-    tar -xzf "${BUNDLE_FINAL}" -C "${BUNDLE_ROOT}" >>"$LOG" 2>&1 \
-        || die "bundle extraction failed"
+    # Rocky minimal provides Python but not tar. Validate every header before
+    # creating output, then stream only regular file bytes without archive owners.
+    "${PY_BIN}" -B - "${BUNDLE_FINAL}" "${BUNDLE_ROOT}" >>"$LOG" 2>&1 <<'PY' || die "bundle extraction failed"
+import pathlib, sys, tarfile
+destination = pathlib.Path(sys.argv[2])
+if destination.exists() or destination.is_symlink():
+    raise ValueError('Existing bundle extraction path retained')
+with tarfile.open(sys.argv[1], 'r:gz') as source:
+    members, names, total = [], {}, 0
+    for item in source:
+        if len(members) >= 10000:
+            raise ValueError('Bundle member limit exceeded')
+        if item.type not in (tarfile.REGTYPE, tarfile.AREGTYPE, tarfile.DIRTYPE) or item.sparse is not None:
+            raise ValueError('Bundle links, sparse and special files refused')
+        name = item.name[:-1] if item.isdir() and item.name.endswith('/') else item.name
+        relative = pathlib.PurePosixPath(name)
+        if (not name or relative.is_absolute() or str(relative) != name
+                or '..' in relative.parts or '\\' in name or ':' in name
+                or any(ord(c) < 32 or ord(c) == 127 for c in name) or name in names):
+            raise ValueError('Noncanonical or duplicate bundle path refused')
+        if item.size < 0 or item.size > 128 * 1024 * 1024 or (item.isdir() and item.size):
+            raise ValueError('Bundle member size exceeded')
+        total += item.size
+        if total > 512 * 1024 * 1024:
+            raise ValueError('Bundle expanded size exceeded')
+        names[name] = item; members.append((item, relative))
+    if not members or len({relative.parts[0] for _, relative in members}) != 1:
+        raise ValueError('Bundle layout unexpected')
+    for item, relative in members:
+        if any(str(parent) in names and not names[str(parent)].isdir()
+               for parent in relative.parents if str(parent) != '.'):
+            raise ValueError('Bundle file cannot be a parent directory')
+    destination.mkdir(mode=0o700)
+    for item, relative in members:
+        target = destination.joinpath(*relative.parts)
+        if item.isdir():
+            target.mkdir(parents=True, exist_ok=True)
+        else:
+            target.parent.mkdir(parents=True, exist_ok=True)
+            with source.extractfile(item) as incoming, target.open('xb') as outgoing:
+                remaining = item.size
+                while remaining:
+                    block = incoming.read(min(1024 * 1024, remaining))
+                    if not block: raise ValueError('Bundle file is truncated')
+                    outgoing.write(block); remaining -= len(block)
+            target.chmod(0o755 if item.mode & 0o111 else 0o644)
+    for directory in destination.rglob('*'):
+        if directory.is_dir(): directory.chmod(0o755)
+PY
     local tops
     tops=$(ls -A "${BUNDLE_ROOT}" | wc -l)
     [ "${tops}" = "1" ] || die "bundle layout unexpected"
@@ -629,6 +665,26 @@ stage_repos() {
     mark_stage repos
 }
 
+stage_native_platform() {
+    stage_done native-platform && return 0
+    step "آماده‌سازی پیش‌نیازهای بومی مرکز تماس"
+    ensure_asterisk_identity
+    # Same documented vendor policy, before RPMs can start native services.
+    local mode
+    mode=$(getenforce 2>>"$LOG") || die "cannot read required SELinux policy"
+    case "${mode}" in
+        Enforcing) run_logged setenforce 0 || die "required SELinux runtime policy could not be applied";;
+        Permissive|Disabled) ;;
+        *) die "unrecognized SELinux policy; native packages not started";;
+    esac
+    run_logged sed -i 's/^SELINUX=.*/SELINUX=disabled/' /etc/selinux/config \
+        || die "required persistent SELinux policy could not be applied"
+    grep -qxF 'SELINUX=disabled' /etc/selinux/config \
+        || die "required persistent SELinux policy was not saved"
+    install_with_retry "native configuration helpers" issabel-config_helpers
+    mark_stage native-platform
+}
+
 # --------------------------------------------------------------------------
 # Stage 2: OS update
 # --------------------------------------------------------------------------
@@ -742,10 +798,6 @@ stage_post_base() {
     run_logged mysql_upgrade --force \
         || die "mysql_upgrade failed (system tables unusable)"
     systemctl enable httpd             >>"$LOG" 2>&1 || die "httpd enable failed"
-
-    # SELinux: the telephony framework requires it disabled (documented).
-    setenforce 0 >/dev/null 2>&1 || true
-    sed -i 's/\(^SELINUX=\).*/\SELINUX=disabled/' /etc/selinux/config
 
     # Firewall: KEEP firewalld enabled; open PBX ports, preserve SSH.
     if systemctl is-enabled --quiet firewalld 2>/dev/null || systemctl is-active --quiet firewalld; then
@@ -1558,6 +1610,7 @@ main() {
     # files during an earlier interrupted package transaction.
     [ -n "${MEDIA_ROOT:-}" ] || repair_platform_catalog
     stage_repos
+    stage_native_platform
     stage_update
     stage_packages1
     stage_tls

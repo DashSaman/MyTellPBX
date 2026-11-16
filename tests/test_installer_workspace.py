@@ -12,6 +12,7 @@ import re
 import shlex
 import shutil
 import subprocess
+import sys
 import tarfile
 import tempfile
 import unittest
@@ -63,6 +64,7 @@ die() { printf 'EXPECTED-REFUSAL: %s\\n' "$*" >&2; exit 1; }
             'LOG': str(self.base / 'fixture.log'), 'WORK_DIR': str(private),
             'BUNDLE_TMP': str(private / 'fixture.tgz.part'), 'BUNDLE_FINAL': str(private / 'fixture.tgz'),
             'BUNDLE_ROOT': str(private / 'extracted'), 'MYTELL_BUNDLE_FILE': str(self.archive),
+            'PY_BIN': sys.executable,
             'MYTELLPBX_BUNDLE_SHA256': hashlib.sha256(self.archive.read_bytes()).hexdigest(),
             'MYTELLPBX_BUNDLE': 'fixture.tgz', 'STATE_DIR': str(self.base / 'state'),
         }

@@ -123,6 +123,7 @@ verify_bundle(){ event VERIFIED; }
 initialize_media(){ event MEDIA; SKIP_UPDATE=1; }
 ensure_credentials(){ event CREDENTIALS; }
 stage_repos(){ event REPOS; }
+stage_native_platform(){ :; }
 stage_packages1(){ :; }; stage_tls(){ :; }; stage_packages2(){ :; }; stage_cli_status(){ :; }
 stage_post_base(){ :; }; stage_framework_init(){ :; }; stage_mytel_layer(){ :; }
 stage_webrtc_dtls(){ :; }; stage_geoip(){ :; }; stage_myteldesk(){ :; }; stage_selfcheck(){ :; }; finish(){ :; }
