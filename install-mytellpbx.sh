@@ -695,7 +695,7 @@ stage_post_base() {
         mv /etc/asterisk/extensions_custom.conf.sample /etc/asterisk/extensions_custom.conf
     fi
 
-    /usr/sbin/amportal chown >>"$LOG" 2>&1 || true
+    if [ -x /usr/sbin/amportal ]; then /usr/sbin/amportal chown >>"$LOG" 2>&1 || true; fi
 
     mark_stage post_base
 }
@@ -941,6 +941,95 @@ if (!$has) {
 echo "acl admin ensured (uid=$uid)\n";
 PHP
 }
+wait_asterisk_ready() {
+    # Type=simple reports active before Asterisk creates its control socket.
+    # Only bounded read-only clients wait; the native daemon is never restarted.
+    ( exec 9>&-; "${PY_BIN}" -B - "${LOG}" <<'PY'
+import re, subprocess, sys, time
+
+def wait_ready(log, run=subprocess.run, clock=time.monotonic, pause=time.sleep,
+               emit=lambda message: print(message, flush=True), timeout=180):
+    started = clock()
+    deadline = started + timeout
+    last_notice = started
+    emit('Waiting for native Asterisk CLI and full boot: 0s elapsed (limit {}s)'.format(timeout))
+
+    def probe(arguments, cli=False):
+        remaining = deadline - clock()
+        if remaining <= 0:
+            raise RuntimeError('native Asterisk readiness deadline exceeded')
+        try:
+            result = run(arguments, stdin=subprocess.DEVNULL, stdout=subprocess.PIPE,
+                         stderr=subprocess.PIPE, close_fds=True, timeout=min(5, remaining))
+            output = result.stdout + result.stderr
+        except subprocess.TimeoutExpired as error:
+            result = None
+            output = (error.stdout or b'') + (error.stderr or b'') + b'\nReadiness client timed out\n'
+        if len(output) > 16384:
+            raise RuntimeError('unexpected oversized Asterisk readiness response')
+        log.write(('READINESS: ' + ' '.join(arguments) + '\n').encode('ascii') + output + b'\n')
+        log.flush()
+        if clock() >= deadline:
+            raise RuntimeError('native Asterisk readiness deadline exceeded')
+        if result is None and not cli:
+            raise RuntimeError('native Asterisk unit status probe timed out')
+        if b'no such command' in output.lower():
+            raise RuntimeError('native Asterisk does not support the required readiness command')
+        return result
+
+    def unit():
+        result = probe(['systemctl', 'show', 'asterisk', '-p', 'ActiveState', '-p', 'SubState',
+                        '-p', 'MainPID', '-p', 'NRestarts', '-p', 'ControlGroup'])
+        if result.returncode:
+            raise RuntimeError('native Asterisk unit status is unavailable')
+        fields = dict(line.split('=', 1) for line in result.stdout.decode('ascii').splitlines())
+        if fields.get('ActiveState') != 'active' or fields.get('SubState') != 'running':
+            raise RuntimeError('native Asterisk unit is not active and running')
+        if not re.fullmatch(r'[1-9][0-9]*', fields.get('MainPID', '')) or fields.get('NRestarts') != '0':
+            raise RuntimeError('native Asterisk unit has no stable process or has restarted')
+        if fields.get('ControlGroup') != '/system.slice/asterisk.service':
+            raise RuntimeError('native Asterisk unit cgroup is not recognized')
+        return fields['MainPID'], fields['NRestarts'], fields['ControlGroup']
+
+    original = unit()
+    while True:
+        if unit() != original:
+            raise RuntimeError('native Asterisk process changed during readiness check')
+        version = probe(['asterisk', '-rx', 'core show version'], cli=True)
+        if version is not None and version.returncode == 0:
+            if not re.match(rb'^Asterisk 20\.', version.stdout.strip()):
+                raise RuntimeError('unrecognized native Asterisk version response')
+            boot = probe(['asterisk', '-rx', 'core waitfullybooted'], cli=True)
+            if boot is not None and boot.returncode == 0:
+                if boot.stdout.strip() != b'Asterisk has fully booted.':
+                    raise RuntimeError('unrecognized native Asterisk full-boot response')
+                if unit() != original:
+                    raise RuntimeError('native Asterisk process changed during readiness check')
+                emit('Native Asterisk ready after {}s; CLI and full boot verified'.format(int(clock() - started)))
+                return
+        remaining = deadline - clock()
+        if remaining <= 0:
+            raise RuntimeError('native Asterisk readiness deadline exceeded')
+        pause(min(2, remaining))
+        now = clock()
+        if now - last_notice >= 15:
+            emit('Waiting for native Asterisk CLI and full boot: {}s elapsed (limit {}s)'.format(int(now - started), timeout))
+            last_notice = now
+
+if __name__ == '__main__':
+    try:
+        with open(sys.argv[1], 'ab') as log:
+            wait_ready(log)
+    except RuntimeError as error:
+        print('Asterisk readiness failed: ' + str(error), file=sys.stderr)
+        raise SystemExit(1)
+    except Exception:
+        print('Asterisk readiness command/log failed; inspect the private installer log', file=sys.stderr)
+        raise SystemExit(1)
+PY
+    ) || die "native asterisk did not become ready before framework init"
+}
+
 stage_framework_init() {
     stage_done framework && return 0
     step "راه‌اندازی چارچوب مرکز تماس و رمزها"
@@ -953,8 +1042,7 @@ stage_framework_init() {
     # The supported RPM owns one native systemd unit. Starting a manual
     # safe_asterisk helper as well can create competing unmanaged processes.
     ( exec 9>&-; systemctl start asterisk >>"$LOG" 2>&1 ) || die "native asterisk unit failed to start"
-    systemctl is-active --quiet asterisk || die "native asterisk unit is not active"
-    asterisk -rx 'core show version' >>"$LOG" 2>&1 || die "asterisk CLI failed before framework init"
+    wait_asterisk_ready
     systemctl enable asterisk >>"$LOG" 2>&1 || die "cannot enable asterisk at boot"
 
     bootstrap_empty_framework

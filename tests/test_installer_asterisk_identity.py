@@ -110,6 +110,7 @@ stage_packages1
         body += '''stage_done(){ return 1; }; ensure_credentials(){ :; }; guard_empty_framework_bootstrap(){ :; }
 framework_service_config(){ printf absent; }; sleep(){ :; }
 bootstrap_empty_framework(){ exit 42; }
+wait_asterisk_ready(){ printf 'readiness\n' >> "$CALLS"; }
 asterisk(){ [ -f "$UNIT" ]; }
 systemctl(){ printf 'unit %s\\n' "$*" >> "$CALLS"; [ "$1" != start ] || printf started > "$UNIT"; }
 run_logged(){ printf 'manual %s\\n' "$*" >> "$CALLS"; }
@@ -120,7 +121,9 @@ stage_framework_init
         calls = self.calls.read_text()
         self.assertNotIn('manual ', calls)
         self.assertEqual(calls.count('unit start asterisk'), 1)
-        self.assertIn('unit is-active --quiet asterisk', calls)
+        self.assertIn('readiness', calls)
+        self.assertLess(calls.index('unit start asterisk'), calls.index('readiness'))
+        self.assertLess(calls.index('readiness'), calls.index('unit enable asterisk'))
 
 
 if __name__ == '__main__': unittest.main()
