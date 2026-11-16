@@ -170,6 +170,58 @@ class CollectorTests(unittest.TestCase):
         package.arch='x86_64';transaction.remove_set=['unexpected']
         with self.assertRaises(ValueError):self.c.resolve(base,['httpd'])
 
+    def environment_base(self, present=True, fail=False):
+        """Model DNF4's actual @ stripping, which leaves an unmatched caret."""
+        class Base:
+            def __init__(self):
+                self.events=[];self.names=[]
+                self.conf=SimpleNamespace(group_package_types=['mandatory','default','conditional'])
+                self.comps=SimpleNamespace(environments=[SimpleNamespace(id='minimal-environment')] if present else [])
+            def read_comps(self,**kwargs):self.events.append(('comps',kwargs))
+            def install_specs(self,roots):
+                self.events.append(('packages',list(roots)))
+                for root in roots:
+                    if root.startswith('@'):
+                        # _categorize_specs strips only @; env_group_install cannot match ^id.
+                        raise ValueError('Missing groups or modules: '+root[1:])
+                    self.names.append(root)
+            def environment_install(self,env_id,types,strict=True):
+                self.events.append(('environment',env_id,types,strict))
+                if fail:raise ValueError('Required environment package is unavailable')
+                if env_id not in {e.id for e in self.comps.environments}:raise ValueError('Unknown environment')
+                self.names.extend('minimal-'+kind for kind in types)
+            def resolve(self,**kwargs):
+                self.events.append(('resolve',kwargs))
+                self.transaction=SimpleNamespace(install_set=[SimpleNamespace(name=name,downloadsize=5,
+                    installed=False,arch='x86_64') for name in self.names],remove_set=[])
+        return Base()
+
+    def test_explicit_environment_roots_use_native_environment_api_and_unchanged_types(self):
+        roots=['@^minimal-environment','httpd']
+        for phase in ['source','local']:
+            with self.subTest(phase=phase):
+                base=self.environment_base()
+                try:packages=self.c.resolve(base,roots)
+                except ValueError as error:self.fail('Present Minimal environment was not installed: '+str(error))
+                self.assertEqual({p.name for p in packages},{'httpd','minimal-mandatory','minimal-default','minimal-conditional'})
+                self.assertIn(('packages',['httpd']),base.events)
+                env=[event for event in base.events if event[0]=='environment']
+                self.assertEqual(len(env),1);self.assertEqual(env[0][1],'minimal-environment')
+                self.assertIs(env[0][2],base.conf.group_package_types);self.assertIs(env[0][3],True)
+                self.assertEqual(base.events[0],('comps',{'arch_filter':True}))
+                self.assertEqual(base.events[-1],('resolve',{'allow_erasing':False}))
+                self.assertEqual(roots,['@^minimal-environment','httpd'])
+
+    def test_missing_or_failed_environment_refuses_without_weakening_package_roots(self):
+        base=self.environment_base(present=False)
+        with self.assertRaisesRegex(ValueError,'Exact environment root is absent'):
+            self.c.resolve(base,['@^minimal-environment','httpd'])
+        self.assertEqual(base.events,[('comps',{'arch_filter':True})])
+        base=self.environment_base(fail=True)
+        with self.assertRaisesRegex(ValueError,'Required environment package is unavailable'):
+            self.c.resolve(base,['@^minimal-environment','httpd'])
+        self.assertFalse(any(event[0] in ('packages','resolve') for event in base.events))
+
     def test_input_archive_pins_and_real_payload_package_lists_drive_the_plan(self):
         def archive(path,files):
             with tarfile.open(path,'w:gz') as tar:

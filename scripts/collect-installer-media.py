@@ -209,7 +209,19 @@ def configured_base(work, reposdir, repo_ids, dnf_module=None, module_factory=No
 
 def resolve(base, roots):
     base.read_comps(arch_filter=True)
-    base.install_specs(roots); base.resolve(allow_erasing=False)
+    # DNF4 install_specs strips @ but leaves ^, so CLI environment roots need
+    # the public environment API rather than its group/module pattern parser.
+    environments = [root[2:] for root in roots if root.startswith('@^')]
+    if environments:
+        available = {environment.id for environment in base.comps.environments}
+        if any(not re.fullmatch(r'[A-Za-z0-9][A-Za-z0-9_.-]*', name) or name not in available
+               for name in environments):
+            raise ValueError('Exact environment root is absent from repository comps')
+        for name in environments:
+            base.environment_install(name, base.conf.group_package_types, strict=True)
+    package_specs = [root for root in roots if not root.startswith('@^')]
+    if package_specs: base.install_specs(package_specs)
+    base.resolve(allow_erasing=False)
     packages = list(base.transaction.install_set)
     if (not 1 <= len(packages) <= MAX_RPMS or list(base.transaction.remove_set)
             or sum(int(p.downloadsize) for p in packages) > MAX_RPM_BYTES
