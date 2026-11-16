@@ -387,7 +387,6 @@
 }
 
 /* keep brand-styled elements (orange apply button) readable */
-:root[data-mt-theme="dark"] #button_reload { color: #FFFFFF !important; }
 
 /* ---------- v7.3.2b: module edit forms (the big white surfaces) ---------- */
 :root[data-mt-theme="dark"] .content form,

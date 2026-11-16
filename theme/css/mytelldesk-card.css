@@ -157,6 +157,7 @@
 }
 
 /* Full width after JS removes the unavailable desk card. */
+.mt-home-card--desk:only-child,
 .mt-home-card--webphone:only-child {
     grid-column: 1 / -1;
 }

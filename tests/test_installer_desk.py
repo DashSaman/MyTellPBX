@@ -309,9 +309,11 @@ class InstallerStageTests(unittest.TestCase):
 
     def test_pending_fresh_package_stages_still_probe_required_repositories(self):
         marker = self.base / 'curl-calls'
-        result = self.shell('curl(){ echo "$*" >> ' + repr(marker.as_posix()) + '; case "$*" in *http_code*) printf 200;; esac; }\nBUNDLE_FINAL=\nMYTELL_BUNDLE_FILE=\ncheck_network_prerequisites\n')
+        metadata = '<repomd xmlns="http://linux.duke.edu/metadata/repo"><data type="primary"><location href="repodata/primary.xml.gz"/></data></repomd>'
+        result = self.shell('curl(){ echo "$*" >> ' + repr(marker.as_posix()) + '; case "$*" in *http_code*) printf 200;; *repomd.xml*) printf \'%s\' ' + repr(metadata) + ';; esac; }\nBUNDLE_FINAL=\nMYTELL_BUNDLE_FILE=\ncheck_network_prerequisites\n')
         self.assertEqual(result.returncode, 0, result.stderr)
-        self.assertIn('mirror.issabel.org', marker.read_text()); self.assertIn('rpms.remirepo.net', marker.read_text())
+        self.assertIn('https://repo.us.issabel.org', marker.read_text()); self.assertIn('rpms.remirepo.net', marker.read_text())
+        self.assertNotIn('http://mirror.issabel.org', marker.read_text())
 
     def test_empty_interrupted_state_requires_positive_fresh_package_inventory(self):
         self.state.mkdir()

@@ -1455,6 +1455,7 @@
             }
 
             var canDesk = document.body.hasAttribute('data-mt-desk');
+            var canPhone = document.body.hasAttribute('data-mt-phone');
             var desk = c.querySelector('#mt-desk-banner');
             var phone = c.querySelector('#mt-webphone-card');
 
@@ -1463,8 +1464,18 @@
                 desk = null;
             }
 
+            if (!canPhone && phone) {
+                phone.parentNode.removeChild(phone);
+                phone = null;
+            }
+
+            if (!canDesk && !canPhone) {
+                if (row.parentNode) row.parentNode.removeChild(row);
+                return;
+            }
+
             if (canDesk && !desk) desk = makeHomeCard(true);
-            if (!phone) phone = makeHomeCard(false);
+            if (canPhone && !phone) phone = makeHomeCard(false);
 
             if (c.firstElementChild !== row) {
                 c.insertBefore(row, c.firstChild);
@@ -1478,7 +1489,7 @@
                 ? desk.nextElementSibling
                 : row.firstElementChild;
 
-            if (phonePosition !== phone) {
+            if (phone && phonePosition !== phone) {
                 row.insertBefore(phone, phonePosition);
             }
         };

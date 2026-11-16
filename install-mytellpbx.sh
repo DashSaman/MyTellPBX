@@ -1,17 +1,17 @@
 #!/bin/bash
 # ==========================================================================
 # MyTellPBX one-line installer for Rocky Linux 8.10 (x86_64)
-# Version: 7.6.0
+# Version: 7.6.1
 #
 # Installs the complete MyTellPBX contact-center platform:
 #   - telephony base (Asterisk 20, MariaDB, Apache, PHP 7.4, framework)
 #   - Persian RTL panel navigation with the PBX technical settings console LTR
 #   - full MyTel branding, dark/light themes, Persian language
-#   - pinned MytelDesk 1.1.0 with automatic verified CPU VAD
+#   - pinned MytelDesk 1.1.1 with automatic verified CPU VAD
 #
 # Quick start (download, review, run — never pipe straight into bash):
 #   curl -fsSL -o install-mytellpbx.sh \
-#     https://github.com/DashSaman/MyTellPBX/releases/download/v7.6.0/install-mytellpbx.sh
+#     https://github.com/DashSaman/MyTellPBX/releases/download/v7.6.1/install-mytellpbx.sh
 #   bash install-mytellpbx.sh
 #
 # Environment overrides (all optional):
@@ -19,8 +19,11 @@
 #   MYTELL_LANG            Panel language; only "fa" is supported.
 #   MYTELL_REBOOT          1 = reboot automatically after success (default 0).
 #   MYTELL_MYSQL_ROOT_PASS Predefined MariaDB root password (allowed chars:
-#                          A-Z a-z 0-9 space . @ = _ ! - ; generated if unset).
+#                          A-Z a-z 0-9 space . @ = _ ! -).
 #   MYTELL_ADMIN_PASS      Predefined panel admin password (same rules).
+#                          Missing passwords are requested once on a terminal;
+#                          Enter generates a password. Unattended runs generate
+#                          missing values. Saved credentials are never rotated.
 #   MYTELL_SKIP_UPDATE     1 = skip the initial OS update step.
 #   MYTELL_DESK_PUBLIC_URL HTTPS origin for the desk (optional; defaults to
 #                          the server address, preserves an owned Desk URL).
@@ -41,12 +44,12 @@
 set -u
 set -o pipefail
 
-MYTELLPBX_VERSION="7.6.0"
-MYTELLPBX_BUNDLE="mytelpbx-bundle-7.6.0.tgz"
+MYTELLPBX_VERSION="7.6.1"
+MYTELLPBX_BUNDLE="mytelpbx-bundle-7.6.1.tgz"
 # Expected SHA-256 of the bundle asset (filled in by the release builder).
-MYTELLPBX_BUNDLE_SHA256="126827851e676bfa51ca9e1527ad44fe9131452b808415ff08508886469a2bff"
+MYTELLPBX_BUNDLE_SHA256="2f995ca8fedfdb5f133cbd8225072c93af4f8376066494b729f30a3573ac3c30"
 MYTELLPBX_GITHUB="https://github.com/DashSaman/MyTellPBX"
-MYTELLPBX_RELEASE_TAG="v7.6.0"
+MYTELLPBX_RELEASE_TAG="v7.6.1"
 MYTELLPBX_BUNDLE_URL="${MYTELL_BUNDLE_URL:-${MYTELLPBX_GITHUB}/releases/download/${MYTELLPBX_RELEASE_TAG}/${MYTELLPBX_BUNDLE}}"
 
 LOG="/var/log/mytelpbx-install.log"
@@ -85,9 +88,24 @@ die()   {
 }
 
 stage_done() { [ -f "${STATE_DIR}/stages/$1.done" ]; }
-mark_stage() { mkdir -p "${STATE_DIR}/stages"; touch "${STATE_DIR}/stages/$1.done"; log "STAGE-COMPLETE: $1"; }
+mark_stage() {
+    mkdir -p "${STATE_DIR}/stages" || die "cannot create installer stage directory"
+    touch "${STATE_DIR}/stages/$1.done" || die "cannot persist installer stage marker: $1"
+    log "STAGE-COMPLETE: $1" || die "cannot persist installer stage completion log: $1"
+}
 
 run_logged() { "$@" >>"$LOG" 2>&1; }
+
+# DNF alone has a public, rate-limited counter stream. Never pass password
+# initialization or arbitrary commands through this logger.
+run_dnf_logged() {
+    local kind="$1"; shift
+    PYTHONIOENCODING=utf-8 "${PY_BIN}" -u -B "${BUNDLE_DIR}/installer/dnf-progress.py" --log "${LOG}" --kind "${kind}" --check-log 9>&- || return 1
+    LC_ALL=C dnf "$@" 9>&- 2>&1 | PYTHONIOENCODING=utf-8 "${PY_BIN}" -u -B "${BUNDLE_DIR}/installer/dnf-progress.py" --log "${LOG}" --kind "${kind}" 9>&-
+    local statuses=("${PIPESTATUS[@]}")
+    [ "${statuses[0]}" = "0" ] || return "${statuses[0]}"
+    return "${statuses[1]}"
+}
 
 # mysql helper: works whether root is passwordless or already passworded
 # (credentials file is loaded before use; safe to call after ensure_credentials)
@@ -119,7 +137,8 @@ ensure_amp_admin_password() {
 
 initialize_framework_passwords() {
     [ -f "${BUNDLE_DIR}/installer/password-init.php" ] || die "private password initialization adapter missing from bundle"
-    printf '%s\n%s\n' "${MYSQL_ROOT_PASS}" "${ADMIN_PASS}" | run_logged php "${BUNDLE_DIR}/installer/password-init.php" \
+    local web_password="${1:-${ADMIN_PASS}}"
+    printf '%s\n%s\n' "${MYSQL_ROOT_PASS}" "${web_password}" | run_logged php "${BUNDLE_DIR}/installer/password-init.php" \
         || die "password initialization failed (see ${LOG})"
 }
 
@@ -134,6 +153,44 @@ try:
 except (OSError, ValueError): valid = False
 raise SystemExit(0 if valid else 1)
 PY
+}
+
+verify_mysql_authentication() {
+    # Ignore option files and inherited passwords: a saved config value alone
+    # does not prove authentication, and unix_socket can silently ignore a key.
+    printf 'SELECT 1;\n' | MYSQL_PWD="${MYSQL_ROOT_PASS}" mysql --no-defaults --user=root --protocol=socket -N \
+        >/dev/null 2>&1 || die "chosen MariaDB root password does not authenticate"
+    if printf 'SELECT 1;\n' | MYSQL_PWD='' mysql --no-defaults --user=root --protocol=socket -N >/dev/null 2>&1; then
+        die "MariaDB root still accepts an empty password"
+    fi
+    local wrong_password
+    wrong_password=$(openssl rand -hex 24) || die "cannot generate authentication negative control"
+    [ -n "${wrong_password}" ] && [ "${wrong_password}" != "${MYSQL_ROOT_PASS}" ] \
+        || die "invalid authentication negative control"
+    if printf 'SELECT 1;\n' | MYSQL_PWD="${wrong_password}" mysql --no-defaults --user=root --protocol=socket -N >/dev/null 2>&1; then
+        die "MariaDB root accepts an incorrect password"
+    fi
+}
+
+verify_amp_admin_password() {
+    local amp_ok='' try
+    for try in 1 2 3 4 5; do
+        amp_ok=$(printf "SELECT COUNT(*) FROM asterisk.ampusers WHERE username='admin' AND password_sha1=SHA1('%s');\n" "${ADMIN_PASS}" | mysql_any -N 2>/dev/null || true)
+        [ "${amp_ok}" = "1" ] && return 0
+        sleep 2
+    done
+    die "admin password not in force on ampusers"
+}
+
+verify_asterisk_service() {
+    systemctl is-active --quiet asterisk || die "self-check: asterisk is not active"
+    # The supported Asterisk20 RPM provides a native multi-user.target unit.
+    # Exit 0 also covers static/generated/runtime states, which are not proof
+    # that this installed service will be enabled after a cold reboot.
+    local enabled_state
+    enabled_state=$(systemctl is-enabled asterisk 2>>"$LOG") || die "self-check: asterisk is not enabled at boot"
+    [ "${enabled_state}" = "enabled" ] || die "self-check: asterisk requires persistent enabled state"
+    asterisk -rx 'core show version' >>"$LOG" 2>&1 || die "self-check: asterisk CLI is not responding"
 }
 
 # Whole-string validation (grep is line-oriented and would accept values
@@ -212,6 +269,30 @@ finally:
 PY
 }
 
+repository_metadata_reachable() {
+    # Use an official HTTPS repository directly. A dead mirror-list service
+    # must not veto a healthy package mirror; HTML/empty 200s are not metadata.
+    local origin
+    for origin in https://repo.us.issabel.org https://repo.issabel.org; do
+        if curl -fsSL --proto '=https' --proto-redir '=https' \
+            --connect-timeout 8 --max-time 20 --max-filesize 1048576 \
+            "${origin}/issabel/5/base/x86_64/repodata/repomd.xml" 2>>"$LOG" \
+            | "${PY_BIN}" -c 'import sys, xml.etree.ElementTree as ET
+try:
+    document = sys.stdin.read(1048577)
+    if "<!DOCTYPE" in document.upper() or "<!ENTITY" in document.upper(): raise ValueError("DTD not allowed")
+    root = ET.fromstring(document)
+    ns = "{http://linux.duke.edu/metadata/repo}"
+    valid = root.tag == ns + "repomd" and any(item.get("type") == "primary" and item.find(ns + "location") is not None and item.find(ns + "location").get("href", "").strip() for item in root.findall(ns + "data"))
+except (ValueError, ET.ParseError):
+    valid = False
+raise SystemExit(0 if valid else 1)' >/dev/null; then
+            return 0
+        fi
+    done
+    return 1
+}
+
 check_network_prerequisites() {
     # An offline bundle or already completed base package stages must not be
     # rejected merely because an unrelated legacy mirror is unavailable.
@@ -226,9 +307,7 @@ check_network_prerequisites() {
             || die "release bundle not reachable (HTTP ${http_code})"
     fi
     if ! stage_done packages1 || ! stage_done packages2; then
-        curl -fsS --max-time 30 -o /dev/null \
-            "http://mirror.issabel.org/?release=5&arch=x86_64&repo=base" \
-            || die "telephony base repository mirror unreachable"
+        repository_metadata_reachable || die "official HTTPS telephony repositories unreachable or invalid"
     fi
     if ! stage_done repos; then
         curl -fsSI --max-time 30 -o /dev/null \
@@ -416,6 +495,36 @@ verify_bundle() {
 # --------------------------------------------------------------------------
 # Stage 1: repositories + PHP module stream
 # --------------------------------------------------------------------------
+repair_platform_catalog() {
+    local mode="${1:-optional}" vendor args=()
+    run_logged "${PY_BIN}" -B "${BUNDLE_DIR}/installer/repair-repository-transport.py" --if-present \
+        || die "repository transport repair failed; existing configuration retained"
+    if [ -e /etc/yum.repos.d/mytelpbx-base.repo ] || [ -L /etc/yum.repos.d/mytelpbx-base.repo ]; then
+        [ "${mode}" = mandatory ] || args+=(--if-present)
+        run_logged "${PY_BIN}" -B "${BUNDLE_DIR}/installer/repair-platform-repositories.py" "${args[@]}" \
+            || die "platform repository repair refused; existing configuration retained (see ${LOG})"
+    else
+        [ "${mode}" != mandatory ] && ! stage_done repos \
+            || die "reviewed platform repository catalog is missing"
+        for vendor in Issabel.repo Issabel5.repo commercial-addons.repo; do
+            [ ! -e "/etc/yum.repos.d/${vendor}" ] && [ ! -L "/etc/yum.repos.d/${vendor}" ] \
+                || die "vendor repositories exist without the reviewed platform catalog"
+        done
+    fi
+}
+
+stage_cli_status() {
+    step "آماده‌سازی نمایش وضعیت نصب خودکار"
+    # Package updates may restore the vendor executable. Revalidate its exact
+    # source on every run before framework initialization, including resumes.
+    run_logged "${PY_BIN}" -B "${BUNDLE_DIR}/installer/patch-cli-status.py" \
+        || die "CLI status repair refused; original executable retained (see ${LOG})"
+    if command -v restorecon >/dev/null 2>&1; then
+        run_logged restorecon /usr/bin/issabel-admin-passwords \
+            || die "CLI status executable security context could not be restored"
+    fi
+}
+
 stage_repos() {
     stage_done repos && return 0
     step "پیکربندی مخازن بسته‌ها"
@@ -428,16 +537,21 @@ stage_repos() {
     grep -qxF 'fastestmirror=True' /etc/dnf/dnf.conf 2>/dev/null || echo 'fastestmirror=True' >> /etc/dnf/dnf.conf
 
     # Remi repo + explicit PHP stream selection
-    run_logged dnf install -y dnf-plugins-core || die "dnf-plugins-core install failed"
-    run_logged dnf install -y https://rpms.remirepo.net/enterprise/remi-release-8.rpm \
+    # On a resumed repo stage the RPM may already be present. Repair its
+    # transport BEFORE any DNF command attempts metadata from the old HTTP URL.
+    repair_platform_catalog
+    run_dnf_logged repositories install -y dnf-plugins-core || die "dnf-plugins-core install failed"
+    run_dnf_logged repositories install -y https://rpms.remirepo.net/enterprise/remi-release-8.rpm \
         || die "remi-release install failed"
-    run_logged dnf module reset -y php || true
-    run_logged dnf module enable -y php:remi-7.4 || die "php:remi-7.4 module enable failed"
+    "${PY_BIN}" -B "${BUNDLE_DIR}/installer/repair-repository-transport.py" >>"$LOG" 2>&1 \
+        || die "repository transport repair failed; review vendor repo files"
+    run_dnf_logged repositories module reset -y php || true
+    run_dnf_logged repositories module enable -y php:remi-7.4 || die "php:remi-7.4 module enable failed"
     run_logged dnf config-manager --set-enabled remi || true
     run_logged dnf config-manager --set-enabled powertools || true
     run_logged dnf config-manager --set-enabled devel || true
 
-    run_logged dnf -q makecache || die "dnf makecache failed"
+    run_dnf_logged repositories -q makecache || die "dnf makecache failed"
     mark_stage repos
 }
 
@@ -450,7 +564,7 @@ stage_update() {
     step "به‌روزرسانی سیستم‌عامل"
     local attempt ok=0
     for attempt in 1 2 3; do
-        if run_logged dnf -y update; then ok=1; break; fi
+        if run_dnf_logged update -y update; then ok=1; break; fi
         warn "به‌روزرسانی ناموفق (تلاش ${attempt}/3) — میرور جایگزین آزمایش می‌شود"
         sleep 5
     done
@@ -459,7 +573,7 @@ stage_update() {
 }
 
 install_pkg() {
-    dnf -y install "$@" >>"$LOG" 2>&1
+    run_dnf_logged packages -y install "$@"
 }
 
 # --------------------------------------------------------------------------
@@ -476,15 +590,53 @@ install_with_retry() {
     [ "${ok}" = "1" ] || die "${label} failed after retries (see ${LOG})"
 }
 
+ensure_asterisk_identity() {
+    local group_entry group_status account_entry account_status group_gid account_uid account_gid
+    local group_pattern='^asterisk:[^:]*:([0-9]{1,9}):[^:]*$'
+    local account_pattern='^asterisk:[^:]*:([0-9]{1,9}):([0-9]{1,9}):[^:]*:/var/lib/asterisk:/bin/bash$'
+    group_entry=$(getent group asterisk); group_status=$?
+    account_entry=$(getent passwd asterisk); account_status=$?
+    case "${group_status}:${account_status}" in 0:0|0:2|2:2) ;; *) die "cannot inventory a compatible Asterisk service identity";; esac
+    if [ "${group_status}" = "2" ]; then
+        run_logged /usr/sbin/groupadd -r asterisk || die "cannot create Asterisk service group"
+        group_entry=$(getent group asterisk) || die "Asterisk service group missing after creation"
+    fi
+    case "${group_entry}" in *$'\n'*) die "ambiguous Asterisk service group";; esac
+    [[ "${group_entry}" =~ ${group_pattern} ]] || die "incompatible Asterisk service group"
+    group_gid="${BASH_REMATCH[1]}"
+    (( 10#${group_gid} > 0 && 10#${group_gid} < 1000 )) || die "Asterisk group conflicts with a non-service identity"
+    if [ "${account_status}" = "2" ]; then
+        run_logged /usr/sbin/useradd -r -g asterisk -c "Asterisk PBX" -s /bin/bash -d /var/lib/asterisk asterisk \
+            || die "cannot create Asterisk service account"
+        account_entry=$(getent passwd asterisk) || die "Asterisk service account missing after creation"
+    fi
+    case "${account_entry}" in *$'\n'*) die "ambiguous Asterisk service account";; esac
+    [[ "${account_entry}" =~ ${account_pattern} ]] || die "incompatible Asterisk service account; existing account preserved"
+    account_uid="${BASH_REMATCH[1]}"; account_gid="${BASH_REMATCH[2]}"
+    (( 10#${account_uid} > 0 && 10#${account_uid} < 1000 && 10#${account_gid} == 10#${group_gid} )) \
+        || die "Asterisk account conflicts with a non-service identity; existing account preserved"
+}
+
 stage_packages1() {
     stage_done packages1 && return 0
     step "نصب بسته‌های پایه (Asterisk 20 / MariaDB / Apache / PHP)"
+    # RPMs assign file ownership during extraction, before post-base setup.
+    ensure_asterisk_identity
     local list="${BUNDLE_DIR}/installer/packages/rocky8-stage1.txt"
     [ -f "${list}" ] || die "stage-1 package list missing from bundle"
     local pkgs
     pkgs=$(tr '\n' ' ' < "${list}")
     install_with_retry "stage-1 package install" ${pkgs}
     mark_stage packages1
+}
+
+stage_tls() {
+    stage_done tls && return 0
+    step "آماده‌سازی گواهی MyTellPBX برای سرویس‌های وب"
+    [ -f "${BUNDLE_DIR}/installer/prepare-tls.py" ] || die "TLS preparation helper missing from bundle"
+    run_logged "${PY_BIN}" -B "${BUNDLE_DIR}/installer/prepare-tls.py" \
+        || die "TLS pair preparation failed; existing certificates retained (see ${LOG})"
+    mark_stage tls
 }
 
 stage_packages2() {
@@ -505,10 +657,7 @@ stage_post_base() {
     stage_done post_base && return 0
     step "پیکربندی اولیهٔ سرویس‌های پایه"
 
-    /usr/sbin/groupadd -f -r asterisk >/dev/null 2>&1 || true
-    if ! grep -q 'asterisk:' /etc/passwd; then
-        /usr/sbin/useradd -r -g asterisk -c "Asterisk PBX" -s /bin/bash -d /var/lib/asterisk asterisk >/dev/null 2>&1 || true
-    fi
+    ensure_asterisk_identity
 
     systemctl enable mariadb.service >>"$LOG" 2>&1 || die "mariadb enable failed"
     systemctl start  mariadb           >>"$LOG" 2>&1 || die "mariadb start failed"
@@ -538,14 +687,6 @@ stage_post_base() {
         warn "firewalld not present; ports not configured"
     fi
 
-    # Normalize MariaDB root access for the framework initializer:
-    # set a temporary random password, then clear it (upstream-tested flow,
-    # with a random temp instead of a shipped constant).
-    normalize_framework_mysql
-
-    # Framework marker: remove any stale config so the initializer writes fresh
-    rm -f /etc/issabel.conf
-
     # Asterisk config patches (upstream flow)
     grep -q 'noload => cdr_mysql.so' /etc/asterisk/modules_additional.conf 2>/dev/null \
         || echo "noload => cdr_mysql.so" >> /etc/asterisk/modules_additional.conf
@@ -562,40 +703,221 @@ stage_post_base() {
 # --------------------------------------------------------------------------
 # Credentials (created BEFORE framework init; never rotated on rerun)
 # --------------------------------------------------------------------------
+credential_input_is_tty() { [ -t 0 ] && [ -t 2 ]; }
+
+choose_password() {
+    local variable="$1" selected="$2" prompt="$3"
+    if [ -z "${selected}" ] && credential_input_is_tty; then
+        printf '%s (Enter = تولید خودکار): ' "${prompt}" >&2
+        IFS= read -r -s selected || { printf '\n' >&2; die "password input interrupted; no credentials saved"; }
+        printf '\n' >&2
+    fi
+    if [ -z "${selected}" ]; then
+        selected=$(openssl rand -hex 24) || die "cannot generate password"
+    fi
+    valid_password "${selected}" || die "password contains unsupported characters; no credentials saved"
+    printf -v "${variable}" '%s' "${selected}"
+}
+
 ensure_credentials() {
-    if [ -s "${CRED_FILE}" ]; then
+    if [ -e "${CRED_FILE}" ] || [ -L "${CRED_FILE}" ]; then
+        # Validate the exact data grammar before sourcing. Unknown commands,
+        # duplicate keys, symlinks and non-private files are never executed.
+        "${PY_BIN}" -B - "${CRED_FILE}" <<'PY' || die "saved credentials are invalid or not private; no changes made"
+import os, re, stat, sys
+try:
+    path = sys.argv[1]
+    meta = os.lstat(path)
+    valid = stat.S_ISREG(meta.st_mode)
+    if os.name == 'posix':
+        valid = valid and meta.st_uid == os.geteuid() and stat.S_IMODE(meta.st_mode) == 0o600
+    if not valid: raise ValueError('unsafe credentials')
+    values = {}
+    with open(path, encoding='utf-8', newline='') as source:
+        for raw in source:
+            line = raw.rstrip('\n')
+            if not line or line.startswith('#'): continue
+            match = re.fullmatch(r"(MYSQL_ROOT_PASS|ADMIN_PASS)='([A-Za-z0-9 ._@=!\-]+)'", line)
+            if not match or match.group(1) in values: valid = False; break
+            values[match.group(1)] = match.group(2)
+    valid = valid and set(values) == {'MYSQL_ROOT_PASS', 'ADMIN_PASS'}
+except (OSError, ValueError): valid = False
+raise SystemExit(0 if valid else 1)
+PY
         say "رمزهای موجود حفظ شد (اجرای مجدد)"
         # shellcheck disable=SC1090
         . "${CRED_FILE}"
         return 0
     fi
-    # shellcheck disable=SC2154
-    MYSQL_ROOT_PASS="${MYTELL_MYSQL_ROOT_PASS:-$(openssl rand -hex 24)}"
-    ADMIN_PASS="${MYTELL_ADMIN_PASS:-$(openssl rand -hex 24)}"
-    local orig_mysql="${MYSQL_ROOT_PASS}" orig_admin="${ADMIN_PASS}"
-    (
-        umask 077
-        # single-quoted assignments: the allowed charset (alnum, space,
-        # .@=_!-) never contains a single quote, so this is inject-safe
-        cat > "${CRED_FILE}" <<EOF
+    # Collect and validate both before creating any final credential file.
+    # At most two hidden reads; supplied environment values skip their prompt.
+    choose_password ADMIN_PASS "${MYTELL_ADMIN_PASS:-}" 'رمز مدیر پنل'
+    choose_password MYSQL_ROOT_PASS "${MYTELL_MYSQL_ROOT_PASS:-}" 'رمز MariaDB'
+    local credential_tmp
+    credential_tmp=$(umask 077; mktemp "${CRED_FILE}.tmp.XXXXXXXX") || die "cannot create private credential file"
+    if ! (umask 077; cat > "${credential_tmp}" <<EOF
 # MyTellPBX credentials - $(date '+%Y-%m-%d %H:%M:%S')
 # Keep this file secret (mode 0600, root only).
 MYSQL_ROOT_PASS='${MYSQL_ROOT_PASS}'
 ADMIN_PASS='${ADMIN_PASS}'
 EOF
-        chmod 600 "${CRED_FILE}"
-    )
-    # round-trip verification: sourcing must restore the exact originals
-    unset MYSQL_ROOT_PASS ADMIN_PASS
-    . "${CRED_FILE}"
-    [ "${MYSQL_ROOT_PASS}" = "${orig_mysql}" ] && [ "${ADMIN_PASS}" = "${orig_admin}" ] \
-        || die "credential file round-trip verification failed"
-    [ -s "${CRED_FILE}" ] || die "credential file creation failed"
+        [ "$?" = "0" ] || exit 1
+        chmod 600 "${credential_tmp}"
+    ) || ! ln -- "${credential_tmp}" "${CRED_FILE}"; then
+        rm -f -- "${credential_tmp}"
+        die "cannot atomically save credentials; existing file preserved"
+    fi
+    rm -f -- "${credential_tmp}"
 }
 
 # --------------------------------------------------------------------------
 # Stage 6: framework first-boot initialization + passwords
 # --------------------------------------------------------------------------
+bootstrap_query_count() {
+    local count
+    count=$(printf '%s\n' "$1" | mysql_any -N -B 2>>"$LOG") || return 1
+    [[ "${count}" =~ ^[0-9]{1,9}$ ]] || return 1
+    printf '%s' "${count}"
+}
+
+framework_service_config() {
+    local mode="$1" root="${2:-/}" account group uid primary_gid gid
+    local file="${root%/}/etc/issabel.conf"
+    if [ ! -e "${file}" ] && [ ! -L "${file}" ]; then
+        [ "${mode}" = digest ] || return 1
+        printf absent; return 0
+    fi
+    account=$(getent passwd asterisk) || return 1
+    [[ "${account}" =~ ^asterisk:[^:]*:([0-9]{1,9}):([0-9]{1,9}):[^:]*:/var/lib/asterisk:/bin/bash$ ]] || return 1
+    uid="${BASH_REMATCH[1]}"; primary_gid="${BASH_REMATCH[2]}"
+    group=$(getent group asterisk) || return 1
+    [[ "${group}" =~ ^asterisk:[^:]*:([0-9]{1,9}):[^:]*$ ]] || return 1
+    gid="${BASH_REMATCH[1]}"
+    [ "${gid}" = "${primary_gid}" ] || return 1
+    EXPECTED_MYSQL_PASSWORD="${MYSQL_ROOT_PASS}" "${PY_BIN}" -B - "${file}" "${mode}" "${uid}" "${gid}" <<'PY'
+import base64, binascii, hashlib, os, re, stat, sys
+try:
+    path, mode = sys.argv[1:3]
+    if mode not in ('digest', 'ami', 'initialized-digest'): raise ValueError('mode')
+    meta = os.lstat(path)
+    if not stat.S_ISREG(meta.st_mode) or os.path.realpath(path) != os.path.abspath(path) or meta.st_size > 16384:
+        raise ValueError('file')
+    if os.name == 'posix' and (stat.S_IMODE(meta.st_mode) != 0o600 or meta.st_uid != int(sys.argv[3]) or meta.st_gid != int(sys.argv[4])):
+        raise ValueError('metadata')
+    with open(path, 'rb') as source: raw = source.read(16385)
+    if not raw.endswith(b'\n') or b'\r' in raw: raise ValueError('format')
+    values = {}
+    for line in raw.splitlines():
+        key, separator, value = line.partition(b'=')
+        if not separator or key in values: raise ValueError('keys')
+        values[key] = value
+    expected = {b'amiadminpwd', b'pbxapijwtsecret'}
+    if mode == 'initialized-digest': expected.update((b'mysqlrootpwd', b'cyrususerpwd'))
+    if set(values) != expected: raise ValueError('keys')
+    ami, jwt = values[b'amiadminpwd'], values[b'pbxapijwtsecret']
+    if not re.fullmatch(rb'[A-Za-z0-9 .@=_!\-]{10}', ami) or not ami.strip(): raise ValueError('ami')
+    decoded = base64.b64decode(jwt, validate=True)
+    if len(jwt) != 44 or len(decoded) != 32 or base64.b64encode(decoded) != jwt: raise ValueError('jwt')
+    if mode == 'initialized-digest':
+        chosen = os.environ['EXPECTED_MYSQL_PASSWORD'].encode('utf-8')
+        if values[b'mysqlrootpwd'] != chosen or values[b'cyrususerpwd'] != chosen: raise ValueError('passwords')
+    if mode == 'ami': sys.stdout.write(ami.decode('ascii'))
+    else: sys.stdout.write(hashlib.sha256(ami).hexdigest() + ':' + hashlib.sha256(jwt).hexdigest())
+except (OSError, ValueError, KeyError, binascii.Error):
+    raise SystemExit(1)
+PY
+}
+
+initialize_preserving_framework_keys() {
+    local root="${1:-/}" expected="${2:-}" before after web_password="${ADMIN_PASS}"
+    before=$(framework_service_config digest "${root}") || die "unrecognized service-key configuration retained"
+    [ -z "${expected}" ] || [ "${before}" = "${expected}" ] || die "service keys changed during bootstrap; configuration retained"
+    if [ "${before}" != absent ]; then
+        # The native web step also sets AMI credentials. Give it the existing
+        # AMI value, then set the independently chosen panel password below.
+        web_password=$(framework_service_config ami "${root}") || die "cannot validate existing AMI credentials"
+    fi
+    run_logged /usr/bin/issabel-admin-passwords --ensure-jwt-secret || die "jwt secret init failed"
+    initialize_framework_passwords "${web_password}"
+    if [ "${before}" != absent ]; then
+        after=$(framework_service_config initialized-digest "${root}") || die "initialized service-key configuration is invalid; values retained"
+        [ "${before}" = "${after}" ] || die "AMI/JWT preservation check failed; no automatic restoration attempted"
+        log 'Existing AMI/JWT keys verified unchanged'
+    fi
+}
+
+guard_empty_framework_bootstrap() {
+    local root="${1:-/}" path count
+    root="${root%/}"
+    # An installer receipt is never evidence that an existing PBX is empty.
+    # Refuse unknown/partial files, including broken symlinks, without removal.
+    for path in etc/amportal.conf etc/issabelpbx.conf; do
+        [ ! -e "${root}/${path}" ] && [ ! -L "${root}/${path}" ] \
+            || die "existing framework configuration retained; use scoped repair instead of reinitialization"
+    done
+    framework_service_config digest "${root}/" >/dev/null \
+        || die "unrecognized initial service-key configuration retained; bootstrap refused"
+    count=$(bootstrap_query_count "SELECT COUNT(*) FROM information_schema.SCHEMATA WHERE SCHEMA_NAME NOT IN ('mysql','information_schema','performance_schema','sys','asterisk','asteriskcdrdb');") \
+        || die "cannot inventory database schemas; bootstrap refused without changes"
+    [ "${count}" = "0" ] || die "unexpected database schema retained; bootstrap refused"
+    count=$(bootstrap_query_count "SELECT COUNT(*) FROM information_schema.TABLES WHERE TABLE_SCHEMA IN ('asterisk','asteriskcdrdb');") \
+        || die "cannot inventory framework objects; bootstrap refused without changes"
+    [ "${count}" = "0" ] || die "existing framework/CDR objects retained; use scoped repair instead of reinitialization"
+}
+
+framework_bootstrap_healthy() {
+    local root="${1:-/}" modules_present users_present mod_count
+    modules_present=$(bootstrap_query_count "SELECT COUNT(*) FROM information_schema.TABLES WHERE TABLE_SCHEMA='asterisk' AND TABLE_NAME='modules';") \
+        || die "cannot inspect framework module metadata; partial data retained"
+    users_present=$(bootstrap_query_count "SELECT COUNT(*) FROM information_schema.TABLES WHERE TABLE_SCHEMA='asterisk' AND TABLE_NAME='ampusers';") \
+        || die "cannot inspect framework account metadata; partial data retained"
+    [ "${modules_present}" = "1" ] && [ "${users_present}" = "1" ] || return 1
+    mod_count=$(bootstrap_query_count 'SELECT COUNT(*) FROM asterisk.modules;') \
+        || die "cannot read framework modules; partial data retained"
+    [ "${mod_count}" -gt 5 ] && [ -f "${root%/}/etc/amportal.conf" ]
+}
+
+fresh_pjsip_websocket() {
+    local phase="${1:-}"
+    case "${phase}" in prepare|activate) ;; *) die "invalid fresh WebSocket phase" ;; esac
+    [ -f "${BUNDLE_DIR}/installer/prepare-pjsip-websocket.py" ] \
+        && [ -f "${BUNDLE_DIR}/installer/pjsip-websocket-native.php" ] \
+        || die "fresh PJSIP WebSocket bootstrap missing from bundle"
+    run_logged "${PY_BIN}" -B "${BUNDLE_DIR}/installer/prepare-pjsip-websocket.py" "${phase}" \
+        --state-dir "${STATE_DIR}" --version "${MYTELLPBX_VERSION}" \
+        --bundle-sha256 "${MYTELLPBX_BUNDLE_SHA256}" \
+        || die "fresh PJSIP WebSocket ${phase} failed; native settings retained"
+}
+
+bootstrap_empty_framework() {
+    local root="${1:-/}" attempt installer_ok
+    guard_empty_framework_bootstrap "${root}"
+    normalize_framework_mysql
+    # Only this boot marker is disposable. No database or framework config is
+    # dropped/removed, even when an initializer fails or a query is unavailable.
+    rm -f "${root%/}/installamp" || die "cannot clear fresh bootstrap marker"
+    for attempt in 1 2 3; do
+        guard_empty_framework_bootstrap "${root}"
+        installer_ok=0
+        run_logged /usr/src/issabelPBX/framework/install_amp --dbuser=root --installdb --scripted --language="${LANG_SEL}" && installer_ok=1
+        if framework_bootstrap_healthy "${root}"; then
+            [ "${installer_ok}" = "1" ] || die "initializer reported failure; generated data retained for scoped repair"
+            fresh_pjsip_websocket prepare
+            run_logged /var/lib/asterisk/bin/retrieve_conf || die "retrieve_conf failed; generated data retained"
+            fresh_pjsip_websocket activate
+            return 0
+        fi
+        # Retry only if successful metadata proves that this invocation has
+        # created no objects/configuration. Any partial progress is preserved.
+        guard_empty_framework_bootstrap "${root}"
+        if [ "${attempt}" -lt 3 ]; then
+            warn "راه‌اندازی چارچوب پیشرفتی نداشت؛ تلاش ${attempt}/3"
+            sleep 2
+        fi
+    done
+    die "framework bootstrap made no progress after 3 attempts; no databases were dropped"
+}
+
 ensure_admin_credentials() {
     # Admin console (FreePBX ampusers, sha1) + panel login (acl.db acl_user,
     # md5 + administrator membership). Idempotent: safe on every run.
@@ -624,75 +946,26 @@ stage_framework_init() {
     step "راه‌اندازی چارچوب مرکز تماس و رمزها"
 
     ensure_credentials
+    local service_digest
+    service_digest=$(framework_service_config digest) || die "unrecognized initial service-key configuration retained"
+    guard_empty_framework_bootstrap
 
-    # install_amp requires a running Asterisk (upstream start_asterisk helper).
-    # Daemons must NOT inherit the installer lock fd — close it in subshells.
-    if ! asterisk -rx 'core show version' >/dev/null 2>&1; then
-        if [ -x /usr/src/issabelPBX/framework/start_asterisk ]; then
-            ( exec 9>&-; run_logged /usr/src/issabelPBX/framework/start_asterisk start ) || true
-        fi
-        ( exec 9>&-; systemctl start asterisk >>"$LOG" 2>&1 ) || true
-        sleep 3
-        asterisk -rx 'core show version' >>"$LOG" 2>&1 \
-            || die "asterisk failed to start for framework init"
-    fi
+    # The supported RPM owns one native systemd unit. Starting a manual
+    # safe_asterisk helper as well can create competing unmanaged processes.
+    ( exec 9>&-; systemctl start asterisk >>"$LOG" 2>&1 ) || die "native asterisk unit failed to start"
+    systemctl is-active --quiet asterisk || die "native asterisk unit is not active"
+    asterisk -rx 'core show version' >>"$LOG" 2>&1 || die "asterisk CLI failed before framework init"
+    systemctl enable asterisk >>"$LOG" 2>&1 || die "cannot enable asterisk at boot"
 
-    # Framework first-boot install. Run when flagged OR when the framework
-    # is verifiably absent — a previously failed run removes the flag file
-    # before install_amp succeeds, so the flag alone is not resume-safe.
-    local need_install=0
-    [ -f /installamp ] && need_install=1
-    [ -f /etc/amportal.conf ] || need_install=1
-    if ! mysql_any -N -e "SHOW TABLES FROM asterisk LIKE 'ampusers'" 2>/dev/null | grep -q ampusers; then
-        need_install=1
-    fi
-    # a half-finished framework install (DB briefly down during install_amp)
-    # can leave the modules table empty — that must re-run too
-    local mod_count=0
-    mod_count=$(mysql_any -N -e "SELECT COUNT(*) FROM asterisk.modules" 2>/dev/null | tr -d '[:space:]')
-    [ -n "${mod_count}" ] && [ "${mod_count}" -gt 5 ] || need_install=1
-    if [ "${need_install}" = "1" ]; then
-        # install_amp's first-boot flow needs passwordless MariaDB root
-        if ! mysql -N -e "SELECT 1" >/dev/null 2>&1; then
-            printf "SET PASSWORD FOR 'root'@'localhost' = PASSWORD('');\n" | mysql_with_password "${MYSQL_ROOT_PASS}" -N >>"$LOG" 2>&1 \
-                || die "cannot normalize mariadb root access"
-        fi
-        # Upstream flake: install_amp can exit 0 with an EMPTY modules table
-        # (internal "DB Error: connect failed" flood), and a re-run over the
-        # leftover half-state then skips module registration entirely. Fix:
-        # verify modules after each attempt; on failure drop the partial DBs
-        # and retry from a clean slate (bounded attempts).
-        local amp_attempt=0 amp_ok=0
-        for amp_attempt in 1 2 3; do
-            if [ "${amp_attempt}" -gt 1 ]; then
-                warn "framework ناقص (ماژول=${mod_count:-0}) — پاک‌سازی نیمه‌نصب و تلاش ${amp_attempt}/3"
-                mysql -N -e "DROP DATABASE IF EXISTS asterisk; DROP DATABASE IF EXISTS asteriskcdrdb;" >>"$LOG" 2>&1
-            fi
-            rm -f /installamp /etc/amportal.conf /etc/issabelpbx.conf
-            run_logged /usr/src/issabelPBX/framework/install_amp \
-                --dbuser=root --installdb --scripted --language="${LANG_SEL}" || true
-            mod_count=$(mysql_any -N -e "SELECT COUNT(*) FROM asterisk.modules" 2>/dev/null | tr -d '[:space:]')
-            if [ -n "${mod_count}" ] && [ "${mod_count}" -gt 5 ] && [ -f /etc/amportal.conf ]; then
-                amp_ok=1; break
-            fi
-        done
-        [ "${amp_ok}" = "1" ] \
-            || die "framework install_amp left modules table empty after 3 attempts (see ${LOG})"
-        mysql_any -N -e "SHOW TABLES FROM asterisk LIKE 'ampusers'" 2>>"$LOG" | grep -q ampusers \
-            || die "framework database missing ampusers after install_amp"
-        # generate device/dialplan configs from the freshly registered modules
-        run_logged /var/lib/asterisk/bin/retrieve_conf \
-            || die "retrieve_conf failed after framework install"
-    fi
+    bootstrap_empty_framework
 
     # Non-interactive password initialization (sets MariaDB/Cyrus root,
     # panel admin password, applies pending DB scripts, saves /etc/issabel.conf).
     # The upstream tool can print internal errors yet exit 0 — verify outcomes.
-    run_logged /usr/bin/issabel-admin-passwords --ensure-jwt-secret \
-        || die "jwt secret init failed"
-    initialize_framework_passwords
+    initialize_preserving_framework_keys / "${service_digest}"
     verify_mysql_root_password \
         || die "password init did not persist mysqlrootpwd (upstream tool misreported success)"
+    verify_mysql_authentication
 
     # The upstream --cli init skips its whole web-password step when its key
     # file already exists ("Password configuration already present"), which
@@ -702,13 +975,7 @@ stage_framework_init() {
     ensure_admin_credentials
 
     # hard verification: the admin password must actually be in force
-    local amp_ok=""
-    for try in 1 2 3 4 5; do
-        amp_ok=$(mysql_any -N -e "SELECT COUNT(*) FROM asterisk.ampusers WHERE username='admin' AND password_sha1=SHA1('${ADMIN_PASS}')" 2>/dev/null || true)
-        [ "${amp_ok}" = "1" ] && break
-        sleep 2
-    done
-    [ "${amp_ok}" = "1" ] || die "admin password not in force on ampusers"
+    verify_amp_admin_password
     ADMIN_PASS="${ADMIN_PASS}" php <<'PHP' >>"$LOG" 2>&1 || die "acl admin verify failed"
 <?php
 $md5 = md5(getenv('ADMIN_PASS'));
@@ -922,6 +1189,11 @@ PHP
     # Optional installed Asternic1.6.6 only; never installs/vendor-copies a module.
     repair_optional_asternic_direction
 
+    # Update presentation only; the vendor login script must never be executed
+    # here because it also contains service and network first-boot actions.
+    "${PY_BIN}" -B "${BUNDLE_DIR}/admin-theme/patch-login-branding.py" >>"$LOG" 2>&1 \
+        || die "login branding source changed; review before continuing"
+
     # 8) Clear known caches + ownership + validate Apache config
     find "${WEB_ROOT}" -name '*.tplc' -delete 2>/dev/null || true
     rm -rf "${WEB_ROOT}/themes/mytel/cache" 2>/dev/null || true
@@ -935,6 +1207,32 @@ PHP
 
 # The separate product owns its runtime, database, accounts and reversible
 # service activation. Do not run old /opt/opdesk patchers over its release.
+stage_geoip() {
+    step "نصب و اعتبارسنجی خودکار پایگاه دادهٔ کشورها (بدون نیاز به کلید)"
+    [ -f "${BUNDLE_DIR}/installer/geoip-update.py" ] || die "GeoIP updater missing from bundle"
+    [ -f "${BUNDLE_DIR}/installer/prepare-geoip-module.py" ] || die "GeoIP kernel preparation missing from bundle"
+    if ! stage_done geoip; then
+        "${PY_BIN}" -B "${BUNDLE_DIR}/installer/geoip-update.py" --install \
+            --status-module "${BUNDLE_DIR}/modules/mytellpbxgeoip/index.php" 2>&1 | tee -a "${LOG}" \
+            || die "country database verification failed; review the reported stage"
+    fi
+    # Revalidate the current boot even when the dataset stage was completed.
+    # This loads only the verified module; it never rewrites firewall rules.
+    run_logged "${PY_BIN}" -B "${BUNDLE_DIR}/installer/prepare-geoip-module.py" \
+        || die "GeoIP kernel consumer verification failed; firewall rules retained"
+    mark_stage geoip
+}
+
+stage_webrtc_dtls() {
+    # The native WebRTC forms use this independent Asterisk PEM. Apache TLS
+    # readiness alone cannot prove DTLS media works. Revalidate on every resume.
+    [ -f "${BUNDLE_DIR}/installer/prepare-webrtc-dtls.py" ] || die "WebRTC DTLS preparation missing from bundle"
+    run_logged "${PY_BIN}" -B "${BUNDLE_DIR}/installer/prepare-webrtc-dtls.py" \
+        --backup-root "${STATE_DIR}/webrtc-dtls" \
+        || die "WebRTC DTLS certificate is not ready; existing material retained"
+    mark_stage webrtc-dtls
+}
+
 stage_myteldesk() {
     step "نصب و بررسی میز کار اپراتور و تحلیل گفتار خودکار"
     [ -f "${BUNDLE_DIR}/installer/install-myteldesk.py" ] || die "pinned Desk installer missing from bundle"
@@ -958,17 +1256,21 @@ stage_selfcheck() {
     # catch it here and clear the framework marker so a re-run repairs it.
     ensure_credentials
     local mod_count=""
-    mod_count=$(mysql_any -N -e "SELECT COUNT(*) FROM asterisk.modules" 2>/dev/null | tr -d '[:space:]')
+    mod_count=$(bootstrap_query_count 'SELECT COUNT(*) FROM asterisk.modules;') \
+        || die "self-check: cannot read framework modules; existing stage marker retained"
     if ! { [ -n "${mod_count}" ] && [ "${mod_count}" -gt 5 ]; } || [ ! -f /etc/asterisk/pjsip_additional.conf ]; then
         rm -f "${STATE_DIR}/stages/framework.done"
         die "framework incomplete (modules=${mod_count:-0}); run the installer again to repair"
     fi
 
+    run_logged "${PY_BIN}" -B "${BUNDLE_DIR}/installer/prepare-webrtc-dtls.py" --check \
+        || die "self-check: WebRTC DTLS certificate is not valid"
     systemctl is-active --quiet mariadb || die "self-check: mariadb not active"
     systemctl is-active --quiet httpd   || die "self-check: httpd not active"
     /usr/local/sbin/myteldesk doctor || die "self-check: MytelDesk or CPU voice analysis not ready"
     sleep 8
-    systemctl is-active --quiet asterisk || warn "asterisk unit not active yet (may start on first config load)"
+    verify_asterisk_service
+    verify_mysql_authentication
 
     local body
     body=$(curl -fsSkL --max-time 30 "http://127.0.0.1/" 2>>"$LOG" || true)
@@ -1000,12 +1302,7 @@ finish() {
     echo "   نام کاربری:     admin"
     echo "   میز کار:        https://${ip}/MytellDesk/ (ورود با حساب پنل)"
     echo "   مدیر محلی میز کار: /etc/myteldesk/initial-admin.txt (فقط root)"
-    if [ -t 1 ]; then
-        echo "   رمز پنل:        ${ADMIN_PASS}"
-        echo "   رمز MariaDB:    ${MYSQL_ROOT_PASS}"
-    else
-        echo "   رمز‌ها:          ${CRED_FILE} (فقط root)"
-    fi
+    echo "   رمز‌ها:          ${CRED_FILE} (فقط root)"
     echo "   مستندات:        github.com/DashSaman/MyTellPBX"
     echo "   پشتیبانی:       mytel.one"
     echo "=============================================================="
@@ -1044,14 +1341,26 @@ main() {
     echo "MyTellPBX ${MYTELLPBX_VERSION} installer — $(date)" >>"${LOG}"
 
     verify_bundle
+    ensure_credentials
+    # Only the collector consumes inherited stdin. Later vendor commands get
+    # EOF; explicit SQL/PHP pipes and heredocs keep their own input streams.
+    exec </dev/null || die "cannot close inherited installer input"
 
+    # Revalidate before stage shortcuts: RPMs can recreate their repository
+    # files during an earlier interrupted package transaction.
+    repair_platform_catalog
     stage_repos
     stage_update
     stage_packages1
+    stage_tls
     stage_packages2
+    repair_platform_catalog mandatory
+    stage_cli_status
     stage_post_base
     stage_framework_init
     stage_mytel_layer
+    stage_webrtc_dtls
+    stage_geoip
     stage_myteldesk
     stage_selfcheck
     finish

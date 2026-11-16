@@ -50,6 +50,20 @@ are preserved verbatim.
   customized module and any production records are not bundled here. The
   integration does not change the license of the separately maintained theme.
 
+## Automatically downloaded IP country data
+
+- **DB-IP Country Lite** is downloaded monthly over HTTPS during installation
+  and subsequent updates. It needs no account or license key. The data is
+  licensed under [CC BY 4.0](https://creativecommons.org/licenses/by/4.0/),
+  with attribution to [DB-IP](https://db-ip.com). Free data has reduced
+  coverage and accuracy; an IP location is approximate.
+- MyTellPBX validates and converts the ranges into the network-byte-order files
+  required by the installed xtables module. Each installed dataset retains its
+  source URL, SHA-256, conversion manifest and attribution notice. Security pages
+  that use these country results display a DB-IP attribution link.
+- The existing xtables builder and consumer retain their upstream GPL notices.
+  The updater does not add, remove or reload firewall rules.
+
 ## Fonts
 
 - **Vazirmatn** — SIL Open Font License 1.1, by Saber Rastikerdar.

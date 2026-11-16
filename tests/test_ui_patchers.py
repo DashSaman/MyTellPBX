@@ -44,15 +44,24 @@ def write(path, text):
 
 class AdminPatcherTests(unittest.TestCase):
     def test_v740_blocks_upgrade_without_retaining_stale_asset_urls(self):
-        old = ADMIN.transform_header(HEADER).replace('?v=760', '?v=740')
+        old = ADMIN.transform_header(HEADER).replace('?v=761', '?v=740')
         # Only workspace blocks were version 740; Apply block remains v752.
         old = old.replace('apply.css?v=740', 'apply.css?v=752').replace('apply.js?v=740', 'apply.js?v=752')
         new = ADMIN.transform_header(old)
         self.assertNotIn('workspace.js?v=740', new)
-        self.assertEqual(new.count('workspace.js?v=760'), 1)
-        footer = "$html .= '<script src=\"' . $amp_conf['BRAND_ALT_JS'] . $version_tag . '\"></script>';"
-        self.assertIn('&mt-ui=752', ADMIN.transform_footer(footer))
+        self.assertEqual(new.count('workspace.js?v=761'), 1)
+        footer = "<?php\n$html .= '<script src=\"' . $amp_conf['BRAND_ALT_JS'] . $version_tag . '\"></script>';"
+        self.assertIn('&mt-ui=761', ADMIN.transform_footer(footer))
         self.assertEqual(ADMIN.transform_footer(footer), ADMIN.transform_footer(ADMIN.transform_footer(footer)))
+
+    def test_version_760_workspace_tags_upgrade_without_duplicate_blocks(self):
+        old = ADMIN.transform_header(HEADER).replace('?v=761', '?v=760')
+        new = ADMIN.transform_header(old)
+        self.assertNotIn('workspace.css?v=760', new)
+        self.assertNotIn('workspace.js?v=760', new)
+        self.assertEqual(new.count('workspace.css?v=761'), 1)
+        self.assertEqual(new.count('workspace.js?v=761'), 1)
+        self.assertEqual(new, ADMIN.transform_header(new))
 
     def test_fresh_and_previous_headers_upgrade_idempotently(self):
         for injection in ("", LEGACY, LEGACY + LEGACY_TOGGLE):
@@ -60,8 +69,8 @@ class AdminPatcherTests(unittest.TestCase):
                 old = HEADER.replace("$html .= '<head>';", "$html .= '<head>';\n" + injection)
                 new = ADMIN.transform_header(old)
                 self.assertEqual(new, ADMIN.transform_header(new))
-                self.assertEqual(new.count("workspace.js?v=760"), 1)
-                self.assertEqual(new.count("workspace.css?v=760"), 1)
+                self.assertEqual(new.count("workspace.js?v=761"), 1)
+                self.assertEqual(new.count("workspace.css?v=761"), 1)
                 self.assertNotIn("theme pre-paint (marker)", new)
                 self.assertIn("// Owner customization must survive", new)
                 self.assertTrue(new.endswith("echo $html;\n"))
