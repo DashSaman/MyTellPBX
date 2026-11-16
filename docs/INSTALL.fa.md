@@ -3,15 +3,10 @@
 ## یک خط، نصب کامل
 
 روی یک سرور **راکی لینوکس ۸٫۱۰ (x86_64) تازه** با دسترسی ریشه و اینترنت،
-این دو فرمان را اجرا کنید — اول اسکریپت را دانلود و بازبینی کنید، بعد اجرا:
+این تک‌خط را اجرا کنید:
 
-```
-curl -fsSL -o install-mytellpbx.sh \
-  https://github.com/DashSaman/MyTellPBX/releases/download/v7.6.1/install-mytellpbx.sh
-```
-
-```
-bash install-mytellpbx.sh
+```bash
+curl -fsSL -o install-mytellpbx.sh https://github.com/DashSaman/MyTellPBX/releases/download/v7.6.1/install-mytellpbx.sh && bash install-mytellpbx.sh
 ```
 
 پس از پایان موفق، نشانی پنل و مسیر فایل رمزها نمایش داده می‌شود.

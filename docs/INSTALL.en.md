@@ -3,16 +3,10 @@
 ## One-line install
 
 On a **fresh Rocky Linux 8.10 (x86_64)** server with root access and
-internet, download, review, then run the installer — never pipe a remote
-script straight into bash without review:
+internet, run this single command:
 
-```
-curl -fsSL -o install-mytellpbx.sh \
-  https://github.com/DashSaman/MyTellPBX/releases/download/v7.6.1/install-mytellpbx.sh
-```
-
-```
-bash install-mytellpbx.sh
+```bash
+curl -fsSL -o install-mytellpbx.sh https://github.com/DashSaman/MyTellPBX/releases/download/v7.6.1/install-mytellpbx.sh && bash install-mytellpbx.sh
 ```
 
 On success the panel URL and the credentials-file path are printed.
