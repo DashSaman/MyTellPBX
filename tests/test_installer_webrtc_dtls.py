@@ -130,6 +130,11 @@ class WebRTCDTLSTests(unittest.TestCase):
    self.target.unlink();self.target.write_bytes(b'new owner material');raise OSError('fixture relabel failure')
   with self.assertRaises(OSError):self.prepare(relabel=change)
   self.assertEqual(self.target.read_bytes(),b'new owner material')
+ @POSIX
+ def test_in_place_owner_change_during_relabel_is_detected_and_retained(self):
+  def change(_):self.target.write_bytes(b'owner in-place replacement')
+  with self.assertRaises(ValueError):self.prepare(relabel=change)
+  self.assertEqual(self.target.read_bytes(),b'owner in-place replacement')
  def test_commands_use_bounded_timeout_closed_stdin_or_explicit_bytes_and_scrubbed_environment(self):
   value=self.material();real=self.m.subprocess.run;seen=[]
   def record(*a,**kw):seen.append((a,kw));return real(*a,**kw)
