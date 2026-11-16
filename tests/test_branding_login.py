@@ -61,7 +61,7 @@ class LoginBrandingTests(unittest.TestCase):
     def test_login_banner_uses_our_product_and_support(self):
         banner = static_banner(transform(MOTD))
         self.assertNotRegex(banner, r'(?i)issabel')
-        self.assertIn('MyTellPBX', banner)
+        self.assertIn('MytelPBX', banner)
         self.assertIn('https://mytel.one', banner)
         self.assertNotIn('patreon.com', banner)
 
@@ -77,7 +77,7 @@ class LoginBrandingTests(unittest.TestCase):
                                 stdout=subprocess.PIPE, stderr=subprocess.PIPE, timeout=10)
         self.assertEqual(result.returncode, 0, result.stderr)
         self.assertNotRegex(result.stdout, r'(?i)issabel')
-        self.assertIn('MyTellPBX', result.stdout)
+        self.assertIn('MytelPBX', result.stdout)
         self.assertIn('https://mytel.one', result.stdout)
 
     def test_only_known_echo_lines_change_and_legal_text_survives(self):
@@ -100,6 +100,19 @@ class LoginBrandingTests(unittest.TestCase):
                        MOTD.replace(first, replacement), MOTD + first + '\n'):
             with self.subTest(source=source[-90:]), self.assertRaises(ValueError):
                 transform(source)
+
+    def test_previous_owned_spelling_upgrades_without_rewriting_owner_text(self):
+        self.require_patcher()
+        retained = '\n# Owner label: MyTellPBX; retain this operator text\n'
+        previous = transform(MOTD).replace('MytelPBX', 'MyTellPBX') + retained
+        after = transform(previous)
+        self.assertIn('MytelPBX', static_banner(after))
+        self.assertNotIn('MyTellPBX', static_banner(after))
+        self.assertTrue(after.endswith(retained))
+        self.assertEqual(transform(after), after)
+        edited = previous.replace('MyTellPBX support:', 'Owner support:')
+        with self.assertRaises(ValueError):
+            transform(edited)
 
     def test_missing_profile_or_changed_invocation_refuses_all_writes(self):
         self.require_patcher()
