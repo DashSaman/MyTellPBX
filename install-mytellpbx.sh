@@ -1,17 +1,17 @@
 #!/bin/bash
 # ==========================================================================
 # MytelPBX one-line installer for Rocky Linux 8.10 (x86_64)
-# Version: 7.6.1
+# Version: 7.6.2
 #
 # Installs the complete MytelPBX contact-center platform:
 #   - telephony base (Asterisk 20, MariaDB, Apache, PHP 7.4, framework)
 #   - Persian RTL panel navigation with the PBX technical settings console LTR
 #   - full MytelPBX branding, dark/light themes, Persian language
-#   - pinned MytelDesk 1.1.1 with automatic verified CPU VAD
+#   - pinned MytelDesk 1.1.2 with automatic verified CPU VAD
 #
 # Quick start (download, review, run — never pipe straight into bash):
 #   curl -fsSL -o install-mytellpbx.sh \
-#     https://github.com/DashSaman/MyTellPBX/releases/download/v7.6.1/install-mytellpbx.sh
+#     https://github.com/DashSaman/MyTellPBX/releases/download/v7.6.2/install-mytellpbx.sh
 #   bash install-mytellpbx.sh
 #
 # Environment overrides (all optional):

@@ -6,7 +6,7 @@
 این تک‌خط را اجرا کنید:
 
 ```bash
-curl -fsSL -o install-mytellpbx.sh https://github.com/DashSaman/MyTellPBX/releases/download/v7.6.1/install-mytellpbx.sh && bash install-mytellpbx.sh
+curl -fsSL -o install-mytellpbx.sh https://github.com/DashSaman/MyTellPBX/releases/download/v7.6.2/install-mytellpbx.sh && bash install-mytellpbx.sh
 ```
 
 پس از پایان موفق، نشانی پنل و مسیر فایل رمزها نمایش داده می‌شود.
