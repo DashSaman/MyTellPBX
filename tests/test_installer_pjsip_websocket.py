@@ -46,6 +46,48 @@ class NativeRowsTests(unittest.TestCase):
             with self.assertRaises(ValueError): WS.module_status(value)
 
 
+class NativeConfigBytesTests(unittest.TestCase):
+    def setUp(self):
+        self.tmp=tempfile.TemporaryDirectory();self.addCleanup(self.tmp.cleanup)
+        self.root=Path(self.tmp.name);self.config=self.root/'etc/asterisk';self.config.mkdir(parents=True)
+
+    def write(self,name,value):
+        path=self.config/name;path.write_bytes(value);return path
+
+    def test_native_legacy_comment_does_not_block_or_rewrite_unrelated_config(self):
+        raw=b'; native legacy comment \xe5\n[general]\nmailcmd=/usr/sbin/sendmail -t\n'
+        path=self.write('minivm.conf',raw)
+        self.assertFalse(WS.overrides(self.root));self.assertEqual(path.read_bytes(),raw)
+
+    def test_legacy_comment_does_not_hide_explicit_yes_or_noload(self):
+        for directive in [b'websocket_enabled=yes\n',b'noload => res_pjsip_transport_websocket.so ; legacy \xe5\n']:
+            with self.subTest(directive=directive):
+                raw=b'; legacy \xe5\n'+directive;path=self.write('custom.conf',raw)
+                self.assertTrue(WS.overrides(self.root));self.assertEqual(path.read_bytes(),raw)
+
+    def test_generated_only_no_remains_valid_with_legacy_comments_elsewhere(self):
+        other=self.write('minivm.conf',b'; legacy \xe5\n[general]\n')
+        generated=self.write('sip_general_additional.conf',b'; generated legacy \xe5\nwebsocket_enabled=no\n')
+        before={path.name:path.read_bytes()for path in [other,generated]}
+        self.assertFalse(WS.overrides(self.root,generated=True))
+        self.assertEqual({path.name:path.read_bytes()for path in [other,generated]},before)
+
+    def test_nonascii_boolean_value_is_preserved_and_not_accepted_as_generated_no(self):
+        raw=b'websocket_enabled=no\xe5\n';path=self.write('sip_general_additional.conf',raw)
+        self.assertTrue(WS.overrides(self.root));self.assertTrue(WS.overrides(self.root,generated=True))
+        self.assertEqual(path.read_bytes(),raw)
+
+    def test_duplicate_or_custom_generated_choice_is_still_refused(self):
+        self.write('sip_general_additional.conf',b'; legacy \xe5\nwebsocket_enabled=no\n')
+        self.write('sip_general_custom.conf',b'websocket_enabled=no\n')
+        self.assertTrue(WS.overrides(self.root,generated=True))
+
+    def test_nul_binary_configuration_is_refused_without_rewriting(self):
+        raw=b'w\x00e\x00b\x00s\x00o\x00c\x00k\x00e\x00t\x00_enabled=no\n';path=self.write('custom.conf',raw)
+        with self.assertRaises(ValueError):WS.overrides(self.root)
+        self.assertEqual(path.read_bytes(),raw)
+
+
 class BootstrapTests(unittest.TestCase):
     def setUp(self):
         self.tmp = tempfile.TemporaryDirectory(); self.addCleanup(self.tmp.cleanup)
