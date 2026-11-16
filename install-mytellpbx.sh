@@ -975,6 +975,8 @@ def wait_ready(log, run=subprocess.run, clock=time.monotonic, pause=time.sleep,
             raise RuntimeError('native Asterisk unit status probe timed out')
         if b'no such command' in output.lower():
             raise RuntimeError('native Asterisk does not support the required readiness command')
+        if result is not None and result.returncode == 0 and result.stderr:
+            raise RuntimeError('unexpected stderr from native Asterisk readiness probe')
         return result
 
     def unit():
