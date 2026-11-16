@@ -1101,6 +1101,11 @@ def wait_ready(log, run=subprocess.run, clock=time.monotonic, pause=time.sleep,
         if result is None and not cli:
             raise RuntimeError('native Asterisk unit status probe timed out')
         if b'no such command' in output.lower():
+            command = arguments[-1] if cli else None
+            if command in ('core show version', 'core waitfullybooted') and result is not None and not result.stderr:
+                pending = ("No such command '{}' (type 'core show help core' for other possible commands)".format(command)).encode('ascii')
+                if result.stdout.rstrip(b'\r\n') == pending:
+                    return None  # The CLI registry can lag the native control socket.
             raise RuntimeError('native Asterisk does not support the required readiness command')
         if result is not None and result.returncode == 0 and result.stderr:
             raise RuntimeError('unexpected stderr from native Asterisk readiness probe')

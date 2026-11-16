@@ -16,11 +16,13 @@ from types import SimpleNamespace
 
 ROOT = Path(__file__).resolve().parents[1]
 BASH = 'C:/Program Files/Git/bin/bash.exe' if os.name == 'nt' else shutil.which('bash')
+NO_SUCH_VERSION = b"No such command 'core show version' (type 'core show help core' for other possible commands)"
+NO_SUCH_BOOT = b"No such command 'core waitfullybooted' (type 'core show help core' for other possible commands)"
 
 
 class ProbeFixture:
     def __init__(self,mode='ready'):
-        self.mode=mode;self.now=0.0;self.calls=[];self.cli_count=0;self.boot_count=0;self.unit_count=0;self.messages=[];self.log=io.BytesIO()
+        self.mode=mode;self.now=0.0;self.calls=[];self.cli_count=0;self.boot_count=0;self.unit_count=0;self.version_count=0;self.messages=[];self.log=io.BytesIO()
     def clock(self):return self.now
     def pause(self,delay):self.now+=delay
     def run(self,args,**options):
@@ -41,14 +43,21 @@ class ProbeFixture:
         if self.mode=='missing-command':raise FileNotFoundError('fixture executable absent')
         if self.mode=='never'or(self.mode=='delayed'and self.cli_count<3):return SimpleNamespace(returncode=1,stdout=b'',stderr=b'control socket absent')
         if command=='core show version':
+            self.version_count+=1
+            if self.mode=='registry-delayed'and self.version_count==1:
+                return SimpleNamespace(returncode=1,stdout=b'',stderr=b'Unable to connect to remote asterisk\n')
             text=b''if self.mode=='empty-version'else b'Asterisk 20.12.0 built by fixture\n'
+            if self.mode in ('unknown-version','no-such-stderr','foreign-no-such','malformed-no-such')or(self.mode=='registry-delayed'and self.version_count==2):
+                text=NO_SUCH_VERSION+b'\n'
+                if self.mode=='foreign-no-such':text=text.replace(b'core show version',b'core show unrelated')
+                if self.mode=='malformed-no-such':text=b"No such command 'core show version'"
         else:
             assert command=='core waitfullybooted'
             self.boot_count+=1
             if self.mode=='boot-delayed'and self.boot_count<3:
                 self.now+=options['timeout'];raise subprocess.TimeoutExpired(args,options['timeout'])
-            text=b"No such command 'core waitfullybooted'"if self.mode=='unknown-boot'else(b''if self.mode=='empty-boot'else b'Asterisk has fully booted.\n')
-        warning=(self.mode=='version-stderr'and command=='core show version')or(self.mode=='boot-stderr'and command=='core waitfullybooted')
+            text=NO_SUCH_BOOT+b'\n'if self.mode=='unknown-boot'else(b''if self.mode=='empty-boot'else b'Asterisk has fully booted.\n')
+        warning=(self.mode in ('version-stderr','no-such-stderr')and command=='core show version')or(self.mode=='boot-stderr'and command=='core waitfullybooted')
         return SimpleNamespace(returncode=0,stdout=text,stderr=b'fixture error/warning'if warning else b'')
 
 
@@ -71,6 +80,21 @@ class NativeReadinessProbeTests(unittest.TestCase):
         self.assertIn(b'control socket absent',f.log.getvalue())
         self.assertTrue(any('elapsed' in message for message in f.messages))
         self.assertTrue(all(args[0:2]in (['systemctl','show'],['asterisk','-rx'])for args,_ in f.calls))
+    def test_native_registry_race_waits_for_real_version_and_full_boot_on_same_pid(self):
+        f=ProbeFixture('registry-delayed')
+        try:self.exercise(f)
+        except RuntimeError as error:self.fail('Transient CLI registration must wait for the actual supported full boot: '+str(error))
+        self.assertEqual(f.version_count,3);self.assertEqual(f.boot_count,1)
+        self.assertIn(b'Unable to connect',f.log.getvalue());self.assertIn(NO_SUCH_VERSION,f.log.getvalue())
+        self.assertGreaterEqual(f.now,4);self.assertTrue(any(message.startswith('Native Asterisk ready')for message in f.messages))
+        self.assertTrue(all(args[0:2]in (['systemctl','show'],['asterisk','-rx'])for args,_ in f.calls))
+    def test_permanently_unregistered_required_command_times_out_without_false_success(self):
+        for mode in ['unknown-version','unknown-boot']:
+            with self.subTest(mode=mode):
+                f=ProbeFixture(mode)
+                with self.assertRaisesRegex(RuntimeError,'deadline'):self.exercise(f,timeout=6)
+                self.assertGreaterEqual(f.now,6);self.assertLessEqual(f.now,6.02)
+                self.assertFalse(any(message.startswith('Native Asterisk ready')for message in f.messages))
     def test_inactive_unit_stops_before_cli(self):
         f=ProbeFixture('inactive')
         with self.assertRaisesRegex(RuntimeError,'active'):self.exercise(f)
@@ -96,7 +120,7 @@ class NativeReadinessProbeTests(unittest.TestCase):
             with self.subTest(mode=mode):
                 with self.assertRaises(RuntimeError):self.exercise(ProbeFixture(mode))
     def test_unknown_or_empty_successful_cli_is_refused(self):
-        for mode in ['unknown-boot','empty-boot','empty-version']:
+        for mode in ['malformed-no-such','foreign-no-such','no-such-stderr','empty-boot','empty-version']:
             with self.subTest(mode=mode):
                 with self.assertRaises(RuntimeError):self.exercise(ProbeFixture(mode))
     def test_zero_exit_with_warning_or_error_stderr_is_not_success(self):
