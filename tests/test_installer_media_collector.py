@@ -125,7 +125,37 @@ class CollectorTests(unittest.TestCase):
         self.assertNotEqual(base.conf.installroot,'/');self.assertTrue(base.conf.installroot.startswith(str(self.root)))
         self.assertIn(('sack',{'load_system_repo':False}),events)
         self.assertIn(('stream',['php:remi-7.4']),events);self.assertIn(('disable','unselected'),events)
-        self.assertFalse(base.conf.install_weak_deps)
+        self.assertTrue(base.conf.install_weak_deps)
+
+    def test_source_and_local_closures_retain_recommended_feature_packages(self):
+        """Model Recommends explicitly; the native online profile enables weak deps."""
+        class Repo:
+            id='baseos';baseurl=['https://repo.example/'];metalink=mirrorlist=''
+            def enable(self):pass
+            def add_metadata_type_to_download(self,kind):pass
+        def package(name):
+            return SimpleNamespace(name=name,epoch=0,version='1',release='1',arch='x86_64',
+                                   downloadsize=5,installed=False,reponame='baseos')
+        class Base:
+            def __init__(self):self.conf=SimpleNamespace(substitutions={});self.repos={'baseos':Repo()}
+            def read_all_repos(self):pass
+            def fill_sack(self,**kw):pass
+            def read_comps(self,**kw):pass
+            def install_specs(self,roots):self.roots=roots
+            def resolve(self,**kw):
+                # Native solver includes a package's Recommends when this policy is true.
+                names=self.roots+(['recommended-feature'] if self.conf.install_weak_deps else [])
+                self.transaction=SimpleNamespace(install_set=[package(n) for n in names],remove_set=[])
+            def close(self):pass
+        selected=[]
+        for phase in ['source','local']:
+            base=self.c.configured_base(self.root/phase,self.root,['baseos'],SimpleNamespace(Base=Base),
+                                        lambda value:SimpleNamespace(enable=lambda names:None))
+            packages=self.c.resolve(base,['pbx-feature'])
+            self.assertEqual({p.name for p in packages},{'pbx-feature','recommended-feature'})
+            selected.append(packages)
+        self.c.compare_closure(selected[0],selected[1],{'baseos'})
+        with self.assertRaises(ValueError):self.c.compare_closure(selected[0],selected[1][:-1],{'baseos'})
 
     def test_empty_root_resolution_refuses_removals_installed_or_wrong_arch_packages(self):
         package=SimpleNamespace(downloadsize=5,installed=False,arch='x86_64')

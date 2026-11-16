@@ -189,7 +189,8 @@ def configured_base(work, reposdir, repo_ids, dnf_module=None, module_factory=No
     base.conf.cachedir = str(work / 'cache'); base.conf.persistdir = str(work / 'persist'); base.conf.logdir = str(work / 'logs')
     base.conf.reposdir = [str(reposdir)]; base.conf.substitutions['releasever'] = '8'
     base.conf.substitutions['basearch'] = 'x86_64'; base.conf.module_platform_id = 'platform:el8'
-    base.conf.install_weak_deps = False; base.conf.gpgcheck = True; base.conf.localpkg_gpgcheck = True
+    # Match the supported native online DNF policy, including Recommends/features.
+    base.conf.install_weak_deps = True; base.conf.gpgcheck = True; base.conf.localpkg_gpgcheck = True
     base.conf.timeout = 30; base.conf.retries = 2
     try:
         base.read_all_repos()

@@ -42,7 +42,9 @@ only selected stable bytes into the new depot and rejects filename collisions.
 Original DVD/cache RPMs are never modified.
 
 DNF resolves from an empty **private** installroot, not the lab's installed RPM
-inventory. Only the resolved dependency closure is downloaded. Packages are kept
+inventory. Both source and local-only solvers enable `install_weak_deps=True`,
+matching the supported native online profile and retaining recommended feature
+packages. Only the resolved dependency closure is downloaded. Packages are kept
 per source repository; original modulemd and comps are added to the generated
 metadata. In particular, `php:remi-7.4` must remain available. A second fresh
 local-only resolve must select the same complete NEVRA set and retain the same
