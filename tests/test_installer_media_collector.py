@@ -194,7 +194,12 @@ class CollectorTests(unittest.TestCase):
         c=self.c;output=self.root/'depot';calls=[];bases=[]
         metadata={'modules':b'---\ndocument: modulemd\nfixture: true\n','group':b'<comps/>\n'}
         public=b'-----BEGIN PGP PUBLIC KEY BLOCK-----\nsynthetic fixture\n-----END PGP PUBLIC KEY BLOCK-----\n'
-        payloads={'node-v24.22.3-linux-x64.tar.xz':b'node archive','dbip-country-lite-2026-11.csv.gz':gzip.compress(b'country fixture')}
+        country_rows=[]
+        for index in range(205):
+            fields=['']*19;fields[0]=chr(65+index//26)+chr(65+index%26);fields[4]='Country';fields[16]=str(index+1)
+            country_rows.append('\t'.join(fields))
+        payloads={'node-v24.22.3-linux-x64.tar.xz':b'node archive','dbip-country-lite-2026-11.csv.gz':gzip.compress(b'country fixture'),
+                  'countryInfo.txt':('\n'.join(country_rows)+'\n').encode()}
         wheels=[]
         for name in sorted(c.WHEELS):
             filename=name.replace('-','_')+'-1.0.whl';data=('wheel '+name).encode();payloads[filename]=data
@@ -259,7 +264,7 @@ class CollectorTests(unittest.TestCase):
             return SimpleNamespace(returncode=0,stdout=data,stderr=b'')
         args=SimpleNamespace(output=output,reposdir=self.root,repo=['baseos','remi-modular'],
                              bootstrap=self.root/'bootstrap',bundle=self.root/'bundle',desk_archive=self.root/'desk',
-                             kernel_release='4.18.0-553.134.1.el8_10.x86_64',cache_dir=None,geoip_month='2026-11',geoip_sha256=None)
+                             kernel_release='4.18.0-553.134.1.el8_10.x86_64',cache_dir=None,geoip_month='2026-11',geoip_sha256=None,country_info_sha256=None)
         dvd=self.root/'originalDVD';(dvd/'Packages').mkdir(parents=True)
         original=dvd/'Packages/httpd-1-1.x86_64.rpm';original.write_bytes(b'synthetic RPM fixture')
         with mock.patch.dict(sys.modules,{'dnf':dnf,'dnf.module':types.ModuleType('dnf.module'),'dnf.module.module_base':module}), \
@@ -268,6 +273,7 @@ class CollectorTests(unittest.TestCase):
             try:c.collect(args,release)
             except ValueError as error:self.fail('Valid local-media source was refused: '+str(error))
         manifest=json.loads((output/'manifest.json').read_text());proof=json.loads((output/'collector-proof.json').read_text())
+        self.assertIn('geoip/countryInfo.txt',manifest['files'])
         self.assertEqual(len(manifest['wheels']),6);self.assertEqual(len(proof['packages']),2)
         self.assertTrue(proof['local_only_resolve']);self.assertTrue(all(p['signature_verified'] for p in proof['packages']))
         self.assertEqual(len(bases),2);self.assertTrue(all(b.sack_args=={'load_system_repo':False} for b in bases))

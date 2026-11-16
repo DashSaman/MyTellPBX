@@ -61,6 +61,29 @@ filename. Existing cache files must match the release pins; corrupt files stop
 instead of being silently adopted. Cached GeoIP data additionally needs
 `--geoip-sha256`; otherwise the dated public monthly source is downloaded.
 Its actual month is retained. The Silero model is already inside the Desk archive.
+The depot also includes `geoip/countryInfo.txt` and GeoNames CC BY 4.0 attribution.
+Cached country metadata requires its own `--country-info-sha256` pin. Both public
+country assets are listed and hashed by `manifest.files`; no manifest schema is
+changed.
+
+The offline installer prepares a narrowly scoped `/etc/geoip_key.conf` bridge
+before the signed `issabel-geoip` RPM runs its postscript. Only the reviewed cron
+and its exact DB-IP/GeoNames transport arguments receive verified cached bytes;
+all other requests refuse without network fallback. The cached DB-IP month is
+explicit in the receipt even if the native cron requested the current month.
+There is no clock override, skipped RPM scriptlet, global command replacement or
+changed RPM. Existing operator configuration is retained by refusal.
+
+After the native converters run, `--handoff` verifies both legacy country tables
+with eight real libGeoIP country controls against the pinned CSV. The native
+temporary DAT outputs must have been absent before preparation and must exactly
+match the activated DAT bytes; a short conversion cannot retain an old table as
+success. It preserves the complete native
+xtables output, and leaves an empty directory for the existing managed updater.
+`--finish` requires the managed release to validate and the native legacy tables
+to remain identical before restoring only the originally absent configuration.
+The preserved native outputs remain in the private backup. A failed/interrupted
+phase keeps its receipt and inputs for scoped repair; it is not installation proof.
 
 The output is sealed with the agreed `manifest.json` only after all checks pass.
 Its SHA-256 must be embedded literally by the ISO launcher. The private sibling

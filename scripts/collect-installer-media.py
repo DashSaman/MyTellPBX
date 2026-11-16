@@ -253,6 +253,18 @@ def make_manifest(root, assets):
     return value
 
 
+def require_country_info(data):
+    countries=set()
+    if b'\0' in data or len(data)>1048576:raise ValueError('Invalid public country metadata')
+    for line in data.decode('utf-8').splitlines():
+        if not line or line.startswith('#'):continue
+        fields=line.split('\t')
+        if len(fields)<17 or not re.fullmatch('[A-Z]{2}',fields[0]) or not fields[4] or fields[0] in countries:
+            raise ValueError('Invalid public country metadata')
+        countries.add(fields[0])
+    if len(countries)<200:raise ValueError('Partial public country metadata')
+
+
 def collect(args, release):
     import dnf
     output = create_output(args.output)
@@ -342,6 +354,15 @@ def collect(args, release):
                     16 * 1024 * 1024, args.cache_dir if args.geoip_sha256 else None)
         if (output / name).read_bytes()[:2] != b'\x1f\x8b': raise ValueError('GeoIP source is not gzip')
         assets['geoip'] = dict(path=name, month=args.geoip_month)
+        country='geoip/countryInfo.txt'
+        fetch_asset('https://download.geonames.org/export/dump/countryInfo.txt',output/country,
+                    args.country_info_sha256,1048576,args.cache_dir if args.country_info_sha256 else None)
+        require_country_info((output/country).read_bytes())
+        (output/'geoip/GEONAMES-NOTICE.txt').write_text(
+            'Country information: GeoNames, https://www.geonames.org/\n'
+            'Source: https://download.geonames.org/export/dump/countryInfo.txt\n'
+            'CC BY 4.0, https://creativecommons.org/licenses/by/4.0/\n'
+            'Public country-name metadata; supplied as-is for native GeoIP conversion.\n')
         proof = dict(schema=1, platform='rocky8.10-x86_64', kernel_release=args.kernel_release,
                      roots=release['roots'], packages=sorted(rpm_proof, key=lambda x:x['nevra']), metadata=metadata,
                      local_only_resolve=True, php_stream='remi-7.4')
@@ -368,6 +389,7 @@ def main():
     p.add_argument('--output', type=Path, required=True); p.add_argument('--repo', action='append', required=True)
     p.add_argument('--reposdir', type=Path, default=Path('/etc/yum.repos.d'))
     p.add_argument('--cache-dir', type=Path); p.add_argument('--geoip-month', required=True); p.add_argument('--geoip-sha256')
+    p.add_argument('--country-info-sha256',help='Exact checksum when reusing cached public countryInfo.txt')
     p.add_argument('--execute', action='store_true'); p.add_argument('--lab-machine-id'); p.add_argument('--confirm-disposable-lab', action='store_true')
     args = p.parse_args()
     if (len(set(args.repo)) != len(args.repo) or any(not re.fullmatch('[A-Za-z0-9_-]+', r) for r in args.repo)
