@@ -1,0 +1,29 @@
+[Unit]
+Description=MytelPBX verified media first boot
+After=local-fs.target NetworkManager.service getty@tty2.service
+Wants=NetworkManager.service
+Conflicts=getty@tty2.service
+ConditionPathExists=/var/lib/mytelpbx-media/manifest.json
+ConditionPathExists=!/var/lib/mytelpbx-media-state/complete.json
+
+[Service]
+Type=oneshot
+ExecStartPre=-/usr/bin/chvt 2
+ExecStart=/usr/libexec/platform-python -I -S -B /usr/local/libexec/mytelpbx/media-firstboot.py
+ExecStopPost=-/usr/bin/chvt 1
+Environment=LANG=C.UTF-8 LC_ALL=C.UTF-8
+WorkingDirectory=/
+StandardInput=tty
+StandardOutput=tty
+StandardError=tty
+TTYPath=/dev/tty2
+TTYReset=yes
+TTYVHangup=yes
+TimeoutStartSec=infinity
+TimeoutStopSec=infinity
+KillMode=process
+Restart=no
+UMask=0077
+
+[Install]
+WantedBy=multi-user.target

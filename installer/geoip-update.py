@@ -14,6 +14,8 @@ import json
 import os
 from pathlib import Path
 import re
+import shlex
+import stat
 import struct
 import subprocess
 import sys
@@ -182,6 +184,44 @@ def download_month(output, month, runner=subprocess.run):
     return url
 
 
+def offline_source(path, expected, month, output=None, expected_uid=0):
+    """Validate the pinned public CSV before copying; never download on failure."""
+    path = Path(path)
+    if (not path.is_absolute() or path.resolve() != path.absolute()
+            or not re.fullmatch(r'[0-9a-f]{64}', str(expected))
+            or not re.fullmatch(r'20[0-9]{2}-(?:0[1-9]|1[0-2])', str(month))):
+        raise ValueError('Invalid offline country source profile')
+    before = path.lstat()
+    if (not stat.S_ISREG(before.st_mode) or not 12 <= before.st_size <= MAX_COMPRESSED
+            or (os.name == 'posix' and (before.st_uid != expected_uid or before.st_mode & 0o022))):
+        raise ValueError('Offline country source is not a bounded root-owned regular file')
+    def identity(meta):
+        return (meta.st_dev, meta.st_ino, meta.st_mode, meta.st_uid, meta.st_gid,
+                meta.st_size, meta.st_mtime_ns, meta.st_ctime_ns if os.name == 'posix' else None)
+    fd = os.open(str(path), os.O_RDONLY | getattr(os, 'O_NOFOLLOW', 0))
+    with os.fdopen(fd, 'rb') as source:
+        if identity(os.fstat(source.fileno())) != identity(before): raise ValueError('Offline country source changed')
+        data = source.read(MAX_COMPRESSED + 1)
+        if (len(data) != before.st_size or data[:2] != b'\x1f\x8b'
+                or hashlib.sha256(data).hexdigest() != expected
+                or identity(os.fstat(source.fileno())) != identity(before)
+                or identity(path.lstat()) != identity(before)):
+            raise ValueError('Offline country source checksum, format or identity mismatch')
+    if output is not None:
+        with Path(output).open('xb') as target: target.write(data)
+    return 'https://download.db-ip.com/free/dbip-country-lite-' + month + '.csv.gz'
+
+
+def updater_wrapper(offline=None):
+    if offline is None: return WRAPPER
+    offline_source(offline['path'], offline['sha256'], offline['month'])
+    args = ['--update', '--offline-source', str(offline['path']),
+            '--offline-source-sha256', offline['sha256'], '--offline-source-month', offline['month']]
+    return ('#!/bin/sh\n# MyTellPBX managed keyless GeoIP updater v1 (offline media)\n'
+            'exec /usr/bin/python3 -B /usr/local/libexec/mytellpbx/geoip-update.py '
+            + ' '.join(shlex.quote(x) for x in args) + '\n').encode('utf-8')
+
+
 def atomic(path, data, mode=0o644):
     path = Path(path)
     if path.is_symlink() or (path.exists() and not path.is_file()):
@@ -275,13 +315,20 @@ def publish_metadata(root, info):
         raise ValueError('Validated GeoIP data is active; status publication incomplete. Retry the updater to repair metadata.') from error
 
 
-def install(root, source, status_module=None):
+def install(root, source, status_module=None, offline=None):
     root, source = Path(root).resolve(), regular(source)
     cron, program, state = (owned_path(root, name) for name in (CRON, PROGRAM, STATE))
     owned_path(root, RELEASES)
     backup = owned_path(root, 'var/backups/mytellpbx/geoip')
+    old = None
+    if (state / 'install.json').exists():
+        old = json.loads(regular(state / 'install.json').read_text(encoding='utf-8'))
+        if old.get('owner') != OWNER: raise ValueError('GeoIP installation ownership differs')
+    wrapper = updater_wrapper(offline)
     cron_data = regular(cron).read_bytes()
-    if cron_data != WRAPPER and hashlib.sha256(cron_data).hexdigest() != VENDOR_CRON_SHA256:
+    cron_hash = hashlib.sha256(cron_data).hexdigest()
+    if (cron_data not in (WRAPPER, wrapper) and cron_hash != VENDOR_CRON_SHA256
+            and (not old or old.get('cron_sha256') != cron_hash)):
         raise ValueError('Cron updater has unknown owner edits; no files changed')
     status_target, status_before, status_after = None, None, None
     if status_module is not None:
@@ -292,18 +339,13 @@ def install(root, source, status_module=None):
             raise ValueError('GeoIP status module has unknown owner edits; no files changed')
     verify_builder(root / 'usr/share/geoip/xt_geoip_build')
     content = source.read_bytes()
-    old = None
-    if (state / 'install.json').exists():
-        old = json.loads(regular(state / 'install.json').read_text(encoding='utf-8'))
-        if old.get('owner') != OWNER:
-            raise ValueError('GeoIP installation ownership differs')
     if program.exists() or program.is_symlink():
         present = regular(program).read_bytes()
         if present != content and (not old or hashlib.sha256(present).hexdigest() != old.get('program_sha256')):
             raise ValueError('Installed updater differs from its owned source')
     state.mkdir(parents=True, exist_ok=True, mode=0o700)
     os.chmod(str(state), 0o700)
-    if cron_data != WRAPPER:
+    if cron_hash == VENDOR_CRON_SHA256:
         backup.mkdir(parents=True, exist_ok=True, mode=0o700)
         os.chmod(str(backup), 0o700)
         original = backup / ('cron-' + VENDOR_CRON_SHA256 + '.original')
@@ -320,13 +362,14 @@ def install(root, source, status_module=None):
         if not original.exists():
             atomic(original, status_before, 0o600)
     atomic(program, content, 0o755)
-    atomic(cron, WRAPPER, 0o755)
+    atomic(cron, wrapper, 0o755)
     if status_target is not None:
         atomic(status_target, status_after)
-    atomic(state / 'install.json', json.dumps({'owner': OWNER, 'program_sha256': hashlib.sha256(content).hexdigest()}).encode('utf-8'), 0o600)
+    atomic(state / 'install.json', json.dumps({'owner': OWNER, 'program_sha256': hashlib.sha256(content).hexdigest(),
+                                             'cron_sha256': hashlib.sha256(wrapper).hexdigest()}).encode('utf-8'), 0o600)
 
 
-def update(root):
+def update(root, offline=None):
     import fcntl
     root = Path(root).resolve()
     state, releases = owned_path(root, STATE), owned_path(root, RELEASES)
@@ -334,14 +377,14 @@ def update(root):
     lock_path = owned_path(root, STATE + '/update.lock')
     with lock_path.open('a') as lock:
         fcntl.flock(lock.fileno(), fcntl.LOCK_EX | fcntl.LOCK_NB)
-        month = datetime.datetime.utcnow().strftime('%Y-%m')
+        month = offline['month'] if offline is not None else datetime.datetime.utcnow().strftime('%Y-%m')
         active = root / ACTIVE
         if active.is_symlink():
             prior = active.resolve()
             if prior.name != 'BE' or prior.parent.parent != releases:
                 raise ValueError('Existing country pointer is not owned')
             info = release_info(prior.parent)
-            if info.get('month') == month:
+            if info.get('month') == month and (offline is None or info.get('source_sha256') == offline['sha256']):
                 publish_metadata(root, info)
                 return info
         elif active.exists() and (not active.is_dir() or any(active.iterdir())):
@@ -354,7 +397,8 @@ def update(root):
         with tempfile.TemporaryDirectory(prefix='.stage-', dir=str(releases)) as temporary:
             work = Path(temporary)
             source, legacy, compiled = work / 'source.gz', work / 'legacy.csv', work / 'compiled'
-            url = download_month(source, month)
+            if offline is None: url = download_month(source, month)
+            else: url = offline_source(offline['path'], offline['sha256'], month, source)
             def progress(item):
                 # Aggregate validated counts only, never source addresses or keys.
                 print('MyTellPBX GeoIP progress: ' + json.dumps(item, sort_keys=True), file=sys.stderr, flush=True)
@@ -394,15 +438,24 @@ def main():
     mode.add_argument('--update', action='store_true')
     parser.add_argument('--root', type=Path, default=Path('/'))
     parser.add_argument('--status-module', type=Path)
+    parser.add_argument('--offline-source', type=Path)
+    parser.add_argument('--offline-source-sha256')
+    parser.add_argument('--offline-source-month')
     args = parser.parse_args()
     if os.geteuid() != 0:
         raise ValueError('GeoIP activation requires root')
     os.umask(0o077)
+    supplied = [args.offline_source, args.offline_source_sha256, args.offline_source_month]
+    if any(supplied) and not all(supplied): raise ValueError('All three offline country source fields are required')
+    offline = None
+    if all(supplied):
+        offline = dict(path=args.offline_source, sha256=args.offline_source_sha256, month=args.offline_source_month)
+        offline_source(offline['path'], offline['sha256'], offline['month'])
     if args.install:
         if args.status_module is None:
             raise ValueError('--install requires the reviewed read-only provider status module')
-        install(args.root, Path(__file__).resolve(), args.status_module)
-    info = update(args.root)
+        install(args.root, Path(__file__).resolve(), args.status_module, offline=offline)
+    info = update(args.root, offline=offline)
     print(json.dumps({'owner': OWNER, 'month': info['month'], 'rows': info['rows'],
                       'countries': len(info['countries']), 'layout': info['layout'],
                       'source_sha256': info['source_sha256']}))

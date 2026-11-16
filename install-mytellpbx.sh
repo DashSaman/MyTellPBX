@@ -1,12 +1,12 @@
 #!/bin/bash
 # ==========================================================================
-# MyTellPBX one-line installer for Rocky Linux 8.10 (x86_64)
+# MytelPBX one-line installer for Rocky Linux 8.10 (x86_64)
 # Version: 7.6.1
 #
-# Installs the complete MyTellPBX contact-center platform:
+# Installs the complete MytelPBX contact-center platform:
 #   - telephony base (Asterisk 20, MariaDB, Apache, PHP 7.4, framework)
 #   - Persian RTL panel navigation with the PBX technical settings console LTR
-#   - full MyTel branding, dark/light themes, Persian language
+#   - full MytelPBX branding, dark/light themes, Persian language
 #   - pinned MytelDesk 1.1.1 with automatic verified CPU VAD
 #
 # Quick start (download, review, run — never pipe straight into bash):
@@ -30,6 +30,9 @@
 #   MYTELL_BUNDLE_URL      Internal/test override of the bundle download URL.
 #   MYTELL_BUNDLE_FILE     Internal/test path to a pre-downloaded bundle
 #                          (skips the network checks for offline lab runs).
+#   MYTELL_MEDIA_ROOT      Verified ISO depot (requires the manifest hash and
+#                          local bundle; all package/runtime sources stay local).
+#   MYTELL_MEDIA_MANIFEST_SHA256  SHA-256 embedded by the reviewed ISO launcher.
 #
 # Logs:      /var/log/mytelpbx-install.log
 # State:     /var/lib/mytelpbx-installer/
@@ -44,7 +47,7 @@
 set -u
 set -o pipefail
 
-MYTELLPBX_VERSION="7.6.1"
+MYTELLPBX_VERSION="7.6.2"
 MYTELLPBX_BUNDLE="mytelpbx-bundle-7.6.1.tgz"
 # Expected SHA-256 of the bundle asset (filled in by the release builder).
 MYTELLPBX_BUNDLE_SHA256="2f995ca8fedfdb5f133cbd8225072c93af4f8376066494b729f30a3573ac3c30"
@@ -68,6 +71,12 @@ ASTVER="${MYTELL_ASTVER:-20}"
 LANG_SEL="${MYTELL_LANG:-fa}"
 REBOOT_AFTER="${MYTELL_REBOOT:-0}"
 SKIP_UPDATE="${MYTELL_SKIP_UPDATE:-0}"
+MEDIA_ROOT="${MYTELL_MEDIA_ROOT:-}"
+MEDIA_MANIFEST_SHA256="${MYTELL_MEDIA_MANIFEST_SHA256:-}"
+MEDIA_REPOS_DIR=""
+MEDIA_GEOIP_SOURCE=""
+MEDIA_GEOIP_SHA256=""
+MEDIA_GEOIP_MONTH=""
 
 WEB_ROOT="/var/www/html"
 THEME_DST="${WEB_ROOT}/themes/mytel"
@@ -77,11 +86,11 @@ FA_LANG="${WEB_ROOT}/lang/fa.lang"
 PASS_RE='^[A-Za-z0-9 ._@=!-]+$'
 
 log()   { printf '%s\n' "$*" >>"$LOG"; }
-say()   { printf '\033[1;36m[MyTellPBX]\033[0m %s\n' "$*"; log "INFO: $*"; }
+say()   { printf '\033[1;36m[MytelPBX]\033[0m %s\n' "$*"; log "INFO: $*"; }
 step()  { printf '\033[1;35m==> %s\033[0m\n' "$*"; log "STEP: $*"; }
 warn()  { printf '\033[1;33m[!] %s\033[0m\n' "$*"; log "WARN: $*"; }
 die()   {
-    printf '\n\033[1;31m[MyTellPBX] نصب در مرحله «%s» متوقف شد\033[0m\n' "$*" 1>&2
+    printf '\n\033[1;31m[MytelPBX] نصب در مرحله «%s» متوقف شد\033[0m\n' "$*" 1>&2
     printf '\033[1;31mگزارش کامل: %s\033[0m\n' "$LOG" 1>&2
     log "FATAL: $*"
     exit 1
@@ -100,8 +109,18 @@ run_logged() { "$@" >>"$LOG" 2>&1; }
 # initialization or arbitrary commands through this logger.
 run_dnf_logged() {
     local kind="$1"; shift
+    local media_args=() argument
+    if [ -n "${MEDIA_ROOT:-}" ]; then
+        [ -n "${MEDIA_REPOS_DIR:-}" ] || return 1
+        for argument in "$@"; do
+            case "${argument}" in
+                *://*|--repofrompath*|--config*|-c|--setopt=*|--nogpg*|--enablerepo*|--disablerepo*) return 1;;
+            esac
+        done
+        media_args=("--setopt=reposdir=${MEDIA_REPOS_DIR}" --setopt=gpgcheck=1 --setopt=localpkg_gpgcheck=1)
+    fi
     PYTHONIOENCODING=utf-8 "${PY_BIN}" -u -B "${BUNDLE_DIR}/installer/dnf-progress.py" --log "${LOG}" --kind "${kind}" --check-log 9>&- || return 1
-    LC_ALL=C dnf "$@" 9>&- 2>&1 | PYTHONIOENCODING=utf-8 "${PY_BIN}" -u -B "${BUNDLE_DIR}/installer/dnf-progress.py" --log "${LOG}" --kind "${kind}" 9>&-
+    LC_ALL=C dnf "${media_args[@]}" "$@" 9>&- 2>&1 | PYTHONIOENCODING=utf-8 "${PY_BIN}" -u -B "${BUNDLE_DIR}/installer/dnf-progress.py" --log "${LOG}" --kind "${kind}" 9>&-
     local statuses=("${PIPESTATUS[@]}")
     [ "${statuses[0]}" = "0" ] || return "${statuses[0]}"
     return "${statuses[1]}"
@@ -294,6 +313,11 @@ raise SystemExit(0 if valid else 1)' >/dev/null; then
 }
 
 check_network_prerequisites() {
+    if [ -n "${MEDIA_ROOT:-}${MEDIA_MANIFEST_SHA256:-}" ]; then
+        [ -n "${MEDIA_ROOT:-}" ] && [[ "${MEDIA_MANIFEST_SHA256:-}" =~ ^[0-9a-f]{64}$ ]] \
+            && [ -n "${MYTELL_BUNDLE_FILE:-}" ] || die "offline media requires its root, manifest checksum and local bundle"
+        return 0
+    fi
     # An offline bundle or already completed base package stages must not be
     # rejected merely because an unrelated legacy mirror is unavailable.
     [ -z "${MYTELL_BUNDLE_FILE:-}" ] || return 0
@@ -496,6 +520,7 @@ verify_bundle() {
 # Stage 1: repositories + PHP module stream
 # --------------------------------------------------------------------------
 repair_platform_catalog() {
+    [ -z "${MEDIA_ROOT:-}" ] || return 0
     local mode="${1:-optional}" vendor args=()
     run_logged "${PY_BIN}" -B "${BUNDLE_DIR}/installer/repair-repository-transport.py" --if-present \
         || die "repository transport repair failed; existing configuration retained"
@@ -513,6 +538,47 @@ repair_platform_catalog() {
     fi
 }
 
+initialize_media() {
+    [ -n "${MEDIA_ROOT:-}" ] || return 0
+    check_workspace
+    [ -f "${BUNDLE_DIR}/installer/media.py" ] || die "offline media verifier missing from bundle"
+    MEDIA_REPOS_DIR="${WORK_DIR}/media-repos"
+    mkdir -m 700 "${MEDIA_REPOS_DIR}" || die "cannot create private offline repository catalog"
+    local plan
+    plan=$("${PY_BIN}" -B - "${BUNDLE_DIR}/installer/media.py" "${MEDIA_ROOT}" "${MEDIA_MANIFEST_SHA256}" \
+        "${MYTELLPBX_BUNDLE_SHA256}" "${MEDIA_REPOS_DIR}" "${STATE_DIR}" "${MYTELL_BUNDLE_FILE}" <<'PY'
+import importlib.util, json, os, pathlib, stat, sys
+spec = importlib.util.spec_from_file_location('mytell_iso_media', sys.argv[1])
+module = importlib.util.module_from_spec(spec); spec.loader.exec_module(module)
+media = module.load(sys.argv[2], sys.argv[3], bundle_sha256=sys.argv[4])
+if pathlib.Path(sys.argv[7]).resolve() != media.asset('bundle'):
+    raise ValueError('Local bundle is outside the pinned media profile')
+record = pathlib.Path(sys.argv[6]) / 'media-source.json'
+expected = dict(root=str(media.root), manifest_sha256=sys.argv[3])
+if record.exists() or record.is_symlink():
+    info = record.lstat()
+    if (not stat.S_ISREG(info.st_mode) or info.st_uid != os.geteuid()
+            or stat.S_IMODE(info.st_mode) != 0o600 or json.loads(record.read_text()) != expected):
+        raise ValueError('Offline media differs from the owned resume profile')
+else:
+    with os.fdopen(os.open(str(record), os.O_WRONLY | os.O_CREAT | os.O_EXCL, 0o600), 'w') as out:
+        json.dump(expected, out); out.flush(); os.fsync(out.fileno())
+repo = pathlib.Path(sys.argv[5]) / 'mytelpbx-offline.repo'
+with os.fdopen(os.open(str(repo), os.O_WRONLY | os.O_CREAT | os.O_EXCL, 0o600), 'w') as out:
+    out.write(media.repo_text()); out.flush(); os.fsync(out.fileno())
+geo = media.manifest['geoip']
+print(json.dumps(dict(root=str(media.root), source=str(media.root / geo['path']),
+                     sha256=media.manifest['files'][geo['path']]['sha256'], month=geo['month'])))
+PY
+    ) || die "offline media verification failed; no online fallback"
+    MEDIA_ROOT=$("${PY_BIN}" -c 'import json,sys; print(json.loads(sys.argv[1])[sys.argv[2]])' "${plan}" root) || die "invalid media root"
+    MEDIA_GEOIP_SOURCE=$("${PY_BIN}" -c 'import json,sys; print(json.loads(sys.argv[1])[sys.argv[2]])' "${plan}" source) || die "invalid media country path"
+    MEDIA_GEOIP_SHA256=$("${PY_BIN}" -c 'import json,sys; print(json.loads(sys.argv[1])[sys.argv[2]])' "${plan}" sha256) || die "invalid media country checksum"
+    MEDIA_GEOIP_MONTH=$("${PY_BIN}" -c 'import json,sys; print(json.loads(sys.argv[1])[sys.argv[2]])' "${plan}" month) || die "invalid media country month"
+    SKIP_UPDATE=1
+    log "OFFLINE MEDIA VERIFIED: fixed ISO package set; MYTELL_SKIP_UPDATE=1"
+}
+
 stage_cli_status() {
     step "آماده‌سازی نمایش وضعیت نصب خودکار"
     # Package updates may restore the vendor executable. Revalidate its exact
@@ -528,6 +594,14 @@ stage_cli_status() {
 stage_repos() {
     stage_done repos && return 0
     step "پیکربندی مخازن بسته‌ها"
+    if [ -n "${MEDIA_ROOT:-}" ]; then
+        [ -n "${MEDIA_REPOS_DIR:-}" ] || die "offline repository catalog not verified"
+        run_dnf_logged repositories module reset -y php || die "offline PHP module reset failed"
+        run_dnf_logged repositories module enable -y php:remi-7.4 || die "offline PHP module stream is unavailable"
+        run_dnf_logged repositories -q makecache || die "offline repository metadata unavailable"
+        mark_stage repos
+        return 0
+    fi
 
     local repo_src="${BUNDLE_DIR}/installer/repos/mytelpbx-base.repo.in"
     [ -f "${repo_src}" ] || die "repo template missing from bundle"
@@ -632,7 +706,7 @@ stage_packages1() {
 
 stage_tls() {
     stage_done tls && return 0
-    step "آماده‌سازی گواهی MyTellPBX برای سرویس‌های وب"
+    step "آماده‌سازی گواهی MytelPBX برای سرویس‌های وب"
     [ -f "${BUNDLE_DIR}/installer/prepare-tls.py" ] || die "TLS preparation helper missing from bundle"
     run_logged "${PY_BIN}" -B "${BUNDLE_DIR}/installer/prepare-tls.py" \
         || die "TLS pair preparation failed; existing certificates retained (see ${LOG})"
@@ -1118,7 +1192,7 @@ PHP
 }
 
 # --------------------------------------------------------------------------
-# Stage 7: MyTel layer
+# Stage 7: MytelPBX layer
 # --------------------------------------------------------------------------
 set_amportal_key() {
     local key="$1" val="$2" file="/etc/amportal.conf"
@@ -1136,12 +1210,12 @@ set_amportal_key() {
 # their metadata columns (name/level/description/type/defaultval) — a
 # value-only REPLACE breaks the settings class with "unknown type".
 set_brand_db_keys() {
-    BRAND_KEYS='BRAND_ALT_JS=assets/mytel/sub.js?v=24
-BRAND_CSS_CUSTOM=assets/mytel/skin.css?v=27
-BRAND_CSS_CUSTOM=assets/mytel/skin.css?v=27
-BRAND_TITLE=MyTell PBX
-BRAND_ISSABELPBX_ALT_FOOT=MyTel
-BRAND_ISSABELPBX_ALT_LEFT=MyTel
+    BRAND_KEYS='BRAND_ALT_JS=assets/mytel/sub.js?v=25
+BRAND_CSS_CUSTOM=assets/mytel/skin.css?v=28
+BRAND_CSS_CUSTOM=assets/mytel/skin.css?v=28
+BRAND_TITLE=MytelPBX
+BRAND_ISSABELPBX_ALT_FOOT=MytelPBX
+BRAND_ISSABELPBX_ALT_LEFT=MytelPBX
 BRAND_IMAGE_FAVICON=images/mytel-favicon.png
 BRAND_IMAGE_ISSABELPBX_FOOT=images/mytel-foot.png
 BRAND_IMAGE_TANGO_LEFT=images/mytel-emblem-48.png
@@ -1279,11 +1353,11 @@ PHP
     # 5) Admin console brand keys (stock mechanism): conf for immediate
     #    effect + framework settings table so boot-time amportal reloads
     #    regenerate the conf WITH our values
-    set_amportal_key BRAND_CSS_CUSTOM "assets/mytel/skin.css?v=27"
-    set_amportal_key BRAND_ALT_JS "assets/mytel/sub.js?v=24"
-    set_amportal_key BRAND_TITLE "MyTell PBX"
-    set_amportal_key BRAND_ISSABELPBX_ALT_FOOT "MyTel"
-    set_amportal_key BRAND_ISSABELPBX_ALT_LEFT "MyTel"
+    set_amportal_key BRAND_CSS_CUSTOM "assets/mytel/skin.css?v=28"
+    set_amportal_key BRAND_ALT_JS "assets/mytel/sub.js?v=25"
+    set_amportal_key BRAND_TITLE "MytelPBX"
+    set_amportal_key BRAND_ISSABELPBX_ALT_FOOT "MytelPBX"
+    set_amportal_key BRAND_ISSABELPBX_ALT_LEFT "MytelPBX"
     set_amportal_key BRAND_IMAGE_FAVICON "images/mytel-favicon.png"
     set_amportal_key BRAND_IMAGE_ISSABELPBX_FOOT "images/mytel-foot.png"
     set_amportal_key BRAND_IMAGE_TANGO_LEFT "images/mytel-emblem-48.png"
@@ -1336,8 +1410,11 @@ stage_geoip() {
     [ -f "${BUNDLE_DIR}/installer/geoip-update.py" ] || die "GeoIP updater missing from bundle"
     [ -f "${BUNDLE_DIR}/installer/prepare-geoip-module.py" ] || die "GeoIP kernel preparation missing from bundle"
     if ! stage_done geoip; then
-        "${PY_BIN}" -B "${BUNDLE_DIR}/installer/geoip-update.py" --install \
-            --status-module "${BUNDLE_DIR}/modules/mytellpbxgeoip/index.php" 2>&1 | tee -a "${LOG}" \
+        local args=(--install --status-module "${BUNDLE_DIR}/modules/mytellpbxgeoip/index.php")
+        if [ -n "${MEDIA_ROOT:-}" ]; then
+            args+=(--offline-source "${MEDIA_GEOIP_SOURCE}" --offline-source-sha256 "${MEDIA_GEOIP_SHA256}" --offline-source-month "${MEDIA_GEOIP_MONTH}")
+        fi
+        "${PY_BIN}" -B "${BUNDLE_DIR}/installer/geoip-update.py" "${args[@]}" 2>&1 | tee -a "${LOG}" \
             || die "country database verification failed; review the reported stage"
     fi
     # Revalidate the current boot even when the dataset stage was completed.
@@ -1361,6 +1438,13 @@ stage_myteldesk() {
     step "نصب و بررسی میز کار اپراتور و تحلیل گفتار خودکار"
     [ -f "${BUNDLE_DIR}/installer/install-myteldesk.py" ] || die "pinned Desk installer missing from bundle"
     local args=(--cache-root "${STATE_DIR}/cache/myteldesk" --launcher-source "${BUNDLE_DIR}/modules/mytellpbxopdesk" --web-root "${WEB_ROOT}")
+    if [ -n "${MEDIA_ROOT:-}" ]; then
+        args+=(--media-root "${MEDIA_ROOT}" --media-manifest-sha256 "${MEDIA_MANIFEST_SHA256}")
+        # Pure Rocky ISO installs only the base OS. Provision the parallel
+        # interpreter from the same signed local closure before Desk/VAD.
+        run_dnf_logged packages -y install python3.11 python3.11-pip \
+            || die "offline Python3.11 package closure unavailable; Desk not started"
+    fi
     [ -z "${MYTELL_DESK_PUBLIC_URL:-}" ] || args+=(--public-url "${MYTELL_DESK_PUBLIC_URL}")
     # Keep real upstream stages visible. pipefail preserves a failed installer
     # exit instead of treating tee's successful log write as installation success.
@@ -1399,7 +1483,7 @@ stage_selfcheck() {
     body=$(curl -fsSkL --max-time 30 "http://127.0.0.1/" 2>>"$LOG" || true)
     [ -n "${body}" ] || die "self-check: login page empty"
     printf '%s' "${body}" | grep -qE 'login|ورود|mytel' \
-        || die "self-check: login page does not look like MyTellPBX"
+        || die "self-check: login page does not look like MytelPBX"
     if printf '%s' "${body}" | grep -qi 'issabel'; then
         warn "self-check: login page still mentions upstream brand (check manually)"
     fi
@@ -1419,11 +1503,11 @@ finish() {
     ip=$(hostname -I | awk '{print $1}')
     echo
     echo "=============================================================="
-    echo "   نصب MyTellPBX با موفقیت کامل شد"
+    echo "   نصب MytelPBX با موفقیت کامل شد"
     echo "=============================================================="
     echo "   نشانی پنل:      https://${ip}/"
     echo "   نام کاربری:     admin"
-    echo "   میز کار:        https://${ip}/MytellDesk/ (ورود با حساب پنل)"
+    echo "   میز کار:        https://${ip}/MytellDesk/ (ورود با حساب مستقل میز کار)"
     echo "   مدیر محلی میز کار: /etc/myteldesk/initial-admin.txt (فقط root)"
     echo "   رمز‌ها:          ${CRED_FILE} (فقط root)"
     echo "   مستندات:        github.com/DashSaman/MyTellPBX"
@@ -1446,7 +1530,7 @@ finish() {
 main() {
     mkdir -p "$(dirname "${LOG}")"
 
-    echo "MyTellPBX ${MYTELLPBX_VERSION} installer — $(date)" | tee -a "${LOG}"
+    echo "MytelPBX ${MYTELLPBX_VERSION} installer — $(date)" | tee -a "${LOG}"
 
     # preflight FIRST: the fresh-system guard checks STATE_DIR absence, so
     # the state directory must not exist yet when preflight runs
@@ -1461,9 +1545,10 @@ main() {
     # the active run's log).
     : >"${LOG}"
     chmod 600 "${LOG}"
-    echo "MyTellPBX ${MYTELLPBX_VERSION} installer — $(date)" >>"${LOG}"
+    echo "MytelPBX ${MYTELLPBX_VERSION} installer — $(date)" >>"${LOG}"
 
     verify_bundle
+    initialize_media
     ensure_credentials
     # Only the collector consumes inherited stdin. Later vendor commands get
     # EOF; explicit SQL/PHP pipes and heredocs keep their own input streams.
@@ -1471,13 +1556,13 @@ main() {
 
     # Revalidate before stage shortcuts: RPMs can recreate their repository
     # files during an earlier interrupted package transaction.
-    repair_platform_catalog
+    [ -n "${MEDIA_ROOT:-}" ] || repair_platform_catalog
     stage_repos
     stage_update
     stage_packages1
     stage_tls
     stage_packages2
-    repair_platform_catalog mandatory
+    [ -n "${MEDIA_ROOT:-}" ] || repair_platform_catalog mandatory
     stage_cli_status
     stage_post_base
     stage_framework_init

@@ -342,17 +342,24 @@ def install_launcher(source, web_root, expected_uid=0):
 
 def install(pin, cache, public_url=None, run=run_command, fetch=download,
             legacy_paths=LEGACY_PATHS, standalone_state=STANDALONE_STATE, launcher_source=None,
-            web_root=Path('/var/www/html')):
+            web_root=Path('/var/www/html'), media=None):
     pin = validate_pin(pin); public_url = validate_public_url(public_url)
     cache = Path(cache)
     validate_existing_state(standalone_state, pin, cache / 'attempt.json')
     if not Path(standalone_state).is_file() and any(Path(path).exists() for path in legacy_paths):
         raise ValueError('Legacy Desk installation detected; use reviewed migration, not the fresh PBX installer')
     secure_directory(cache)
+    if media is not None:
+        media.asset('desk')  # Revalidate even when the private release cache exists.
+        if media.manifest['files'][media.manifest['desk']]['sha256'] != pin['sha256']:
+            raise ValueError('Offline Desk archive differs from the pinned product release')
+        fetch = lambda url, destination: media.copy('desk', destination, pin['sha256'])
     print('MytelDesk ' + pin['version'] + ': verifying the pinned release and automatic CPU voice analysis.', flush=True)
     bundle = obtain_bundle(pin, cache, fetch)
     secure_bundle(bundle)
     argv = [sys.executable, '-B', str(bundle / 'installer/install.py'), 'install', '--bundle', str(bundle)]
+    if media is not None:
+        argv.extend(['--offline-media', str(media.root), '--offline-manifest-sha256', media.manifest_sha256])
     if public_url: argv.extend(['--public-url', public_url])
     try:
         run(argv)
@@ -376,11 +383,21 @@ def main():
     parser.add_argument('--public-url')
     parser.add_argument('--launcher-source', type=Path, default=Path(__file__).resolve().parents[1] / 'modules/mytellpbxopdesk')
     parser.add_argument('--web-root', type=Path, default=Path('/var/www/html'))
+    parser.add_argument('--media-root', type=Path)
+    parser.add_argument('--media-manifest-sha256')
     args = parser.parse_args()
     if not hasattr(os, 'geteuid') or os.geteuid() != 0: parser.error('Run as root on the existing Issabel server')
     try:
+        if bool(args.media_root) != bool(args.media_manifest_sha256):
+            raise ValueError('Offline media root and manifest checksum are required together')
+        media = None
+        if args.media_root:
+            import importlib.util
+            spec = importlib.util.spec_from_file_location('mytell_verified_media', str(Path(__file__).with_name('media.py')))
+            module = importlib.util.module_from_spec(spec); spec.loader.exec_module(module)
+            media = module.load(args.media_root, args.media_manifest_sha256)
         install(json.loads(args.pin.read_text(encoding='utf-8')), args.cache_root, args.public_url,
-                launcher_source=args.launcher_source, web_root=args.web_root)
+                launcher_source=args.launcher_source, web_root=args.web_root, media=media)
     except ValueError as error:
         print('MytelDesk: ' + str(error), file=sys.stderr)
         return 1

@@ -1,11 +1,11 @@
 {
   "schema": 1,
   "repository": "DashSaman/MytelDesk",
-  "version": "1.1.1",
-  "archive": "myteldesk-1.1.1.tar.gz",
-  "sha256": "5304cab7eb69108248cab359ae4f2fcb2a479ad142e3f69db34cebbb86079ddc",
-  "source_commit": "d0414547b398cb20e2a1c70c83966f67f1c2b9c4",
-  "source_tree": "237315df5b8f2f5168b3c01a6423daa912dfd784",
+  "version": "1.1.2",
+  "archive": "myteldesk-1.1.2.tar.gz",
+  "sha256": "69fdf92308035cf1280986109ced93715d6fd0e99eb223edf1aaa39d2b09d454",
+  "source_commit": "6fcfd462f452566a19785cefdf14edeb4aa8d87e",
+  "source_tree": "21534a068bd8313a134d519872be9b5feb247dc8",
   "upgrades_from": [
     {
       "version": "1.0.0",
@@ -14,6 +14,10 @@
     {
       "version": "1.1.0",
       "source_tree": "59c96ab9ad25cf54161d198b1202cd1f28ea79ad"
+    },
+    {
+      "version": "1.1.1",
+      "source_tree": "237315df5b8f2f5168b3c01a6423daa912dfd784"
     }
   ]
 }

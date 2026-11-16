@@ -1,0 +1,25 @@
+/* MytelPBX GTK3 installer chrome. No functional controls or base policy change. */
+@define-color mytelpbx_background #142640;
+
+.logo-sidebar {
+    background-color: @mytelpbx_background;
+    background-image: none;
+}
+
+.logo {
+    background-color: @mytelpbx_background;
+    background-image: url('/usr/share/anaconda/pixmaps/mytelpbx-wordmark.svg');
+    background-position: 50% 20px;
+    background-repeat: no-repeat;
+}
+
+.product-logo {
+    background-image: none;
+    background-color: transparent;
+}
+
+AnacondaSpokeWindow #nav-box {
+    background-color: @mytelpbx_background;
+    background-image: none;
+    color: #ffffff;
+}

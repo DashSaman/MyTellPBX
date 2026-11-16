@@ -1,0 +1,9 @@
+[Main]
+Product=MytelPBX
+Version=@VERSION@
+BugURL=https://mytel.one
+IsFinal=False
+UUID=@BASE_UUID@
+
+[Compose]
+Lorax=@BASE_LORAX@

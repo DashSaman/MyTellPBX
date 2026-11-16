@@ -5,7 +5,7 @@
 نصب مرحله‌ای مرکز تماس روی **راکی لینوکس ۸٫۱۰**: موتور تلفنی استریسک ۲۰،
 چارچوب ماژول‌ها (داخلی، صف، ضبط تماس، گزارش‌ها، فکس، …) و لایهٔ کامل
 قالب و برند مای‌تل — پنل فارسی راست‌چین با حالت روشن و تاریک، برند کامل
-کنسول مدیریتی و زبان فارسی. نسخهٔ **۷٫۶٫۱** میز کار MytelDesk را همراه با
+کنسول مدیریتی و زبان فارسی. نسخهٔ **۷٫۶٫۲** میز کار MytelDesk را همراه با
 نصب خودکار تحلیل گفتار VAD نیز راه‌اندازی می‌کند.
 
 ## نصب با یک خط
@@ -15,7 +15,7 @@
 </div>
 
 ```bash
-curl -fsSL -o install-mytellpbx.sh https://github.com/DashSaman/MyTellPBX/releases/download/v7.6.1/install-mytellpbx.sh && bash install-mytellpbx.sh
+curl -fsSL -o install-mytellpbx.sh https://github.com/DashSaman/MyTellPBX/releases/download/v7.6.2/install-mytellpbx.sh && bash install-mytellpbx.sh
 ```
 
 <div dir="rtl">

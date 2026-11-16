@@ -1,0 +1,11 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "MytelPBX installed ISO media pointer",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["root", "manifest_sha256"],
+  "properties": {
+    "root": {"const": "/var/lib/mytelpbx-media"},
+    "manifest_sha256": {"type": "string", "pattern": "^[0-9a-f]{64}$"}
+  }
+}

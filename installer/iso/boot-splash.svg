@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="640" height="480" viewBox="0 0 640 480">
+  <title>MytelPBX installation</title>
+  <rect width="640" height="480" fill="#0f192a"/>
+  <rect x="40" y="96" width="560" height="3" rx="1.5" fill="#f7941d"/>
+  <g font-family="DejaVu Sans,sans-serif" text-anchor="middle">
+    <text x="320" y="70" font-size="44" font-weight="700" fill="#ffffff">Mytel<tspan fill="#f7941d">PBX</tspan></text>
+    <text x="320" y="453" font-size="19" fill="#ffffff">https://mytel.one</text>
+  </g>
+</svg>
