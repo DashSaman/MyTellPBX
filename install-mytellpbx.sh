@@ -1223,6 +1223,16 @@ stage_geoip() {
     mark_stage geoip
 }
 
+stage_webrtc_dtls() {
+    # The native WebRTC forms use this independent Asterisk PEM. Apache TLS
+    # readiness alone cannot prove DTLS media works. Revalidate on every resume.
+    [ -f "${BUNDLE_DIR}/installer/prepare-webrtc-dtls.py" ] || die "WebRTC DTLS preparation missing from bundle"
+    run_logged "${PY_BIN}" -B "${BUNDLE_DIR}/installer/prepare-webrtc-dtls.py" \
+        --backup-root "${STATE_DIR}/webrtc-dtls" \
+        || die "WebRTC DTLS certificate is not ready; existing material retained"
+    mark_stage webrtc-dtls
+}
+
 stage_myteldesk() {
     step "نصب و بررسی میز کار اپراتور و تحلیل گفتار خودکار"
     [ -f "${BUNDLE_DIR}/installer/install-myteldesk.py" ] || die "pinned Desk installer missing from bundle"
@@ -1253,6 +1263,8 @@ stage_selfcheck() {
         die "framework incomplete (modules=${mod_count:-0}); run the installer again to repair"
     fi
 
+    run_logged "${PY_BIN}" -B "${BUNDLE_DIR}/installer/prepare-webrtc-dtls.py" --check \
+        || die "self-check: WebRTC DTLS certificate is not valid"
     systemctl is-active --quiet mariadb || die "self-check: mariadb not active"
     systemctl is-active --quiet httpd   || die "self-check: httpd not active"
     /usr/local/sbin/myteldesk doctor || die "self-check: MytelDesk or CPU voice analysis not ready"
@@ -1347,6 +1359,7 @@ main() {
     stage_post_base
     stage_framework_init
     stage_mytel_layer
+    stage_webrtc_dtls
     stage_geoip
     stage_myteldesk
     stage_selfcheck

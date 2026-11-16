@@ -167,7 +167,7 @@ ensure_asterisk_identity(){ :; }
 repair_platform_catalog(){ :; }
 stage_cli_status(){ :; }
 stage_packages1(){ :; }; stage_tls(){ :; }; stage_packages2(){ :; }; stage_post_base(){ :; }; stage_framework_init(){ :; }
-stage_mytel_layer(){ :; }; stage_geoip(){ :; }; stage_myteldesk(){ :; }; stage_selfcheck(){ :; }; finish(){ :; }
+stage_mytel_layer(){ :; }; stage_webrtc_dtls(){ :; }; stage_geoip(){ :; }; stage_myteldesk(){ :; }; stage_selfcheck(){ :; }; finish(){ :; }
 '''
         body += 'stage_repos(){ if IFS= read -r answer; then printf inherited > ' + repr(inherited.as_posix()) + '; else printf EOF > ' + repr(inherited.as_posix()) + '; fi; }\n'
         body += 'fixture_vendor(){ IFS= read -r value && printf \'%s\' "$value" > ' + repr(explicit.as_posix()) + '; }\n'

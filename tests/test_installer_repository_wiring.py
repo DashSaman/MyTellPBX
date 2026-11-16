@@ -64,7 +64,7 @@ stage_packages1(){ :; }; stage_tls(){ :; }
 stage_cli_status(){ :; }
 stage_packages2(){ ''' + packages2 + '''; }
 stage_post_base(){ :; }; stage_framework_init(){ :; }; stage_mytel_layer(){ :; }
-stage_geoip(){ :; }; stage_myteldesk(){ printf 'DESK\\n' >> "$EVENTS"; }
+stage_webrtc_dtls(){ :; }; stage_geoip(){ :; }; stage_myteldesk(){ printf 'DESK\\n' >> "$EVENTS"; }
 stage_selfcheck(){ :; }; finish(){ :; }
 '''
 

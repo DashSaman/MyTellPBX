@@ -144,6 +144,28 @@ mark_stage(){ event COMPLETE "$@"; }
         self.assertNotEqual(result.returncode, 0)
         self.assertEqual(events, [])
 
+    def dtls_main_action(self):
+        return '''preflight(){ :; }; acquire_lock(){ :; }; write_install_source(){ :; }
+initialize_workspace(){ :; }; verify_bundle(){ :; }; ensure_credentials(){ :; }
+repair_platform_catalog(){ :; }; stage_repos(){ :; }; stage_update(){ :; }
+stage_packages1(){ :; }; stage_tls(){ :; }; stage_packages2(){ :; }
+stage_cli_status(){ :; }; stage_post_base(){ :; }
+stage_framework_init(){ event FRAMEWORK; }; stage_mytel_layer(){ event MYTEL_LAYER; }
+stage_geoip(){ :; }; stage_myteldesk(){ event DESK; }
+stage_selfcheck(){ event SELF_CHECK; }; finish(){ event FINISH; }
+main'''
+
+    def test_real_main_prepares_dtls_after_framework_and_before_desk(self):
+        result, events = self.run_fixture(self.dtls_main_action())
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertEqual([e[0] for e in events],
+                         ['FRAMEWORK', 'MYTEL_LAYER', 'DTLS', 'COMPLETE', 'DESK', 'SELF_CHECK', 'FINISH', 'CONTINUED'])
+
+    def test_real_main_dtls_failure_stops_before_desk_or_success(self):
+        result, events = self.run_fixture(self.dtls_main_action(), fail='dtls')
+        self.assertNotEqual(result.returncode, 0)
+        self.assertEqual([e[0] for e in events], ['FRAMEWORK', 'MYTEL_LAYER', 'DTLS'])
+
 
 if __name__ == '__main__':
     unittest.main()
