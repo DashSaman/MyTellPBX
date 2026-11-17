@@ -9,6 +9,7 @@ import shutil
 import subprocess
 import tempfile
 import unittest
+from unittest import mock
 
 ROOT = Path(__file__).resolve().parents[1]
 FIXTURE = ROOT / 'tests/fixtures/vendor-iso'
@@ -20,6 +21,89 @@ def builder():
     module = importlib.util.module_from_spec(spec)
     spec.loader.exec_module(module)
     return module
+
+
+class NativeEmbeddedEfiTests(unittest.TestCase):
+    def fixture(self, mode='known'):
+        module = builder()
+        temp = tempfile.TemporaryDirectory()
+        self.addCleanup(temp.cleanup)
+        stage = Path(temp.name)
+        outer = (FIXTURE / 'grub.cfg').read_bytes()
+        paths = ('::/EFI/BOOT/grub.cfg', '::/EFI/BOOT/BOOT.conf')
+        fat = {paths[0]: (FIXTURE / 'embedded-grub.cfg').read_bytes(),
+               paths[1]: (FIXTURE / 'embedded-BOOT.conf').read_bytes(),
+               '::/EFI/BOOT/BOOTX64.EFI': b'native EFI binary bytes',
+               '::/EFI/BOOT/splash.png': b'old splash'}
+        for path in paths:
+            self.assertEqual(hashlib.sha256(fat[path]).hexdigest(),
+                             '1cdcf9e23e018bb1cd2d1f39206392beba1ac3eb574cedb65eb337855618243b')
+        self.assertEqual(hashlib.sha256(outer).hexdigest(),
+                         'e5f4765d89e5835b75d864763c1aaa3d29c831b2248a3ca004ab4bcd2a487414')
+        if mode == 'changed-inner':
+            fat[paths[1]] += b'\n# drift\n'
+        elif mode == 'missing-pair':
+            del fat[paths[1]]
+        elif mode == 'unknown-config':
+            fat['::/other/custom.cfg'] = fat[paths[0]]
+        elif mode == 'changed-outer':
+            outer += b'\n# drift\n'
+        writes, reads = [], []
+        def extract(_iso, member, output):
+            if member == 'images/efiboot.img':
+                output.write_bytes(b'fixture FAT container')
+            elif member == 'EFI/BOOT/grub.cfg':
+                output.write_bytes(outer)
+            else:
+                self.fail('Unexpected extraction: ' + member)
+        def command(args):
+            if args[0] == 'mdir':
+                return ('\n'.join(fat) + '\n').encode()
+            self.assertEqual(args[0], 'mcopy')
+            source, target = args[-2:]
+            if '-o' in args:
+                writes.append(target)
+                fat[target] = Path(source).read_bytes()
+                if mode == 'bad-readback' and target == paths[1]:
+                    fat[target] += b'corrupt'
+            else:
+                reads.append(source)
+                Path(target).write_bytes(fat[source])
+            return b''
+        splash = stage / 'approved.png'
+        splash.write_bytes(b'approved splash')
+        with mock.patch.object(module, 'extract', side_effect=extract), \
+                mock.patch.object(module, 'command', side_effect=command):
+            if mode != 'known':
+                with self.assertRaises(ValueError):
+                    module.efi_image(Path('original.iso'), stage, 'MytelPBX-7.7.0-x86_64', '7.7.0', splash)
+                if mode != 'bad-readback':
+                    self.assertEqual(writes, [], 'unknown inputs must fail before FAT writes')
+                return
+            _image, count = module.efi_image(Path('original.iso'), stage, 'MytelPBX-7.7.0-x86_64', '7.7.0', splash)
+        self.assertEqual(count, 2)
+        expected = module.boot_config(outer.decode(), 'MytelPBX-7.7.0-x86_64', '7.7.0').encode()
+        for path in paths:
+            self.assertEqual(fat[path], expected)
+            self.assertGreaterEqual(reads.count(path), 2, 'both embedded configs require readback')
+        self.assertEqual(fat['::/EFI/BOOT/BOOTX64.EFI'], b'native EFI binary bytes')
+        self.assertNotIn('::/EFI/BOOT/BOOTX64.EFI', writes)
+
+    def test_actual_known_stale_pair_uses_pinned_native_outer_menu_and_readbacks(self):
+        self.fixture()
+
+    def test_unknown_or_incomplete_embedded_inputs_stop_before_image_writes(self):
+        for mode in ['changed-inner', 'changed-outer', 'missing-pair', 'unknown-config']:
+            with self.subTest(mode=mode):
+                self.fixture(mode)
+
+    def test_successful_mcopy_with_bad_readback_is_refused(self):
+        self.fixture('bad-readback')
+
+    def test_generic_boot_transform_still_refuses_stale_or_unknown_input(self):
+        with self.assertRaises(ValueError):
+            builder().boot_config((FIXTURE / 'embedded-grub.cfg').read_text(),
+                                  'MytelPBX-7.7.0-x86_64', '7.7.0')
 
 
 class NativeIsoStructureTests(unittest.TestCase):

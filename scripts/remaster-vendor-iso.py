@@ -30,6 +30,8 @@ VENDOR_ISO_BYTES = 3682598912
 VENDOR_LABEL = 'Issabel5-x86_64'
 VENDOR_KS_SHA256 = '503a1d065d1382355553ca337d0ca99946970fe3c81eaa22c160728d1dbf390e'
 VENDOR_COMPS_SHA256 = '1718aa060cb2b5d63df62e1efb8a47f2b4a16a3d757c623c42b2901974618a43'
+VENDOR_OUTER_GRUB_SHA256 = 'e5f4765d89e5835b75d864763c1aaa3d29c831b2248a3ca004ab4bcd2a487414'
+VENDOR_EMBEDDED_GRUB_SHA256 = '1cdcf9e23e018bb1cd2d1f39206392beba1ac3eb574cedb65eb337855618243b'
 REPO_NS = '{http://linux.duke.edu/metadata/repo}'
 GROUP_TYPES = {'group', 'group_gz'}
 ONLINE_POST_LINES = (
@@ -204,24 +206,49 @@ def efi_image(source, stage, label, version, splash):
     image = stage / 'efiboot.img'
     extract(source, 'images/efiboot.img', image)
     listing = command(['mdir', '-i', image, '-b', '-/', '::']).decode('utf-8')
-    count = 0
-    for index, path in enumerate(listing.splitlines()):
-        path = path.strip()
-        if not path.lower().endswith('/grub.cfg'):
-            continue
-        if not path.startswith('::/') or '..' in path:
-            raise ValueError('Unknown embedded EFI path')
+    paths = [path.strip() for path in listing.splitlines() if path.strip()]
+    configs = [path for path in paths if path.lower().endswith(('.cfg', '.conf'))]
+    expected = {'::/efi/boot/grub.cfg', '::/efi/boot/boot.conf'}
+    if len(configs) != 2 or {path.lower() for path in configs} != expected:
+        raise ValueError('Unknown or incomplete embedded EFI configuration pair')
+    outer = stage / 'native-outer-efi.cfg'
+    extract(source, 'EFI/BOOT/grub.cfg', outer)
+    if digest(outer) != VENDOR_OUTER_GRUB_SHA256:
+        raise ValueError('Pinned outer native EFI configuration changed')
+    replacement = boot_config(outer.read_text(encoding='utf-8'), label, version).encode('utf-8')
+    checked_configs = []
+    for index, path in enumerate(configs):
         config = stage / ('efi-config-' + str(index))
         command(['mcopy', '-i', image, path, config])
-        config.write_text(boot_config(config.read_text(encoding='utf-8'), label, version), encoding='utf-8')
+        if digest(config) != VENDOR_EMBEDDED_GRUB_SHA256:
+            raise ValueError('Unknown embedded EFI configuration bytes: ' + path)
+        checked_configs.append((path, config))
+    # This exact original FAT pair has a stale Rocky menu without the vendor KS.
+    # Derive both from the pinned outer native menu; never reinterpret unknown input.
+    binaries = {}
+    for index, path in enumerate(path for path in paths if path.lower().endswith('.efi')):
+        if not path.startswith('::/') or '..' in path:
+            raise ValueError('Unknown embedded EFI binary path')
+        binary = stage / ('efi-binary-before-' + str(index))
+        command(['mcopy', '-i', image, path, binary])
+        binaries[path] = digest(binary)
+    for path, config in checked_configs:
+        config.write_bytes(replacement)
         command(['mcopy', '-o', '-i', image, config, path])
-        count += 1
-    for path in listing.splitlines():
-        if path.strip().lower() == '::/efi/boot/splash.png':
-            command(['mcopy', '-o', '-i', image, splash, path.strip()])
-    if not count:
-        raise ValueError('No native embedded EFI boot configuration found')
-    return image, count
+    for path in paths:
+        if path.lower() == '::/efi/boot/splash.png':
+            command(['mcopy', '-o', '-i', image, splash, path])
+    for index, (path, _config) in enumerate(checked_configs):
+        actual = stage / ('efi-config-readback-' + str(index))
+        command(['mcopy', '-i', image, path, actual])
+        if actual.read_bytes() != replacement:
+            raise ValueError('Embedded EFI configuration readback differs: ' + path)
+    for index, (path, checksum) in enumerate(binaries.items()):
+        actual = stage / ('efi-binary-after-' + str(index))
+        command(['mcopy', '-i', image, path, actual])
+        if digest(actual) != checksum:
+            raise ValueError('Native EFI binary changed: ' + path)
+    return image, len(checked_configs)
 
 
 def inventory(root):
