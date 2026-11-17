@@ -6,10 +6,12 @@ import json
 import os
 from pathlib import Path
 import shutil
+import stat
 import subprocess
 import sys
 import tarfile
 import tempfile
+import types
 import unittest
 from unittest import mock
 
@@ -156,6 +158,45 @@ class DeskHelperTests(unittest.TestCase):
                                     standalone_state=self.base / 'absent')
         self.assertEqual(len(calls), 1)
 
+    def test_launcher_replaced_existing_inode_stays_private_and_mkdir_failure_restores_umask(self):
+        class Source:
+            def __truediv__(self, name): return self
+            def is_symlink(self): return False
+            def is_file(self): return True
+            def read_bytes(self): return b'<?php // fixed public fixture'
+        class Web:
+            parts = ('/', 'web')
+            def is_absolute(self): return True
+        class Stream(io.BytesIO):
+            def fileno(self): return 5
+        for failure in (False, True):
+            with self.subTest(mkdir_failure=failure):
+                state = {'mode':0o700, 'umask':0o077, 'chmods':[]}
+                def open_(name, flags, dir_fd=None):
+                    return {'/':1, 'web':2, 'modules':3, 'mytellpbxopdesk':4}.get(name, 5)
+                def mkdir(name, mode, dir_fd):
+                    if failure: raise OSError('fixture mkdir refused')
+                    if name == 'modules': raise FileExistsError()
+                    # Newly made inode100 was displaced; open binds an existing
+                    # root-owned private inode200. Never chmod that replacement.
+                def umask(value):
+                    previous = state['umask']; state['umask'] = value; return previous
+                def fstat(fd):
+                    return types.SimpleNamespace(st_uid=0, st_dev=1, st_ino=200,
+                        st_mode=(stat.S_IFDIR | state['mode']) if fd == 4 else stat.S_IFREG | 0o644)
+                def fchmod(fd, mode): state['mode'] = mode; state['chmods'].append((fd, mode))
+                client = types.SimpleNamespace(name='posix', O_RDONLY=0, O_DIRECTORY=1, O_NOFOLLOW=2,
+                    O_NONBLOCK=4, open=open_, mkdir=mkdir, close=lambda fd:None, umask=umask,
+                    fstat=fstat, fchmod=fchmod, fdopen=lambda fd, mode:Stream(b'<?php // fixed public fixture'),
+                    stat=lambda *a, **kw:types.SimpleNamespace(st_dev=1, st_ino=200))
+                with mock.patch.object(self.module, 'Path', side_effect=lambda p:p), mock.patch.object(self.module, 'os', client):
+                    if failure:
+                        with self.assertRaises(OSError): self.module.install_launcher(Source(), Web())
+                    else: self.module.install_launcher(Source(), Web())
+                self.assertEqual(state['mode'], 0o700)
+                self.assertEqual(state['chmods'], [])
+                self.assertEqual(state['umask'], 0o077)
+
     @unittest.skipUnless(os.name == 'posix', 'Native descriptor-relative POSIX installation')
     def test_launcher_installs_complete_new_files_without_rewriting_owned_content(self):
         source = self.base / 'source'; source.mkdir(); (self.base / 'web').mkdir(); target = self.base / 'web/modules/mytellpbxopdesk'
@@ -165,6 +206,50 @@ class DeskHelperTests(unittest.TestCase):
         stamp = (target / 'index.php').stat().st_mtime_ns
         self.module.install_launcher(source, self.base / 'web', expected_uid=os.geteuid())
         self.assertEqual((target / 'index.php').stat().st_mtime_ns, stamp)
+
+    @unittest.skipUnless(os.name == 'posix', 'Actual descriptor-relative POSIX umask contract')
+    def test_launcher_new_public_directories_remain_readable_under_private_umask(self):
+        source = self.base / 'source'; source.mkdir(); web = self.base / 'web'; web.mkdir()
+        for name in ['index.php', 'launcher-access.php']: (source / name).write_text('<?php // public ' + name)
+        previous = os.umask(0o077)
+        try: self.module.install_launcher(source, web, expected_uid=os.geteuid())
+        finally: os.umask(previous)
+        target = web / 'modules/mytellpbxopdesk'
+        for directory in [web / 'modules', target]:
+            self.assertEqual(stat.S_IMODE(directory.stat().st_mode), 0o755,
+                             'A fresh public directory must be traversable by the separate PHP worker')
+        for name in ['index.php', 'launcher-access.php']:
+            self.assertEqual(stat.S_IMODE((target / name).stat().st_mode), 0o644)
+            self.assertEqual((target / name).read_bytes(), (source / name).read_bytes())
+
+    @unittest.skipUnless(os.name == 'posix', 'Actual descriptor-relative POSIX permission preservation')
+    def test_launcher_preserves_existing_directory_and_operator_file_permissions(self):
+        source = self.base / 'source'; source.mkdir(); web = self.base / 'web'; web.mkdir()
+        modules = web / 'modules'; modules.mkdir(); modules.chmod(0o750)
+        target = modules / 'mytellpbxopdesk'; target.mkdir(); target.chmod(0o700)
+        for name in ['index.php', 'launcher-access.php']:
+            (source / name).write_text('<?php // public ' + name)
+            (target / name).write_bytes((source / name).read_bytes()); (target / name).chmod(0o644)
+        operator = target / 'operator-private'; operator.write_bytes(b'private fixture'); operator.chmod(0o600)
+        before = {p: (stat.S_IMODE(p.stat().st_mode), p.stat().st_mtime_ns) for p in [modules, target, operator]}
+        previous = os.umask(0o077)
+        try: self.module.install_launcher(source, web, expected_uid=os.geteuid())
+        finally: os.umask(previous)
+        self.assertEqual({p: (stat.S_IMODE(p.stat().st_mode), p.stat().st_mtime_ns) for p in before}, before)
+        self.assertEqual(operator.read_bytes(), b'private fixture')
+
+    @unittest.skipUnless(os.name == 'posix', 'Actual descriptor-relative POSIX no-follow contract')
+    def test_launcher_symlink_target_never_changes_outside_directory_permissions(self):
+        source = self.base / 'source'; source.mkdir(); web = self.base / 'web'; web.mkdir()
+        for name in ['index.php', 'launcher-access.php']: (source / name).write_text('<?php // public ' + name)
+        modules = web / 'modules'; modules.mkdir()
+        outside = self.base / 'outside'; outside.mkdir(); outside.chmod(0o700)
+        (outside / 'operator').write_bytes(b'preserve'); stamp = outside.stat().st_mtime_ns
+        (modules / 'mytellpbxopdesk').symlink_to(outside, target_is_directory=True)
+        with self.assertRaises(OSError): self.module.install_launcher(source, web, expected_uid=os.geteuid())
+        self.assertEqual(stat.S_IMODE(outside.stat().st_mode), 0o700)
+        self.assertEqual(outside.stat().st_mtime_ns, stamp)
+        self.assertEqual(list(outside.iterdir()), [outside / 'operator'])
 
     @unittest.skipUnless(os.name == 'posix', 'Native descriptor-relative POSIX installation')
     def test_unknown_launcher_edits_are_preserved_before_any_partial_install(self):

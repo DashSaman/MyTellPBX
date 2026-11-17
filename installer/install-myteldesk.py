@@ -285,6 +285,18 @@ def run_command(argv):
         raise subprocess.CalledProcessError(returncode, argv)
 
 
+def mkdir_public_directory(name, parent):
+    # This standalone CLI is single-threaded. Limit the public-directory mask
+    # to mkdir itself and restore the caller's private-file policy on all paths.
+    previous = os.umask(0o022)
+    try:
+        try: os.mkdir(name, mode=0o755, dir_fd=parent)
+        except FileExistsError: return False
+        return True
+    finally:
+        os.umask(previous)
+
+
 def install_launcher(source, web_root, expected_uid=0):
     """Add fixed launcher files without following a framework-directory symlink.
 
@@ -305,11 +317,13 @@ def install_launcher(source, web_root, expected_uid=0):
         for part in web_root.parts[1:]:
             if part in ('.', '..'): raise ValueError('Unsafe launcher web root')
             next_directory = os.open(part, flags, dir_fd=current); os.close(current); current = next_directory
-        try: os.mkdir('modules', mode=0o755, dir_fd=current)
-        except FileExistsError: pass
+        modules_created = mkdir_public_directory('modules', current)
         modules = os.open('modules', flags, dir_fd=current)
-        try: os.mkdir('mytellpbxopdesk', mode=0o755, dir_fd=modules)
-        except FileExistsError: pass
+        if modules_created:
+            info = os.fstat(modules)
+            if info.st_uid != expected_uid or stat.S_IMODE(info.st_mode) & 0o022:
+                raise ValueError('New launcher parent has unsafe ownership or permissions')
+        mkdir_public_directory('mytellpbxopdesk', modules)
         target = os.open('mytellpbxopdesk', flags, dir_fd=modules)
         identity = os.fstat(target)
         if identity.st_uid != expected_uid or stat.S_IMODE(identity.st_mode) & 0o022:

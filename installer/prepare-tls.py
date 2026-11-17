@@ -145,6 +145,7 @@ def prepare(root, hostnames, addresses, openssl='/usr/bin/openssl', relabel=rest
         run_command([openssl, 'req', '-x509', '-newkey', 'rsa:2048', '-nodes', '-sha256', '-days', '365',
                      '-subj', '/O=MyTellPBX/CN=MyTellPBX', '-addext', 'subjectAltName=' + alternatives,
                      '-addext', 'extendedKeyUsage=serverAuth',
+                     '-extensions', 'v3_req',
                      '-keyout', str(staged_key), '-out', str(staged_certificate)])
         os.chmod(str(staged_key), 0o600)
         os.chmod(str(staged_certificate), 0o644)

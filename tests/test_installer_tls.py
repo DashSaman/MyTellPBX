@@ -53,8 +53,14 @@ class TLSPreparationTests(unittest.TestCase):
 
     def test_absent_pair_is_branded_valid_matching_and_has_ip_and_hostname_sans(self):
         self.assertEqual(self.prepare(), 'created')
-        subject = self.openssl('x509', '-in', str(self.cert), '-noout', '-subject', '-ext', 'subjectAltName')
+        subject = self.openssl('x509', '-in', str(self.cert), '-noout', '-subject', '-ext',
+                               'subjectAltName,extendedKeyUsage,basicConstraints')
         self.assertIn('MyTellPBX', subject)
+        # The native v3_req leaf constraint is noncritical (RFC 5280 4.2.1.9).
+        self.assertIn('CA:FALSE', subject)
+        self.assertNotIn('CA:TRUE', subject)
+        self.assertEqual(subject.count('X509v3 Basic Constraints:'), 1)
+        self.assertIn('TLS Web Server Authentication', subject)
         for identity in ['DNS:pbx.example.test', 'IP Address:192.0.2.15', '2001:DB8:0:0:0:0:0:15']:
             self.assertIn(identity, subject)
         self.assertEqual(self.openssl('x509', '-in', str(self.cert), '-pubkey', '-noout'),
