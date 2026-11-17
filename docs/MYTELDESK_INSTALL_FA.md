@@ -1,7 +1,7 @@
 # میز کار و تحلیل گفتار در نامزد MytelPBX ۷٫۷٫۰
 
 لایهٔ افزودهٔ مای‌تل، **پس از موفقیت راه‌اندازی بومی مرکز تلفن و رمزها**،
-نصاب قفل‌شدهٔ **MytelDesk 1.1.2** را اجرا می‌کند. هش آرشیو، commit و tree
+نصاب قفل‌شدهٔ **MytelDesk 1.1.3** را اجرا می‌کند. هش آرشیو، commit و tree
 دقیق در [myteldesk-release.json](../installer/myteldesk-release.json) ثبت شده‌اند.
 مسیر میز کار `https://pbx.example.com/MytellDesk/` است؛ دامنهٔ مثال را جایگزین کنید.
 

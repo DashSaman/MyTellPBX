@@ -22,7 +22,8 @@ VENDOR_SHA = 'd0793041a422981293d74153f1aa56b29ff9803d18ee3319a53865b5b6132d46'
 FLOW = ['check_dialog', 'add_repos', 'settings', 'welcome', 'select_language',
         'sel_astver', 'additional_packages', 'generate_files', 'welcome',
         'centos8_tweaks', 'clean_yum', 'update_os', 'install_packages',
-        'post_install', 'set_passwords', 'mytel_addons', 'cleanup', 'bye', 'reboot']
+        'post_install', 'set_passwords', 'mytel_addons', 'cleanup',
+        'mytel_verify_addons', 'bye', 'reboot']
 
 
 def module(name):
@@ -38,7 +39,7 @@ class NativeSourceTests(unittest.TestCase):
         for name in ['issabel5-netinstall.sh', 'mytelpbx-netinstall.sh', 'derive-native.py',
                      'brand-native-dialogs.py', 'provenance.json', 'run-offline.sh']:
             self.assertIn('copy_path "installer/vendor-native/' + name + '"', source)
-        for name in ['install-mytel-addons.sh', 'native-addons.py', 'install-myteldesk.py',
+        for name in ['install-mytel-addons.sh', 'native-addons.py', 'native-ownership-hook.py', 'install-myteldesk.py',
                      'myteldesk-release.json', 'media.py', 'repair-repository-transport.py']:
             self.assertIn('copy_path "installer/' + name + '"', source)
         for obsolete in ['password-init.php', 'prepare-native-start.py', 'prepare-native-geoip.py',
@@ -46,8 +47,8 @@ class NativeSourceTests(unittest.TestCase):
                          'prepare-webrtc-dtls.py', 'geoip-update.py', 'prepare-geoip-module.py',
                          'repair-platform-repositories.py', 'offline-vendor-geoip.py']:
             self.assertNotIn('copy_path "installer/' + obsolete + '"', source)
-        self.assertIn("'asterisk_default': '18'", source)
-        self.assertIn("'asterisk_choices': ['16', '18', '20']", source)
+        self.assertIn("'asterisk_default': '20'", source)
+        self.assertIn("'asterisk_choices': ['20']", source)
 
     def test_owner_reference_is_byte_exact_and_derived_is_reproducible(self):
         vendor = (NATIVE / 'issabel5-netinstall.sh').read_bytes()
@@ -58,9 +59,12 @@ class NativeSourceTests(unittest.TestCase):
     def test_native_package_and_password_operations_remain_native(self):
         source = (NATIVE / 'mytelpbx-netinstall.sh').read_text(encoding='utf-8')
         self.assertIn('/usr/bin/issabel-admin-passwords --init', source)
-        self.assertIn('16  off', source)
-        self.assertIn('18  on', source)
-        self.assertIn('20  off', source)
+        version = source.split('function sel_astver\n{\n', 1)[1].split('\n}', 1)[0]
+        self.assertIn('ASTVER=20', version)
+        self.assertNotIn('dialog', version)
+        self.assertNotIn('Select Asterisk version:', source)
+        self.assertNotIn('16  off', source)
+        self.assertNotIn('18  on', source)
         self.assertNotIn('--nogpg', source)
         self.assertNotIn('install_amp', source)
         self.assertNotIn('prepare-native-start', source)
@@ -68,6 +72,27 @@ class NativeSourceTests(unittest.TestCase):
         self.assertNotIn('geoip-update.py', source)
         self.assertIn('gpgcheck=1', source)
         self.assertIn('https://repo.us.issabel.org/issabel/5/base/\\$basearch/', source)
+
+    def test_language_selection_retains_the_native_flow_and_saved_choice(self):
+        original = (NATIVE / 'issabel5-netinstall.sh').read_text(encoding='utf-8')
+        derived = (NATIVE / 'mytelpbx-netinstall.sh').read_text(encoding='utf-8')
+        def language(source):
+            return source.split('function select_language()\n{\n', 1)[1].split('\n}', 1)[0]
+        injected = ('  "${MYTEL_PYTHON}" -B "${MYTEL_BUNDLE_ROOT}/installer/vendor-native/'
+                    'brand-native-dialogs.py" --tool language || return 1\n')
+        self.assertEqual(language(derived), injected + language(original))
+
+    @unittest.skipUnless(BASH and Path(BASH).is_file(), 'Bash is required')
+    def test_product_version_is_fixed20_even_with_an_inherited_older_value(self):
+        definitions = (NATIVE / 'mytelpbx-netinstall.sh').read_text(encoding='utf-8').split('\n# MYTEL_NATIVE_FLOW\n')[0]
+        for previous in ('16', '18', '20', ''):
+            with self.subTest(previous=previous):
+                script = definitions + '\ndialog(){ echo UNEXPECTED_VERSION_DIALOG; return 91; }\n'
+                script += 'ASTVER=' + shlex.quote(previous) + '\nsel_astver\nprintf "ACTUAL=%s\\n" "$ASTVER"\n'
+                result = subprocess.run([BASH, '--noprofile', '--norc', '-s'], input=script.encode(),
+                                        capture_output=True, timeout=20)
+                self.assertEqual(result.returncode, 0, result.stderr)
+                self.assertEqual(result.stdout, b'ACTUAL=20\n')
 
     def test_optional_license_label_preserves_native_choices_and_defaults(self):
         original = (NATIVE / 'issabel5-netinstall.sh').read_text(encoding='utf-8')
@@ -711,6 +736,13 @@ class NativeFlowTests(unittest.TestCase):
                 self.assertNotEqual(result.returncode, 0)
                 self.assertEqual(events, FLOW[:FLOW.index(failed) + 1])
                 self.assertIn(b'MytelPBX', result.stderr)
+
+    def test_failed_independent_post_cleanup_doctor_prevents_completion_and_reboot(self):
+        result, events = self.fixture('mytel_verify_addons')
+        self.assertNotEqual(result.returncode, 0)
+        self.assertEqual(events[-1], 'mytel_verify_addons')
+        self.assertNotIn('bye', events)
+        self.assertNotIn('reboot', events)
 
 
 @unittest.skipUnless(BASH and Path(BASH).is_file(), 'Bash is required')

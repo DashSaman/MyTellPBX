@@ -71,8 +71,8 @@ printf 'MytelPBX / Mytel.one - native installation complete; checking add-ons.\n
 download_bundle
 extract_bundle
 version=$(asterisk -V) || fail 'Native Asterisk is unavailable.'
-[[ "$version" =~ ^Asterisk\ (16|18|20)\. ]] || fail 'Unsupported native Asterisk version.'
-ASTVER="${BASH_REMATCH[1]}"
+[[ "$version" =~ ^Asterisk\ 20\. ]] || fail 'MytelPBX requires native Asterisk 20.'
+ASTVER=20
 export MYTEL_BUNDLE_ROOT MYTEL_NATIVE_WORK MYTEL_PYTHON ASTVER
 export MYTEL_MEDIA_ROOT MYTEL_MEDIA_MANIFEST_SHA256
 bash "$MYTEL_BUNDLE_ROOT/installer/install-mytel-addons.sh" \

@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
 """Derive the MytelPBX display layer from the exact owner-supplied netinstaller.
 
-The vendor functions, package lists, version selection and password initialization
-remain the installation engine. The finite changes below are intentionally
+The vendor functions, package lists and password initialization remain the
+installation engine, with the product fixed to Asterisk 20. Changes are intentionally
 reviewable: display text, reachable official HTTPS transport, removal of global
 signature bypass, private temporary files, checked failures and the add-on hook.
 Python 3.6 compatible.
@@ -67,6 +67,12 @@ def derive(original):
                      '      BLA::stop_loading_animation\n      return 1\n    fi')
     source = replace(source, '      exit\n', '      return 1\n')
     source = replace(source, '    exit\n', '    exit 1\n', 2)
+    version_start = source.index('function sel_astver\n{\n')
+    version_end = source.index('\nfunction add_repos\n', version_start)
+    source = replace(source, source[version_start:version_end],
+                     'function sel_astver\n{\n'
+                     '  # MytelPBX installs the supported Asterisk 20 product only.\n'
+                     '  ASTVER=20\n}\n')
 
     for command in (
         'dnf install -y https://rpms.remirepo.net/enterprise/remi-release-${ROCKY_VERSION}.rpm ',
@@ -147,13 +153,21 @@ def derive(original):
     footer = source.index('\ncheck_dialog\nadd_repos\n')
     definitions, flow = source[:footer], source[footer:]
     flow = flow.replace('\nset_passwords\n', '\nset_passwords\nmytel_addons\n')
-    flow = re.sub(r'(?m)^(check_dialog|add_repos|settings|welcome|select_language|sel_astver|additional_packages|generate_files|centos8_tweaks|clean_yum|update_os|install_packages|post_install|set_passwords|mytel_addons|cleanup|bye|reboot)$',
+    flow = replace(flow, '\ncleanup\n', '\ncleanup\nmytel_verify_addons\n')
+    flow = re.sub(r'(?m)^(check_dialog|add_repos|settings|welcome|select_language|sel_astver|additional_packages|generate_files|centos8_tweaks|clean_yum|update_os|install_packages|post_install|set_passwords|mytel_addons|cleanup|mytel_verify_addons|bye|reboot)$',
                   r'mytel_native_step \1', flow)
     helpers = '''
 function mytel_addons()
 {
+  [ "${ASTVER:-}" = 20 ] || { printf 'MytelPBX requires native Asterisk 20.\\n' >&2; return 1; }
   export ASTVER
   bash "${MYTEL_BUNDLE_ROOT}/installer/install-mytel-addons.sh"
+}
+
+function mytel_verify_addons()
+{
+  # Native cleanup must preserve the registered Mytel integrations and CPU VAD.
+  /usr/local/sbin/myteldesk doctor
 }
 
 function mytel_native_step()

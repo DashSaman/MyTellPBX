@@ -58,6 +58,7 @@ copy_path "installer/vendor-native/provenance.json"
 copy_path "installer/vendor-native/run-offline.sh"
 copy_path "installer/install-mytel-addons.sh"
 copy_path "installer/native-addons.py"
+copy_path "installer/native-ownership-hook.py"
 copy_path "installer/payload/lang/fa.lang"
 copy_path "installer/install-myteldesk.py"
 copy_path "installer/media.py"
@@ -131,8 +132,8 @@ manifest = {
     'name': f'mytelpbx-bundle-{version}',
     'version': version,
     'platform': 'rocky-8.10-x86_64',
-    'asterisk_choices': ['16', '18', '20'],
-    'asterisk_default': '18',
+    'asterisk_choices': ['20'],
+    'asterisk_default': '20',
     'installation_engine': 'issabel-native',
     'created_utc': datetime.datetime.utcnow().isoformat() + 'Z',
     'file_count': count,

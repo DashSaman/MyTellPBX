@@ -7,6 +7,7 @@ the same hook; supplemental offline inputs use the existing sealed media format.
 """
 import argparse
 from contextlib import closing
+import hashlib
 import importlib.util
 import json
 import os
@@ -22,6 +23,17 @@ import time
 
 sys.dont_write_bytecode = True
 NATIVE_GEOIP_STATUS_SHA256 = 'de1fb7c39ec9b67859d4346e90c90a8fb440d32ea16dcb1437c1024fd8bfa34a'
+REQUIRED_DESK_VERSION = '1.1.3'
+NATIVE_ENGINE_SHA256 = '38f930292ddee65d2d86e4e2e65e9759c3b1b06f1e3b90ee7caefbd1bc07f45c'
+NATIVE_OWNERSHIP_HOOK_SHA256 = '2896ff9fff56e2b0451d59f80cd613c9b7d71fee3a63b00d3af60c41bcc90b22'
+OWNERSHIP_STUB = b'''# Mytel supported native ownership hook. No action when sourced.
+chown_asterisk_hook_mytel() {
+    if ! /usr/libexec/platform-python -I -B /usr/local/libexec/mytelpbx/native-ownership-hook.py; then
+        printf 'Mytel native ownership validation failed; native command stopped.\\n' >&2
+        exit 1
+    fi
+}
+'''
 BRAND_KEYS = {
     'BRAND_ALT_JS': 'assets/mytel/sub.js?v=25',
     'BRAND_CSS_CUSTOM': 'assets/mytel/skin.css?v=28',
@@ -97,9 +109,9 @@ def native_credentials(issabel, amportal):
 
 
 def asterisk_major(output, requested=None):
-    match = re.search(r'\bAsterisk\s+(16|18|20)(?:\.|\s)', output)
+    match = re.search(r'\bAsterisk\s+(20)(?:\.|\s)', output)
     if not match:
-        raise ValueError('A running native Asterisk 16, 18 or 20 is required')
+        raise ValueError('A running native Asterisk 20 is required')
     actual = match.group(1)
     if requested and str(requested) != actual:
         raise ValueError('Native Asterisk version differs from the selected version')
@@ -378,6 +390,109 @@ def rollback_files(records, backup, root):
             regular(path).unlink()
 
 
+def ownership_hook_changes(bundle, root):
+    """Plan only the pinned handler and supported native stub; no file writes."""
+    source = regular(bundle / 'installer/native-ownership-hook.py').read_bytes()
+    if hashlib.sha256(source).hexdigest() != NATIVE_OWNERSHIP_HOOK_SHA256:
+        raise ValueError('Unknown native ownership handler source')
+    engine = regular(root / 'var/lib/asterisk/bin/issabelpbx_engine')
+    if hashlib.sha256(engine.read_bytes()).hexdigest() != NATIVE_ENGINE_SHA256:
+        raise ValueError('Unreviewed native ownership hook contract')
+    directory = engine.parent
+    info = directory.stat()
+    if not directory.is_dir() or directory.resolve() != directory.absolute() or info.st_mode & 0o002:
+        raise ValueError('Unsafe native hook directory')
+    import pwd
+    account = pwd.getpwnam('asterisk')
+    if info.st_uid not in (0, account.pw_uid) or info.st_gid not in (0, account.pw_gid):
+        raise ValueError('Unexpected native hook directory identity')
+    handler = root / 'usr/local/libexec/mytelpbx/native-ownership-hook.py'
+    changes = {
+        handler: source,
+        directory / 'issabelpbx_engine_hook_mytel': OWNERSHIP_STUB,
+    }
+    # This is executable public code, not a private backup directory. Preserve
+    # safe existing shared libexec directories; atomic_write creates only the
+    # missing root-owned code parents, mode 0755.
+    for parent in [handler.parent] + list(handler.parent.parents):
+        if parent.is_symlink():
+            raise ValueError('Symlinked ownership handler parent')
+        if parent.exists():
+            info = parent.stat()
+            if not parent.is_dir() or info.st_uid != 0 or info.st_mode & 0o022:
+                raise ValueError('Untrusted ownership handler parent')
+        if parent == root:
+            break
+    for path, data in changes.items():
+        if path.exists() or path.is_symlink():
+            existing = regular(path)
+            info = existing.stat()
+            if existing.read_bytes() != data:
+                raise ValueError('Existing native ownership integration is not the reviewed source')
+            if info.st_nlink != 1 or info.st_mode & 0o7002:
+                raise ValueError('Unsafe native ownership integration metadata')
+            if path.name == 'native-ownership-hook.py':
+                if (info.st_uid, info.st_gid) != (0, 0) or info.st_mode & 0o022:
+                    raise ValueError('Persistent ownership handler is not protected by root')
+            elif info.st_uid not in (0, account.pw_uid) or info.st_gid not in (0, account.pw_gid):
+                raise ValueError('Unexpected native ownership stub identity')
+    return changes
+
+
+def verify_ownership_stub(path):
+    """Require the callback to have restored its one fixed, sourced stub."""
+    flags = os.O_RDONLY | getattr(os, 'O_NOFOLLOW', 0) | getattr(os, 'O_NONBLOCK', 0)
+    descriptor = os.open(str(path), flags)
+    with os.fdopen(descriptor, 'rb') as stream:
+        before = os.fstat(stream.fileno())
+        if (not stat.S_ISREG(before.st_mode) or before.st_nlink != 1
+                or (before.st_uid, before.st_gid, stat.S_IMODE(before.st_mode)) != (0, 0, 0o644)
+                or before.st_size != len(OWNERSHIP_STUB)):
+            raise ValueError('Native ownership stub metadata was not restored')
+        if stream.read(len(OWNERSHIP_STUB) + 1) != OWNERSHIP_STUB:
+            raise ValueError('Native ownership stub contents changed')
+        after = os.fstat(stream.fileno())
+        current = path.lstat()
+        fields = ('st_dev', 'st_ino', 'st_uid', 'st_gid', 'st_mode', 'st_nlink',
+                  'st_size', 'st_mtime_ns', 'st_ctime_ns')
+        if any(getattr(before, key) != getattr(after, key) or
+               getattr(after, key) != getattr(current, key) for key in fields):
+            raise ValueError('Native ownership stub changed during verification')
+
+
+def install_ownership_hook(bundle, backup, root=Path('/')):
+    """Register after Desk succeeds; keep the handler outside native chown scope."""
+    changes = ownership_hook_changes(bundle, root)
+    recovery = backup / 'native-ownership'
+    recovery.mkdir(mode=0o700)
+    records = snapshot_files(changes, recovery, root)
+    metadata = []
+    for relative in ('var/www/html/admin/modules/myteldeskrecording',
+                     'var/www/html/admin/modules/myteldeskrecording/functions.inc.php',
+                     'var/www/html/admin/modules/myteldeskrecording/module.xml',
+                     'etc/asterisk/keys/asterisk.pem'):
+        path = root / relative
+        item = {'path': relative, 'existed': path.exists() or path.is_symlink()}
+        if item['existed']:
+            info = path.lstat()
+            item.update(uid=info.st_uid, gid=info.st_gid, mode=stat.S_IMODE(info.st_mode),
+                        dev=info.st_dev, ino=info.st_ino, nlink=info.st_nlink)
+        metadata.append(item)
+    # Back up identities only: key material never enters addon diagnostics.
+    (recovery / 'targets-before.json').write_text(json.dumps(metadata, indent=2), encoding='utf-8')
+    handler = root / 'usr/local/libexec/mytelpbx/native-ownership-hook.py'
+    try:
+        for path, data in changes.items():
+            atomic_write(path, data, 0, 0)
+        # The fixed no-argument handler validates every owned hash/identity
+        # before its metadata-only changes. Never pass secrets or path overrides.
+        run(['/usr/libexec/platform-python', '-I', '-B', str(handler)])
+        verify_ownership_stub(root / 'var/lib/asterisk/bin/issabelpbx_engine_hook_mytel')
+    except BaseException:
+        rollback_files(records, recovery, root)
+        raise
+
+
 def install(bundle, backup_root, requested=None, media=None, public_url=None, check=False):
     root = Path('/')
     print('Mytel addons: checking the existing native services and credentials.', flush=True)
@@ -391,9 +506,10 @@ def install(bundle, backup_root, requested=None, media=None, public_url=None, ch
     run(['httpd', '-t'])
     desk = load('native_desk', bundle / 'installer/install-myteldesk.py')
     pin = desk.validate_pin(json.loads(regular(bundle / 'installer/myteldesk-release.json').read_text(encoding='utf-8')))
-    if pin['version'] != '1.1.2':
-        raise ValueError('Reviewed addon integration requires MytelDesk 1.1.2')
+    if pin['version'] != REQUIRED_DESK_VERSION:
+        raise ValueError('Reviewed addon integration requires MytelDesk ' + REQUIRED_DESK_VERSION)
     public_url = desk.validate_public_url(public_url)
+    ownership_hook_changes(bundle, root)  # Validate all hook inputs before activation, including --check.
     private_directory(backup_root)
     backup = Path(tempfile.mkdtemp(prefix='native-' + time.strftime('%Y%m%d-%H%M%S') + '-', dir=str(backup_root)))
     state = {'schema': 1, 'owner': 'MytelNativeAddons', 'asterisk': major, 'desk': pin['version'], 'phase': 'preparing'}
@@ -455,6 +571,11 @@ def install(bundle, backup_root, requested=None, media=None, public_url=None, ch
     cache = Path('/var/lib/mytelpbx-native-addons/myteldesk')
     print('Mytel addons: installing the pinned MytelDesk release and mandatory CPU voice analysis.', flush=True)
     desk.install(pin, cache, public_url, launcher_source=bundle / 'modules/mytellpbxopdesk', media=media)
+    state['phase'] = 'desk-ready-ownership-hook-pending'
+    receipt.write_text(json.dumps(state, indent=2), encoding='utf-8')
+    print('Mytel addons: registering the supported native ownership hook.', flush=True)
+    install_ownership_hook(bundle, backup)
+    run(['/usr/local/sbin/myteldesk', 'doctor'])
     state['phase'] = 'complete'
     receipt.write_text(json.dumps(state, indent=2), encoding='utf-8')
     print('Mytel addons complete on native Asterisk ' + major + '; private recovery record: ' + str(backup), flush=True)
@@ -464,7 +585,7 @@ def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--bundle-root', type=Path, default=Path(os.environ.get('MYTEL_BUNDLE_ROOT', str(Path(__file__).resolve().parents[1]))))
     parser.add_argument('--backup-root', type=Path, default=Path('/var/backups/mytellpbx/native-addons'))
-    parser.add_argument('--asterisk-version', choices=['16', '18', '20'], default=os.environ.get('ASTVER'))
+    parser.add_argument('--asterisk-version', choices=['20'], default=os.environ.get('ASTVER'))
     parser.add_argument('--media-root', type=Path, default=os.environ.get('MYTEL_MEDIA_ROOT'))
     parser.add_argument('--media-manifest-sha256', default=os.environ.get('MYTEL_MEDIA_MANIFEST_SHA256'))
     parser.add_argument('--public-url', default=os.environ.get('MYTELL_DESK_PUBLIC_URL'))

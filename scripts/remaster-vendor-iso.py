@@ -7,7 +7,6 @@ not the former Rocky-plus-custom-core ISO builder. Build only on the Linux lab.
 """
 import argparse
 import bz2
-import copy
 import configparser
 import gzip
 import hashlib
@@ -281,7 +280,7 @@ def comps_blocks(source):
 
 
 def derive_comps(original, available_package_names):
-    """Add only missing environment16 and human branding to exact native comps."""
+    """Expose only native Asterisk 20; retain its groups, options and RPM assets."""
     if hashlib.sha256(original).hexdigest() != VENDOR_COMPS_SHA256:
         raise ValueError('Unknown native comps source')
     before = ET.fromstring(original)
@@ -289,7 +288,7 @@ def derive_comps(original, available_package_names):
     environments = {node.findtext('id'): node for node in before.findall('environment')}
     if set(environments) != {'issabelast20', 'issabelast18'}:
         raise ValueError('Unexpected native Asterisk environments')
-    for major in ('16', '18', '20'):
+    for major in ('20',):
         group = groups.get('asterisk' + major)
         if group is None:
             raise ValueError('Native Asterisk group missing; no synthetic group is authorized')
@@ -302,13 +301,6 @@ def derive_comps(original, available_package_names):
     blocks = comps_blocks(source)
     if len(blocks) != len(groups) + len(environments):
         raise ValueError('Unknown native comps layout')
-    template = next(match.group(0) for match in blocks
-                    if ET.fromstring(match.group(0)).findtext('id') == 'issabelast18')
-    environment16 = (template.replace('<id>issabelast18</id>', '<id>issabelast16</id>')
-                     .replace('<groupid>asterisk18</groupid>', '<groupid>asterisk16</groupid>')
-                     .replace('Asterisk 18', 'Asterisk 16')
-                     .replace('<display_order>2</display_order>', '<display_order>3</display_order>'))
-    source = source.replace('</comps>', environment16 + '\n</comps>')
     neutral_names = {
         'guru': 'Optional upstream licensed add-ons',
         'rbl': 'Community RBL (Realtime Blackhole List)',
@@ -317,6 +309,8 @@ def derive_comps(original, available_package_names):
     def brand_block(match):
         block = match.group(0)
         identity = ET.fromstring(block).findtext('id')
+        if identity in {'asterisk16', 'asterisk18', 'issabelast18'}:
+            return ''
         def label(item):
             tag, attributes, value = item.group(1), item.group(2) or '', item.group(3)
             if tag == 'name' and identity in neutral_names:
@@ -331,20 +325,17 @@ def derive_comps(original, available_package_names):
     after = ET.fromstring(result)
     after_groups = {node.findtext('id'): node for node in after.findall('group')}
     after_environments = {node.findtext('id'): node for node in after.findall('environment')}
-    if set(after_groups) != set(groups) or set(after_environments) != set(environments) | {'issabelast16'}:
+    if (set(after_groups) != set(groups) - {'asterisk16', 'asterisk18'}
+            or set(after_environments) != {'issabelast20'}):
         raise ValueError('Native comps identities changed')
     for identity, node in list(groups.items()) + list(environments.items()):
+        if identity in {'asterisk16', 'asterisk18', 'issabelast18'}:
+            continue
         actual = (after_groups if identity in groups else after_environments)[identity]
         if xml_structure(node, True) != xml_structure(actual, True):
             raise ValueError('Native group/environment data changed: ' + identity)
-    expected16 = copy.deepcopy(environments['issabelast18'])
-    expected16.find('id').text = 'issabelast16'
-    expected16.find('display_order').text = '3'
-    for group in expected16.findall('grouplist/groupid'):
-        if group.text == 'asterisk18':
-            group.text = 'asterisk16'
-    if xml_structure(expected16, True) != xml_structure(after_environments['issabelast16'], True):
-        raise ValueError('Asterisk 16 environment differs from the native template')
+    if any(node.text in {'asterisk16', 'asterisk18'} for node in after.iter('groupid')):
+        raise ValueError('Unsupported Asterisk choice remains in native comps')
     if any('issabel' in (node.text or '').lower()
            for item in after for node in item if node.tag in ('name', 'description')):
         raise ValueError('Unbranded native human label remains')
@@ -652,7 +643,7 @@ def build(args):
                    'iso_bytes': candidate.stat().st_size, 'media_manifest_sha256': args.manifest_sha256,
                    'native_engine': 'issabel-original-iso-firstboot', 'native_packages_preserved': True,
                    'native_non_group_metadata_preserved': True,
-                   'native_asterisk_choices': ['16', '18', '20'], 'native_asterisk_default': '20',
+                   'native_asterisk_choices': ['20'], 'native_asterisk_default': '20',
                    'native_comps_sha256': hashlib.sha256(choice_comps).hexdigest(),
                    'native_metadata_changes': actual_changes,
                    'native_inventory_sha256': hashlib.sha256(json.dumps(native_inventory, sort_keys=True).encode()).hexdigest(),

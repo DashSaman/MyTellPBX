@@ -6,7 +6,7 @@
 
 نسخهٔ **۷٫۷٫۰، نامزد انتشار** از نصاب بومی Issabel برای نصب روی
 **Rocky Linux 8.10 Minimal تازه، x86_64** استفاده می‌کند. پس از تکمیل
-راه‌اندازی بومی مرکز تلفن و رمزها، لایهٔ MytelPBX و **MytelDesk 1.1.2**
+راه‌اندازی بومی مرکز تلفن و رمزها، لایهٔ MytelPBX و **MytelDesk 1.1.3**
 با بستهٔ قفل‌شده و محیط VAD روی CPU نصب می‌شوند.
 
 وضعیت نصب نهایی و انتشار هنوز به [رسید نهایی نسخهٔ ۷٫۷٫۰](docs/releases/7.7.0/verification.md)
@@ -26,8 +26,8 @@ curl -fsSL -o install-mytellpbx.sh https://github.com/DashSaman/MyTellPBX/releas
 
 <div dir="rtl">
 
-نصاب، هش بسته را بررسی می‌کند و همان ترتیب بومی انتخاب زبان، انتخاب
-**استریسک ۱۶، ۱۸ یا ۲۰ با پیش‌فرض ۱۸**، بسته‌های اختیاری، نصب و راه‌اندازی
+نصاب، هش بسته را بررسی می‌کند و ترتیب بومی انتخاب زبان، نصب
+**استریسک ۲۰**، بسته‌های اختیاری، نصب و راه‌اندازی
 رمزها را اجرا می‌کند. پنجره‌های بومی، رمز MariaDB را همراه تأیید و سپس رمز
 مدیر پنل را همراه تأیید می‌پرسند. پس از موفقیت لایهٔ Mytel، مسیر آنلاین طبق
 رفتار بومی سرور را خودکار reboot می‌کند. خطای مرحله، ادامه و reboot خودکار را متوقف می‌کند.
@@ -56,8 +56,8 @@ curl -fsSL -o install-mytellpbx.sh https://github.com/DashSaman/MyTellPBX/releas
 - [شفافیت اجزای نرم‌افزاری](THIRD_PARTY_NOTICES.md)
 
 نسخهٔ بومی ISO از تصویر اصلی Issabel بازسازی می‌شود. در صفحهٔ بومی
-**Software Selection**، استریسک **۱۶، ۱۸ یا ۲۰** را انتخاب کنید؛ پیش‌فرض
-این مسیر ۲۰ است. فرایند بومی اولین راه‌اندازی حفظ می‌شود. این ISO خروجی آزمایشگاه مالک
+**Software Selection**، فقط MytelPBX با **استریسک ۲۰** ارائه می‌شود.
+فرایند بومی اولین راه‌اندازی و انتخاب زبان حفظ می‌شود. این ISO خروجی آزمایشگاه مالک
 است و در گیت‌هاب بارگذاری نمی‌شود. مسیر نصب، ساخت و محدودیت‌های آن در راهنما آمده است.
 
 نام‌های فنی بالادستی، مانند بسته‌ها، سرویس‌ها، مسیرهای `issabel` و شناسه‌های
@@ -66,8 +66,7 @@ curl -fsSL -o install-mytellpbx.sh https://github.com/DashSaman/MyTellPBX/releas
 دسترسی شبکه و گواهی معتبر را برای محیط مقصد آماده کنید.
 
 سلامت سرویس و اجرای مدل CPU، جای آزمون واقعی ثبت SIP، صدای دوطرفه و VAD
-روی تماس ضبط‌شده را نمی‌گیرد. عرضهٔ گزینه‌های ۱۶ و ۱۸ نیز به معنی تأیید
-اجرای همهٔ سناریوها روی آن‌ها نیست؛ رسید نهایی دامنهٔ واقعی بررسی را مشخص می‌کند.
+روی تماس ضبط‌شده را نمی‌گیرد. رسید نهایی دامنهٔ واقعی بررسی را مشخص می‌کند.
 
 </div>
 
@@ -76,9 +75,9 @@ curl -fsSL -o install-mytellpbx.sh https://github.com/DashSaman/MyTellPBX/releas
 # MytelPBX 7.7.0 candidate
 
 The online installer runs the pinned native Issabel flow on **fresh Rocky Linux
-8.10 Minimal x86_64**. It keeps the native language/package dialogs, Asterisk
-**16/18/20 selection with 18 as the default**, and the native four-screen password
-setup. Mytel branding and checksum-pinned **MytelDesk 1.1.2** with CPU VAD follow
+8.10 Minimal x86_64**. It keeps the native language/package dialogs, installs
+**Asterisk 20 only**, and retains the native four-screen password
+setup. Mytel branding and checksum-pinned **MytelDesk 1.1.3** with CPU VAD follow
 successful native initialization. The online flow reboots automatically after
 successful completion.
 
@@ -92,8 +91,8 @@ credentials; the independent Desk administrator record is root-only at
 recording policy for the intended use.
 
 The separate owner-lab ISO remasters the original vendor ISO, retaining its
-native firstboot/password flow. Its native **Software Selection** screen offers
-**Asterisk 16/18/20**, with **20 as the default**. The ISO binary is
+native firstboot/password and language flows. Its native **Software Selection** screen offers
+**MytelPBX with Asterisk 20 only**. The ISO binary is
 not uploaded to GitHub. Upstream technical package/service/database identifiers
 remain intact. See the [English installation guide](docs/INSTALL.en.md) for both paths,
 network policy and current acceptance limits. Older release records cover their

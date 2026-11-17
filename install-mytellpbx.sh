@@ -1,8 +1,8 @@
 #!/bin/bash
 # MytelPBX / Mytel.one - verified native Issabel installer bootstrap.
 # Run in an interactive root terminal on fresh Rocky Linux 8.10 x86_64.
-# Native dialogs select language, Asterisk 16/18/20 (default 18), optional
-# packages and the four password screens. Native completion reboots the server.
+# Installs Asterisk 20 only. Native dialogs select language and optional
+# packages, followed by four password screens. Native completion reboots the server.
 # Verified source and logs remain in the printed private workspace.
 set -u
 set -o pipefail

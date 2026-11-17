@@ -235,6 +235,23 @@ class NativeIsoStructureTests(unittest.TestCase):
         result = subprocess.run([BASH, '-n', str(ROOT / 'installer/vendor-native/run-offline.sh')], capture_output=True)
         self.assertEqual(result.returncode, 0, result.stderr)
 
+    @unittest.skipUnless(BASH and Path(BASH).is_file(), 'Bash is required')
+    def test_offline_runner_only_accepts_actual20_before_the_shared_hook(self):
+        source = (ROOT / 'installer/vendor-native/run-offline.sh').read_text()
+        tail = 'version=$(asterisk -V)' + source.split('version=$(asterisk -V)', 1)[1]
+        for major in ('16', '18', '20', '22'):
+            with self.subTest(major=major):
+                script = ('set -eu\nfail(){ printf "%s\\n" "$*" >&2; exit 79; }\n'
+                          'asterisk(){ printf "Asterisk ' + major + '.30.1\\n"; }\n'
+                          'bash(){ printf "HOOK_ASTVER=%s\\n" "$ASTVER"; }\n'
+                          'MYTEL_BUNDLE_ROOT=/fixture\nMYTEL_NATIVE_WORK=/fixture\n'
+                          'MYTEL_PYTHON=/fixture\nMYTEL_MEDIA_ROOT=/fixture\n'
+                          'MYTEL_MEDIA_MANIFEST_SHA256=fixture\n') + tail
+                result = subprocess.run([BASH, '--noprofile', '--norc', '-s'], input=script.encode(),
+                                        capture_output=True, timeout=20)
+                self.assertEqual(result.returncode, 0 if major == '20' else 79, result.stderr)
+                self.assertEqual(b'HOOK_ASTVER=20' in result.stdout, major == '20')
+
 
 if __name__ == '__main__':
     unittest.main()

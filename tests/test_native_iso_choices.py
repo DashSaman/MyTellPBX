@@ -65,29 +65,29 @@ class NativeCompsChoicesTests(unittest.TestCase):
         self.assertEqual(evidence['source_compressed_sha256'], primary.findtext(TAG + 'checksum'))
         self.assertEqual(len(self.names), 2179)
 
-    def test_choices_reuse_all_native_group_data_and_ids_with_only_human_brand_labels(self):
+    def test_only20_is_selectable_and_remaining_native_group_data_is_preserved(self):
         original = ET.fromstring(self.original)
         result = ET.fromstring(self.module.derive_comps(self.original, self.names))
         old_groups = {node.findtext('id'): node for node in original.findall('group')}
         groups = {node.findtext('id'): node for node in result.findall('group')}
-        self.assertEqual(set(groups), set(old_groups), 'Do not synthesize or replace native package groups')
-        for identity in old_groups:
+        self.assertEqual(set(groups), set(old_groups) - {'asterisk16', 'asterisk18'})
+        for identity in groups:
             self.assertEqual(semantic(groups[identity], brand=True),
                              semantic(old_groups[identity], brand=True), identity)
         environments = {node.findtext('id'): node for node in result.findall('environment')}
-        self.assertEqual(set(environments), {'issabelast16', 'issabelast18', 'issabelast20'})
-        for version, order in [('20', '1'), ('18', '2'), ('16', '3')]:
+        self.assertEqual(set(environments), {'issabelast20'})
+        for version, order in [('20', '1')]:
             item = environments['issabelast' + version]
             self.assertIn('MytelPBX', item.findtext('name'))
             self.assertIn('Asterisk ' + version, item.findtext('name'))
             self.assertEqual(item.findtext('display_order'), order)
             self.assertEqual([node.text.strip() for node in item.findall('grouplist/groupid')],
                              ['asterisk' + version, 'issabel'])
-        native18 = next(node for node in original.findall('environment') if node.findtext('id') == 'issabelast18')
-        self.assertEqual(semantic(environments['issabelast16'].find('optionlist')),
-                         semantic(native18.find('optionlist')))
+        native20 = next(node for node in original.findall('environment') if node.findtext('id') == 'issabelast20')
+        self.assertEqual(semantic(environments['issabelast20'], brand=True), semantic(native20, brand=True))
+        self.assertFalse(any(node.text in {'asterisk16', 'asterisk18'} for node in result.iter('groupid')))
         ks = self.module.kickstart((FIXTURE / 'issabel.ks').read_text())
-        self.assertIn('@^issabelast20', ks, 'Preserve the supplied ISO default unless separately authorized')
+        self.assertIn('@^issabelast20', ks)
 
     def test_original_supported_mandatory_package_names_all_exist_on_the_actual_dvd(self):
         root = ET.fromstring(self.original)
@@ -99,10 +99,15 @@ class NativeCompsChoicesTests(unittest.TestCase):
             self.assertTrue(required <= self.names, (version, sorted(required - self.names)))
         self.module.derive_comps(self.original, self.names)
 
-    def test_missing_mandatory_asterisk16_package_refuses_a_false_offline_choice(self):
-        self.assertIn('asterisk16-core', self.names)
+    def test_missing_mandatory20_package_refuses_a_false_offline_choice(self):
+        self.assertIn('asterisk20-core', self.names)
         with self.assertRaises(ValueError):
-            self.module.derive_comps(self.original, self.names - {'asterisk16-core'})
+            self.module.derive_comps(self.original, self.names - {'asterisk20-core'})
+
+    def test_unsupported_package_assets_are_not_required_or_rewritten(self):
+        remaining = {name for name in self.names if not name.startswith(('asterisk16', 'asterisk18'))}
+        self.assertEqual(self.module.derive_comps(self.original, remaining),
+                         self.module.derive_comps(self.original, self.names))
 
     def test_unknown_original_source_is_refused_before_metadata_derivation(self):
         with self.assertRaises(ValueError):
@@ -152,8 +157,10 @@ class NativeSoftwareSelectionTests(unittest.TestCase):
         exec(compile(module, 'actual-native-software-selection-methods', 'exec'), namespace)
         self.spoke = namespace['NativeSelection']()
         self.spoke.data = types.SimpleNamespace(packages=types.SimpleNamespace(environment='issabelast20', seen=True))
+        derived = ET.fromstring(builder().derive_comps((FIXTURE / 'original-comps.xml').read_bytes(), package_names()))
+        environments = [node.findtext('id') for node in derived.findall('environment')]
         self.spoke.payload = types.SimpleNamespace(type='DNF', base_repo='file:///native-dvd',
-            environments=['issabelast20', 'issabelast18', 'issabelast16'], environment_id=lambda value: value, tx_id=1)
+            environments=environments, environment_id=lambda value: value, tx_id=1)
         self.spoke._kickstarted = True
         self.spoke._error_msgs = None
         self.spoke._tx_id = 1
@@ -181,7 +188,8 @@ class NativeSoftwareSelectionTests(unittest.TestCase):
         self.spoke.payload.type = 'not-dnf'
         self.assertFalse(self.spoke.showable)
 
-    def test_actual_native_handler_can_select_each_metadata_environment_from_default20(self):
+    def test_actual_native_handler_has_only_the20_metadata_environment(self):
+        self.assertEqual(self.spoke.payload.environments, ['issabelast20'])
         self.spoke._select_flag = True
         self.spoke.refresh_addons = lambda: None
         self.spoke._addon_list_box = types.SimpleNamespace(show_all=lambda: None)

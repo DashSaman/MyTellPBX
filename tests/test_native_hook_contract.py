@@ -31,7 +31,7 @@ raise SystemExit(int(os.environ.get('FIXTURE_STATUS','0')))
         source = (ROOT / 'installer/vendor-native/mytelpbx-netinstall.sh').read_text(encoding='utf-8')
         self.definitions = source.split('\n# MYTEL_NATIVE_FLOW\n', 1)[0]
 
-    def exercise(self, major='18', status=0, offline=False):
+    def exercise(self, major='20', status=0, offline=False):
         values = {'MYTEL_BUNDLE_ROOT': self.bundle.as_posix(), 'MYTEL_NATIVE_WORK': self.base.as_posix(),
                   'MYTEL_PYTHON': Path(sys.executable).as_posix(), 'ASTVER': major,
                   'FIXTURE_STATUS': str(status), 'MYTEL_MEDIA_ROOT': '/verified/media' if offline else '',
@@ -48,8 +48,8 @@ raise SystemExit(int(os.environ.get('FIXTURE_STATUS','0')))
                               stdout=subprocess.PIPE, stderr=subprocess.PIPE, timeout=20,
                               env=dict(os.environ, MSYS2_ENV_CONV_EXCL='*'))
 
-    def test_all_native_asterisk_choices_reach_exact_shared_hook_without_rewriting_arguments(self):
-        for major in ('16', '18', '20'):
+    def test_only20_reaches_exact_shared_hook_without_rewriting_arguments(self):
+        for major in ('20',):
             with self.subTest(major=major):
                 result = self.exercise(major)
                 self.assertEqual(result.returncode, 0, result.stderr)
@@ -58,6 +58,14 @@ raise SystemExit(int(os.environ.get('FIXTURE_STATUS','0')))
                 self.assertEqual(value['env']['MYTEL_BUNDLE_ROOT'], self.bundle.as_posix())
                 self.assertEqual(value['argv'], [])
                 self.assertIn(b'CONTINUED', result.stdout)
+
+    def test_older_or_unknown_majors_cannot_enter_the_product_addon_hook(self):
+        for major in ('16', '18', '21', ''):
+            with self.subTest(major=major):
+                result = self.exercise(major)
+                self.assertNotEqual(result.returncode, 0)
+                self.assertNotIn(b'CONTINUED', result.stdout)
+                self.assertNotIn(b'"env"', result.stdout)
 
     def test_sealed_offline_identity_and_public_origin_survive_both_shell_boundaries(self):
         result = self.exercise(offline=True)

@@ -146,21 +146,8 @@ function welcome
 
 function sel_astver
 {
-  ASTVER=$(dialog --no-items --backtitle "$BACKTITLE" \
-           --radiolist "Select Asterisk version:" 10 40 3 \
-           16  off \
-           18  on \
-           20  off \
-           3>&1 1>&2 2>&3)
-  if [ $? -ne 0 ]
-  then
-    dialog --stdout --sleep 3 --backtitle "$BACKTITLE" \
-           --infobox "Install cancelled by user\n\n:(" \
-          7 31
-    clear
-    cleanup
-    exit 1
-  fi
+  # MytelPBX installs the supported Asterisk 20 product only.
+  ASTVER=20
 }
 
 function add_repos
@@ -527,8 +514,15 @@ function bye()
 }
 function mytel_addons()
 {
+  [ "${ASTVER:-}" = 20 ] || { printf 'MytelPBX requires native Asterisk 20.\n' >&2; return 1; }
   export ASTVER
   bash "${MYTEL_BUNDLE_ROOT}/installer/install-mytel-addons.sh"
+}
+
+function mytel_verify_addons()
+{
+  # Native cleanup must preserve the registered Mytel integrations and CPU VAD.
+  /usr/local/sbin/myteldesk doctor
 }
 
 function mytel_native_step()
@@ -564,5 +558,6 @@ mytel_native_step post_install
 mytel_native_step set_passwords
 mytel_native_step mytel_addons
 mytel_native_step cleanup
+mytel_native_step mytel_verify_addons
 mytel_native_step bye
 mytel_native_step reboot

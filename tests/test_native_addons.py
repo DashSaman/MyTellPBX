@@ -1,9 +1,12 @@
 """Native addon boundary regressions. No PBX connection or runtime claim."""
 import importlib.util
+import hashlib
 from contextlib import closing
 import json
 import os
 from pathlib import Path
+import shlex
+import shutil
 import subprocess
 import sqlite3
 import tempfile
@@ -14,6 +17,128 @@ ROOT = Path(__file__).resolve().parents[1]
 SPEC = importlib.util.spec_from_file_location('native_addons', str(ROOT / 'installer/native-addons.py'))
 ADDONS = importlib.util.module_from_spec(SPEC)
 SPEC.loader.exec_module(ADDONS)
+BASH = 'C:/Program Files/Git/bin/bash.exe' if os.name == 'nt' else shutil.which('bash')
+
+
+class NativeOwnershipIntegrationTests(unittest.TestCase):
+    def test_shipped_handler_is_the_exact_reviewed_source_pin(self):
+        self.assertRegex(ADDONS.NATIVE_OWNERSHIP_HOOK_SHA256, r'^[0-9a-f]{64}$')
+        source = (ROOT / 'installer/native-ownership-hook.py').read_bytes()
+        self.assertEqual(hashlib.sha256(source).hexdigest(), ADDONS.NATIVE_OWNERSHIP_HOOK_SHA256)
+
+    def fixture(self):
+        temporary = tempfile.TemporaryDirectory(); self.addCleanup(temporary.cleanup)
+        base = Path(temporary.name)
+        root, bundle, backup = base / 'root', base / 'bundle', base / 'backup'
+        root.mkdir(); backup.mkdir(); (bundle / 'installer').mkdir(parents=True)
+        handler = bundle / 'installer/native-ownership-hook.py'; handler.write_bytes(b'# fixture handler\n')
+        engine = root / 'var/lib/asterisk/bin/issabelpbx_engine'; engine.parent.mkdir(parents=True)
+        engine.write_bytes(b'# fixture native engine\n')
+        return root, bundle, backup, handler, engine
+
+    def test_unknown_handler_or_native_contract_is_refused_before_registration(self):
+        root, bundle, backup, handler, engine = self.fixture()
+        for handler_sha, engine_sha in [('0' * 64, hashlib.sha256(engine.read_bytes()).hexdigest()),
+                                       (hashlib.sha256(handler.read_bytes()).hexdigest(), '0' * 64)]:
+            with self.subTest(handler_sha=handler_sha), \
+                    mock.patch.object(ADDONS, 'NATIVE_OWNERSHIP_HOOK_SHA256', handler_sha, create=True), \
+                    mock.patch.object(ADDONS, 'NATIVE_ENGINE_SHA256', engine_sha, create=True):
+                with self.assertRaises(ValueError): ADDONS.ownership_hook_changes(bundle, root)
+            self.assertFalse((root / 'usr/local/libexec/mytelpbx').exists())
+            self.assertFalse((engine.parent / 'issabelpbx_engine_hook_mytel').exists())
+
+    def test_registration_backs_up_both_paths_before_writes_and_then_invokes_fixed_handler(self):
+        root, bundle, backup, handler, engine = self.fixture()
+        target = root / 'usr/local/libexec/mytelpbx/native-ownership-hook.py'
+        stub = engine.parent / 'issabelpbx_engine_hook_mytel'
+        changes = {target: b'owned handler', stub: b'owned stub'}
+        calls = []
+        def write(path, data, uid, gid):
+            self.assertTrue((backup / 'native-ownership/files.json').is_file())
+            self.assertTrue((backup / 'native-ownership/targets-before.json').is_file())
+            self.assertEqual(len(json.loads((backup / 'native-ownership/files.json').read_text())), 2)
+            self.assertEqual((uid, gid), (0, 0))
+            path.parent.mkdir(parents=True, exist_ok=True); path.write_bytes(data)
+            calls.append(('write', path))
+        def command(argv):
+            self.assertEqual(target.read_bytes(), b'owned handler')
+            self.assertEqual(stub.read_bytes(), b'owned stub')
+            self.assertEqual(len(json.loads((backup / 'native-ownership/targets-before.json').read_text())), 4)
+            calls.append(('run', argv))
+        with mock.patch.object(ADDONS, 'ownership_hook_changes', return_value=changes, create=True), \
+                mock.patch.object(ADDONS, 'private_directory', side_effect=lambda p: p.mkdir(parents=True, exist_ok=True)), \
+                mock.patch.object(ADDONS, 'atomic_write', side_effect=write), mock.patch.object(ADDONS, 'run', side_effect=command), \
+                mock.patch.object(ADDONS, 'verify_ownership_stub', create=True) as verify:
+            ADDONS.install_ownership_hook(bundle, backup, root)
+        self.assertEqual(calls[-1], ('run', ['/usr/libexec/platform-python', '-I', '-B', str(target)]))
+        self.assertEqual(len(calls), 3)
+        verify.assert_called_once_with(stub)
+
+    @unittest.skipUnless(os.name == 'posix' and os.geteuid() == 0, 'POSIX root registration metadata test')
+    def test_registration_rejects_success_without_restoring_the_already_chowned_stub(self):
+        root, bundle, backup, handler, engine = self.fixture()
+        target = root / 'usr/local/libexec/mytelpbx/native-ownership-hook.py'
+        stub = engine.parent / 'issabelpbx_engine_hook_mytel'
+        stub.write_bytes(ADDONS.OWNERSHIP_STUB)
+        os.chown(str(stub), 12345, 23456); stub.chmod(0o664)
+        changes = {target: b'handler', stub: ADDONS.OWNERSHIP_STUB}
+        with mock.patch.object(ADDONS, 'ownership_hook_changes', return_value=changes), \
+                mock.patch.object(ADDONS, 'run', return_value=b''), \
+                mock.patch.object(ADDONS, 'rollback_files') as rollback:
+            with self.assertRaisesRegex(ValueError, 'stub'):
+                ADDONS.install_ownership_hook(bundle, backup, root)
+        rollback.assert_called_once()
+        # The handler, rather than atomic_write's preserved metadata, must
+        # normalize the known stub during successful re-registration.
+        second = backup / 'normalized'; second.mkdir()
+        def normalize(argv):
+            self.assertEqual(stub.stat().st_uid, 12345)
+            os.chown(str(stub), 0, 0); stub.chmod(0o644)
+        with mock.patch.object(ADDONS, 'ownership_hook_changes', return_value=changes), \
+                mock.patch.object(ADDONS, 'run', side_effect=normalize):
+            ADDONS.install_ownership_hook(bundle, second, root)
+        self.assertEqual((stub.stat().st_uid, stub.stat().st_gid, stub.stat().st_mode & 0o7777), (0, 0, 0o644))
+
+    def test_handler_failure_rolls_back_registration_and_cannot_report_success(self):
+        root, bundle, backup, handler, engine = self.fixture()
+        target = root / 'usr/local/libexec/mytelpbx/native-ownership-hook.py'
+        changes = {target: b'handler', engine.parent / 'issabelpbx_engine_hook_mytel': b'stub'}
+        with mock.patch.object(ADDONS, 'ownership_hook_changes', return_value=changes, create=True), \
+                mock.patch.object(ADDONS, 'private_directory'), mock.patch.object(ADDONS, 'atomic_write'), \
+                mock.patch.object(ADDONS, 'run', side_effect=ValueError('handler refused unknown metadata')), \
+                mock.patch.object(ADDONS, 'rollback_files') as rollback:
+            with self.assertRaises(ValueError): ADDONS.install_ownership_hook(bundle, backup, root)
+        self.assertEqual(rollback.call_count, 1)
+        self.assertEqual(rollback.call_args.args[1:], (backup / 'native-ownership', root))
+
+    @unittest.skipUnless(BASH and Path(BASH).is_file(), 'Bash is required for native hook dispatch')
+    def test_supported_stub_fails_closed_even_when_native_dispatch_ignores_return_values(self):
+        for status in (0, 31):
+            with self.subTest(handler_status=status), tempfile.TemporaryDirectory() as directory:
+                root = Path(directory)
+                fake = root / 'handler-interpreter.sh'
+                fake.write_text('#!/bin/bash\nexit ' + str(status) + '\n', encoding='utf-8')
+                fake.chmod(0o755)
+                stub = ADDONS.OWNERSHIP_STUB.decode().replace('/usr/libexec/platform-python', shlex.quote(fake.as_posix()))
+                # Model the observed native call_hook bug: return codes from a
+                # called hook are overwritten. Only exiting the dispatcher is safe.
+                script = root / 'hook.sh'
+                script.write_text(stub + '\ncall_hook(){ "$@"; return 0; }\n'
+                                  'call_hook chown_asterisk_hook_mytel\nprintf "AFTER_HOOK\\n"\n', encoding='utf-8')
+                result = subprocess.run([BASH, '--noprofile', '--norc', str(script)], capture_output=True, timeout=20)
+                self.assertEqual(result.returncode, 0 if status == 0 else 1)
+                self.assertEqual(b'AFTER_HOOK' in result.stdout, status == 0)
+                if status:
+                    self.assertIn(b'ownership validation failed', result.stderr)
+
+    @unittest.skipUnless(BASH and Path(BASH).is_file(), 'Bash is required for sourced hook validation')
+    def test_sourcing_stub_only_defines_function_without_running_handler(self):
+        with tempfile.TemporaryDirectory() as directory:
+            script = Path(directory) / 'source-only.sh'
+            script.write_bytes(ADDONS.OWNERSHIP_STUB + b'\ndeclare -F chown_asterisk_hook_mytel >/dev/null\n')
+            result = subprocess.run([BASH, '--noprofile', '--norc', str(script)], capture_output=True, timeout=20)
+            self.assertEqual(result.returncode, 0, result.stderr)
+            self.assertEqual(result.stderr, b'')
 
 
 class NativeCredentialsTests(unittest.TestCase):
@@ -55,10 +180,15 @@ class NativeCredentialsTests(unittest.TestCase):
 
 
 class NativeIdentityTests(unittest.TestCase):
-    def test_supported_versions_are_checked_against_actual_running_output(self):
-        for major in ('16', '18', '20'):
+    def test_product_desk_requirement_matches_the_reviewed_candidate_pin(self):
+        pin = json.loads((ROOT / 'installer/myteldesk-release.json').read_text())
+        self.assertEqual(pin['version'], '1.1.3')
+        self.assertEqual(ADDONS.REQUIRED_DESK_VERSION, pin['version'])
+
+    def test_only20_is_accepted_against_actual_running_output(self):
+        for major in ('20',):
             self.assertEqual(ADDONS.asterisk_major('Asterisk ' + major + '.30.1 built by vendor', major), major)
-        for output in ('Asterisk 22.0.0', 'Asterisk 1.8.20', 'connection refused', 'Asterisk 160.0'):
+        for output in ('Asterisk 16.30.1', 'Asterisk 18.26.0', 'Asterisk 22.0.0', 'Asterisk 1.8.20', 'connection refused', 'Asterisk 160.0'):
             with self.assertRaises(ValueError):
                 ADDONS.asterisk_major(output)
         with self.assertRaises(ValueError):

@@ -23,7 +23,7 @@ for an installed or partly initialized server.
 The native sequence includes:
 
 1. Native language selection.
-2. Asterisk **16, 18 or 20**, with **18 selected by default**.
+2. Asterisk **20**, installed automatically without a version-selection dialog.
 3. Native optional package selection. Vendor licensed modules remain optional;
    choosing them is not a Mytel license or paid activation.
 4. Native repositories, packages and post-install setup.
@@ -31,9 +31,9 @@ The native sequence includes:
 6. The shared Mytel branding/Desk add-on after native setup succeeds.
 7. Native cleanup, completion and **automatic reboot** on online success.
 
-A failed checked stage stops subsequent stages and automatic reboot. Version
-availability follows the native selector; acceptance of each version and its
-call paths is recorded separately in the release receipt.
+A failed checked stage stops subsequent stages and automatic reboot. Both
+installation paths support Asterisk 20 only. Installation and call acceptance
+are recorded separately in the release receipt.
 
 ## Passwords and private records
 
@@ -60,7 +60,7 @@ replace the base TLS policy.
 MytelDesk is at `/MytellDesk/`. Choose **Panel account** to use an authorized native
 panel account. The separate Desk administrator record is described above.
 
-The add-on delegates to the pinned **MytelDesk 1.1.2** installer. The exact archive
+The add-on delegates to the pinned **MytelDesk 1.1.3** installer. The exact archive
 hash and source identifiers are in [myteldesk-release.json](../installer/myteldesk-release.json).
 Its dedicated runtime and CPU VAD dependencies are verified by the Desk installer
 and `myteldesk doctor`; a service/model check does not establish SIP registration,
@@ -120,13 +120,10 @@ see [the third-party notices](../THIRD_PARTY_NOTICES.md).
 The separate ISO remasters the original **Issabel 5 ISO**, retaining its RPM bytes,
 non-group repository metadata, `/installamp` trigger and native firstboot/password
 command. The native **Software Selection** screen offers **MytelPBX with Asterisk
-16, 18 or 20**. Open that screen from Installation Summary, select the version,
-and finish the selection before beginning installation. The original **20 default**
-remains available; it does not lock the choice.
-
-The missing native 16 environment references the existing Asterisk 16 group;
-existing package/group identifiers and optional `rbl`/`guru` choices remain intact.
-Only the environment/human-label metadata and its repository index are updated.
+20 only**. Language selection remains available. Asterisk 16 and 18 groups and
+their selectable environments are omitted from the derived installer metadata;
+the original RPM bytes and optional `rbl`/`guru` choices remain intact.
+Only group/environment metadata, human labels and its repository index are updated.
 The native firstboot success hook runs only the shared Mytel add-on after native
 setup; it does not run another PBX core installer.
 

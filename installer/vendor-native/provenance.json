@@ -1,5 +1,10 @@
 {
   "schema": "mytelpbx-native-source/1",
+  "asterisk_policy": {
+    "choices": ["20"],
+    "default": "20",
+    "language_selection": "Native language selection and saved choice preserved"
+  },
   "netinstaller": {
     "reference": "issabel5-netinstall.sh",
     "origin": "Owner-supplied exact reference, not a recreated installation engine",
@@ -44,6 +49,7 @@
   },
   "derivation_changes": [
     "MytelPBX / Mytel.one display labels; native executable, package, database and repository IDs remain unchanged",
+    "Fix the derived online product to ASTVER=20 without a version dialog; derived ISO software metadata exposes only the native Asterisk 20 environment and group, preserving native language selection, remaining group data and immutable original RPM assets",
     "Use the official US repository HTTPS base URLs in the existing native repository definitions; primary and mirrorlist hosts refused HTTPS during read-only checks on 2026-11-17",
     "Remove the global yum --nogpg switch; preserve each original vendor repository gpgcheck policy, including the two enabled legacy Issabel 4 repositories originally set to zero",
     "Use the existing narrow Remi HTTPS repository helper after the native Remi release installation",
@@ -53,7 +59,9 @@
     "Apply hash-bound labels to the native language, password and post-package SIP tools, plus the language tool's narrowly scoped early missing-config guard; retain native dialogs, options, selection, validation and issabel-admin-passwords --init",
     "Prepare only the exact native default certificate generator with product Organization and bounded validated FQDN/global-scope IPv4 SANs for future native generation; preserve its existing EKU guard and certificate/key policy",
     "Replace only the known optional Patreon helper with a truthful core-wizard-complete, add-ons-next dialog; preserve its original bytes in a private backup",
-    "Run the shared Mytel add-on hook after successful native password setup and before native cleanup, completion dialog and reboot"
+    "Run the shared Mytel add-on hook after successful native password setup and before native cleanup, completion dialog and reboot",
+    "Register a pinned handler outside native ownership cleanup using the existing issabelpbx_engine_hook_* and chown_asterisk_hook_* contract; validate the canonical owned recording module, restore the exact sourced stub to root ownership and mode 0644, and protect existing native PEM metadata without replacing key or certificate bytes, with explicit hook failure propagation",
+    "Independently require MytelDesk doctor after native cleanup and before the completion dialog or reboot so a ready receipt alone cannot hide changed ownership or CPU VAD failure"
   ],
   "transport_observation": {
     "checked_utc_date": "2026-11-17",

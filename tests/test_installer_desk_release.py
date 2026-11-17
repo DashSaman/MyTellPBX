@@ -1,4 +1,4 @@
-"""Real released pin through the helper's ownership/upgrade workflow.
+"""Current reviewed pin through the helper's ownership/upgrade workflow.
 
 Only archive acquisition and vendor commands are synthetic. These tests do not
 claim archive verification or account/database migration; those have separate
@@ -14,8 +14,9 @@ import unittest
 from unittest import mock
 
 ROOT = Path(__file__).resolve().parents[1]
-VERSION = '1.1.2'
-TREE = '8fb715ccb2810994bb6c721b5352d699bb1867b6'
+VERSION = '1.1.3'
+TREE = '8f0aa8200cba7437556281b8fddaed17a2d9ae89'
+TREE_112 = '8fb715ccb2810994bb6c721b5352d699bb1867b6'
 TREE_111 = '237315df5b8f2f5168b3c01a6423daa912dfd784'
 TREE_110 = '59c96ab9ad25cf54161d198b1202cd1f28ea79ad'
 TREE_100 = '1d5a25c4b3bc4bc7d2b00e11099d64bb287b43ce'
@@ -89,11 +90,15 @@ class RealDeskReleaseWorkflow(unittest.TestCase):
     def test_ready_published_111_may_upgrade_and_keep_operator_data(self):
         self.assert_ready_workflow('1.1.1', TREE_111)
 
-    def test_ready_reviewed_112_delegates_same_release_and_doctor(self):
+    def test_ready_reviewed_112_may_upgrade_and_keep_operator_data(self):
+        self.assert_ready_workflow('1.1.2', TREE_112)
+
+    def test_ready_reviewed_113_delegates_same_release_and_doctor(self):
         self.assert_ready_workflow(VERSION, TREE)
 
     def test_unknown_110_newer_or_equal_wrong_tree_cannot_adopt_files(self):
-        for version, tree in [('1.1.0', 'f' * 40), ('1.2.0', 'a' * 40), (VERSION, 'e' * 40)]:
+        for version, tree in [('1.1.0', 'f' * 40), ('1.1.2', 'd' * 40),
+                              ('1.2.0', 'a' * 40), (VERSION, 'e' * 40)]:
             self.owned(version, tree); before = self.state.read_bytes()
             with self.subTest(version=version, tree=tree), self.assertRaises(ValueError): self.run_workflow()
             self.assertEqual(self.events, []); self.assertFalse(self.cache.exists()); self.assertFalse(self.web.exists())
@@ -113,9 +118,9 @@ class RealDeskReleaseWorkflow(unittest.TestCase):
 
     def test_reviewed_archive_and_git_commit_are_bound_to_the_release(self):
         self.assertEqual(self.pin['version'], VERSION)
-        self.assertEqual(self.pin['archive'], 'myteldesk-1.1.2.tar.gz')
-        self.assertEqual(self.pin['sha256'], '0da5f65d7ebc165d36c145c8deb27093fe3265fd7d1783da35a8f6c2efa346d5')
-        self.assertEqual(self.pin['source_commit'], '615da84275ed1cd5c210c262fdb173dfa6a4254e')
+        self.assertEqual(self.pin['archive'], 'myteldesk-1.1.3.tar.gz')
+        self.assertEqual(self.pin['sha256'], 'b48f7ddc495c3f69cb6c53542550d7e8d6c19fe4e2e40061c1473bffc3bdb19e')
+        self.assertEqual(self.pin['source_commit'], 'b45e3394ee6da56f810b384f57996ab2203b49a4')
         self.assertEqual(self.pin['source_tree'], TREE)
 
 
