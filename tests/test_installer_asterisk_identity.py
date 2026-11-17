@@ -107,13 +107,18 @@ stage_packages1
         original.write_text(self.source.rsplit('\nmain "$@"', 1)[0].replace('/usr/src/issabelPBX/framework/start_asterisk', vendor.as_posix()), encoding='utf-8')
         unit = self.base / 'unit-started'
         body = 'UNIT=' + repr(unit.as_posix()) + '\n'
+        body += 'BUNDLE_DIR=' + repr((self.base / 'bundle').as_posix()) + '\nPY_BIN=fixture_python\n'
         body += '''stage_done(){ return 1; }; ensure_credentials(){ :; }; guard_empty_framework_bootstrap(){ :; }
 framework_service_config(){ printf absent; }; sleep(){ :; }
+native_start(){ :; }
 bootstrap_empty_framework(){ exit 42; }
 wait_asterisk_ready(){ printf 'readiness\n' >> "$CALLS"; }
 asterisk(){ [ -f "$UNIT" ]; }
 systemctl(){ printf 'unit %s\\n' "$*" >> "$CALLS"; [ "$1" != start ] || printf started > "$UNIT"; }
-run_logged(){ printf 'manual %s\\n' "$*" >> "$CALLS"; }
+run_logged(){
+    if [ "$#" = 3 ] && [ "$1" = "$PY_BIN" ] && [ "$2" = -B ] && [ "$3" = "${BUNDLE_DIR}/installer/patch-native-include-order.py" ]; then return 0; fi
+    printf 'manual %s\\n' "$*" >> "$CALLS"; return 99
+}
 stage_framework_init
 '''
         result = self.run_shell(body)

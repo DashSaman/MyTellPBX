@@ -30,6 +30,7 @@ class NativeCompletionTests(unittest.TestCase):
     def framework(self):
         return self.shell('''stage_done(){ return 1; }; step(){ :; }; ensure_credentials(){ :; }
 framework_service_config(){ printf absent; }; guard_empty_framework_bootstrap(){ :; }
+native_start(){ :; }
 systemctl(){ :; }; wait_asterisk_ready(){ :; }; bootstrap_empty_framework(){ :; }
 initialize_preserving_framework_keys(){ printf 'NATIVE_INIT_EXIT0_CORRECT_KEYS\n'; }
 verify_mysql_root_password(){ :; }; verify_mysql_authentication(){ :; }
