@@ -65,6 +65,17 @@ class NativeSourceTests(unittest.TestCase):
         self.assertIn('gpgcheck=1', source)
         self.assertIn('https://repo.us.issabel.org/issabel/5/base/\\$basearch/', source)
 
+    def test_optional_license_label_preserves_native_choices_and_defaults(self):
+        original = (NATIVE / 'issabel5-netinstall.sh').read_text(encoding='utf-8')
+        derived = (NATIVE / 'mytelpbx-netinstall.sh').read_text(encoding='utf-8')
+        def selection(source):
+            return source.split('function additional_packages\n{', 1)[1].split('\nfunction yum_gauge', 1)[0]
+        expected = selection(original).replace(
+            'Issabel Network Licensed modules(http://issabel.guru)',
+            'Optional upstream licensed add-ons').replace('\n    exit\n', '\n    exit 1\n')
+        self.assertEqual(selection(derived), expected)
+        self.assertIn('1 "Optional upstream licensed add-ons" on', derived)
+
     def test_unrecognized_vendor_reference_is_refused(self):
         with self.assertRaises(ValueError):
             module('derive-native').derive(b'#!/bin/bash\necho unexpected\n')

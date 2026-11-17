@@ -293,7 +293,7 @@ function additional_packages
   ADDPKGS=""
   OPTS=$(dialog --backtitle "$BACKTITLE" --no-tags \
         --checklist "Choose additional package(s) to install:" 0 0 0 \
-        1 "Vendor Network Licensed modules(https://issabel.guru)" on \
+        1 "Optional upstream licensed add-ons" on \
         2 "Community Realtime Block List(block SIP attacks from known offenders)" on \
         3 "Sangoma wanpipe drivers" off \
         3>&1 1>&2 2>&3)

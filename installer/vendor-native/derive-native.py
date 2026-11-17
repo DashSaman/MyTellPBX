@@ -35,7 +35,7 @@ def derive(original):
     source = replace(source, '        7 11\n', '        8 15\n')
     source = replace(source, '            Issabel ', '       MytelPBX / Mytel.one ')
     source = replace(source, 'Issabel Network Licensed modules(http://issabel.guru)',
-                     'Vendor Network Licensed modules(https://issabel.guru)')
+                     'Optional upstream licensed add-ons')
     source = re.sub(r'(?m)^name=(.*)Issabel(.*)$', r'name=\1MytelPBX\2', source)
 
     # The official primary and mirrorlist hosts currently refuse HTTPS. The
