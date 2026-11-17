@@ -127,10 +127,72 @@ function mytellGeoipRender($status, $persian, $consumer = null, $kernel = null, 
     return $html;
 }
 
+function mytellGeoipNativeEvidence($root = '/')
+{
+    // Read-only observations of vendor-owned files. Presence and module loading
+    // are not a country-lookup test or proof that a firewall rule is enforced.
+    $root = rtrim($root, '/');
+    $present = function ($relative) use ($root) {
+        $path = $root . '/' . $relative;
+        return !is_link($path) && is_file($path) && @filesize($path) > 0;
+    };
+    $tables = 0;
+    foreach (array('usr/share/xt_geoip', 'usr/share/xt_geoip/BE', 'usr/share/xt_geoip/LE') as $relative) {
+        $directory = $root . '/' . $relative;
+        if (is_link($directory) || !is_dir($directory)) continue;
+        foreach (array('iv4', 'iv6') as $family) {
+            $files = glob($directory . '/[A-Z][A-Z].' . $family);
+            if (!is_array($files)) continue;
+            foreach (array_slice($files, 0, 600) as $path) {
+                if (!is_link($path) && is_file($path) && @filesize($path) > 0) $tables++;
+            }
+        }
+    }
+    return array('schema' => 'mytellpbx-native-geoip/1',
+        'ipv4_present' => $present('usr/share/GeoIP/GeoIP.dat'),
+        'ipv6_present' => $present('usr/share/GeoIP/GeoIPv6.dat'),
+        'country_table_files' => $tables,
+        'module_loaded' => is_dir($root . '/sys/module/xt_geoip'));
+}
+
+function mytellGeoipNativeRender($evidence, $persian)
+{
+    $valid = is_array($evidence) && count($evidence) === 5
+        && isset($evidence['schema']) && $evidence['schema'] === 'mytellpbx-native-geoip/1'
+        && isset($evidence['ipv4_present'], $evidence['ipv6_present'], $evidence['module_loaded'], $evidence['country_table_files'])
+        && is_bool($evidence['ipv4_present']) && is_bool($evidence['ipv6_present'])
+        && is_bool($evidence['module_loaded']) && is_int($evidence['country_table_files'])
+        && $evidence['country_table_files'] >= 0 && $evidence['country_table_files'] <= 3600;
+    $title = $persian ? 'پایگاه دادهٔ کشورها' : 'IP country database';
+    $description = $persian ? 'داده‌ها و به‌روزرسانی GeoIP در اختیار نصب اصلی Issabel است. این صفحه فقط وضعیت قابل مشاهده را نمایش می‌دهد.'
+        : 'The native Issabel installation owns GeoIP data and updates. This page reports read-only observations.';
+    $html = '<section class="panel panel-default" data-geoip-source="native"><div class="panel-heading"><h2 class="panel-title">'
+        . $title . '</h2></div><div class="panel-body"><p>' . $description . '</p>';
+    if ($valid) {
+        $yes = $persian ? 'موجود' : 'Present';
+        $no = $persian ? 'مشاهده نشد' : 'Not observed';
+        $labels = $persian ? array('فایل اصلی IPv4', 'فایل اصلی IPv6', 'تعداد فایل‌های جدول کشور', 'ماژول کرنل بارگذاری‌شده')
+            : array('Native IPv4 file', 'Native IPv6 file', 'Country table files', 'Kernel module loaded');
+        $values = array($evidence['ipv4_present'] ? $yes : $no, $evidence['ipv6_present'] ? $yes : $no,
+            (string)$evidence['country_table_files'], $evidence['module_loaded'] ? $yes : $no);
+        $html .= '<dl class="dl-horizontal">';
+        foreach ($labels as $index => $label) {
+            $html .= '<dt>' . $label . '</dt><dd>' . htmlspecialchars($values[$index], ENT_QUOTES, 'UTF-8') . '</dd>';
+        }
+        $html .= '</dl>';
+    }
+    $html .= '<p role="status" data-geoip-consumer-state="unknown">'
+        . ($persian ? 'درستی تشخیص کشور و اعمال قوانین فایروال هنوز تأیید نشده است.'
+            : 'Country lookup accuracy and firewall enforcement have not been verified.')
+        . '</p></div></section>';
+    return $html;
+}
+
 function _moduleContent(&$smarty, $module_name)
 {
     $persian = !function_exists('get_language') || get_language() === 'fa';
-    return mytellGeoipRender(mytellGeoipReadStatus('/usr/share/mytellpbx-geoip/status.json'), $persian,
-        mytellGeoipReadStatus('/usr/share/mytellpbx-geoip/module-status.json', true),
-        php_uname('r'), is_dir('/sys/module/xt_geoip'));
+    // Native install is the default. Historical custom receipts alone must not
+    // silently switch the current product to an older updater or claim health.
+    // Managed-source render helpers remain available to an explicit integration.
+    return mytellGeoipNativeRender(mytellGeoipNativeEvidence(), $persian);
 }

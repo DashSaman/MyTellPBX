@@ -100,14 +100,6 @@ class RepositoryTransportTests(unittest.TestCase):
         moved = self.repos.with_name('moved'); self.repos.rename(moved); self.repos.symlink_to(moved)
         with self.assertRaises(ValueError): self.module.plan(self.root)
 
-    def test_installer_repairs_transport_before_module_operations(self):
-        source = (ROOT / 'install-mytellpbx.sh').read_text(encoding='utf-8')
-        stage = source.split('stage_repos() {', 1)[1].split('\n# ----', 1)[0]
-        # The local-only branch deliberately does not run remote transport repair.
-        stage = stage[stage.index('local repo_src='):]
-        self.assertLess(stage.index('remi-release-8.rpm'), stage.rindex('installer/repair-repository-transport.py'))
-        self.assertLess(stage.rindex('installer/repair-repository-transport.py'), stage.index('repositories module reset'))
-        self.assertIn('repository transport repair failed', stage)
 
     def test_optional_preflight_skips_absent_but_refuses_partial_repositories(self):
         for path in self.repos.iterdir(): path.unlink()
@@ -115,32 +107,6 @@ class RepositoryTransportTests(unittest.TestCase):
         (self.repos / 'remi.repo').write_bytes(vendor_fixture('remi', 'remi').encode())
         with self.assertRaises(ValueError): self.module.plan(self.root, if_present=True)
 
-    def test_resumed_stage_repairs_before_first_dnf_and_after_vendor_rpm(self):
-        bash = 'C:/Program Files/Git/bin/bash.exe' if os.name == 'nt' else shutil.which('bash')
-        definitions = Path(self.tmp.name) / 'definitions.sh'
-        fixture_repos = self.root / 'repo-files'; fixture_repos.mkdir()
-        definitions.write_text((ROOT / 'install-mytellpbx.sh').read_text(encoding='utf-8').rsplit('\nmain "$@"', 1)[0]
-                               .replace('/etc/yum.repos.d', fixture_repos.as_posix()), encoding='utf-8')
-        (self.root / 'installer/repos').mkdir(parents=True)
-        (self.root / 'installer/repos/mytelpbx-base.repo.in').write_text('fixture')
-        script = Path(self.tmp.name) / 'order.sh'
-        body = 'source ' + repr(definitions.as_posix()) + '\nLOG=' + repr((self.root / 'log').as_posix()) + '\nBUNDLE_DIR=' + repr(self.root.as_posix()) + '\n'
-        body += '''PY_BIN=repair_stub
-READY=0
-stage_done(){ return 1; }; step(){ :; }; cp(){ :; }; chmod(){ :; }; grep(){ return 0; }; mark_stage(){ :; }
-repair_stub(){ printf 'repair %s\\n' "$*"; READY=1; }
-dnf(){ [ "$READY" = 1 ] || return 28; printf 'dnf %s\\n' "$*"; }
-run_logged(){ "$@" >>"$LOG" 2>&1; }
-stage_repos
-'''
-        # Repair output is normally private; override only logging redirection
-        # by inspecting that log alongside the public fake-command sequence.
-        script.write_text(body, encoding='utf-8')
-        result = subprocess.run([bash, '--noprofile', '--norc', str(script)], stdout=subprocess.PIPE, stderr=subprocess.PIPE, universal_newlines=True)
-        self.assertEqual(result.returncode, 0, result.stderr)
-        repairs = (self.root / 'log').read_text()
-        self.assertIn('--if-present', repairs)
-        self.assertEqual(repairs.count('repair '), 2)
 
     def test_bundle_explicitly_includes_repository_transport_helper(self):
         builder = (ROOT / 'scripts/build-installer-bundle.sh').read_text(encoding='utf-8')

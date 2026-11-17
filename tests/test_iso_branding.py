@@ -63,19 +63,61 @@ class IsoBrandingTests(unittest.TestCase):
         self.assertIn('MytelPBX', text)
         self.assertIn('Mytel.one', text)
         self.assertNotIn('https://', text)
-        self.assertEqual(svg.attrib['viewBox'], '0 0 176 112')
-        self.assertIn('background-size: 176px 112px;', self.read('usr/share/anaconda/pixmaps/mytelpbx.css'))
+        self.assertEqual(svg.attrib['viewBox'], '0 0 176 176')
+        # Outlined words retain the approved lettering even without an installed font.
+        self.assertFalse(any(node.tag.rsplit('}', 1)[-1] in ('text', 'tspan', 'image')
+                             for node in svg.iter()))
+        labels = {node.attrib.get('aria-label'): node for node in svg.iter()
+                  if node.attrib.get('id') in ('product-wordmark', 'website-wordmark')}
+        self.assertEqual(set(labels), {'MytelPBX', 'Mytel.one'})
         css = self.read('usr/share/anaconda/pixmaps/mytelpbx.css')
         background = re.search(r'@define-color mytelpbx_background (#[0-9a-fA-F]{6});', css).group(1)
         def luminance(color):
             values = [int(color[n:n+2], 16) / 255 for n in (1, 3, 5)]
             linear = [v / 12.92 if v <= .04045 else ((v + .055) / 1.055) ** 2.4 for v in values]
             return sum(v*w for v, w in zip(linear, (.2126, .7152, .0722)))
-        for node in svg.iter():
-            if node.tag.rsplit('}', 1)[-1] in ('text', 'tspan'):
+        for label in labels.values():
+            for node in label:
+                self.assertEqual(node.tag.rsplit('}', 1)[-1], 'path')
                 foreground = node.attrib['fill']
                 bright, dark = sorted((luminance(foreground), luminance(background)), reverse=True)
                 self.assertGreaterEqual((bright + .05) / (dark + .05), 4.5)
+
+    def test_vertical_artwork_fits_native_narrow_sidebar_allocations(self):
+        css = self.read('usr/share/anaconda/pixmaps/mytelpbx.css')
+        logo = re.search(r'(?m)^\.logo\s*\{([^}]+)\}', css).group(1)
+        scale = re.search(r'background-size:\s*([\d.]+)%\s+auto\s*;', logo)
+        self.assertIsNotNone(scale, 'Fixed pixel widths clipped the native 153px sidebar')
+        fraction = float(scale.group(1)) / 100
+        self.assertGreater(fraction, 0)
+        self.assertLessEqual(fraction, .84, 'Keep visible padding around the narrow artwork')
+        top = float(re.search(r'background-position:\s*50%\s+([\d.]+)px;', logo).group(1))
+        height = float(re.search(r'min-height:\s*([\d.]+)px;', logo).group(1))
+        svg = ET.fromstring(self.read('usr/share/anaconda/pixmaps/mytelpbx-wordmark.svg'))
+        _, _, width, view_height = map(float, svg.attrib['viewBox'].split())
+        for sidebar in (128, 153, 192):
+            with self.subTest(sidebar=sidebar):
+                rendered_width = sidebar * fraction
+                self.assertLess(rendered_width, sidebar)
+                self.assertLessEqual(top + rendered_width * view_height / width, height)
+
+    def test_approved_mark_is_flat_vector_and_identical_across_icon_paths(self):
+        paths = [ROOT / 'theme/images' / name
+                 for name in ('logo.svg', 'mytel-emblem.svg', 'favicon.svg')]
+        self.assertEqual(len({path.read_bytes() for path in paths}), 1)
+        sources = paths + [PRODUCT / 'usr/share/anaconda/pixmaps/mytelpbx-wordmark.svg',
+                           ROOT / 'theme/images/logo-wordmark.svg', ROOT / 'installer/iso/boot-splash.svg']
+        for path in sources:
+            with self.subTest(path=path):
+                raw = path.read_text(encoding='utf-8')
+                svg = ET.fromstring(raw)
+                tags = {node.tag.rsplit('}', 1)[-1] for node in svg.iter()}
+                self.assertFalse(tags & {'image', 'text', 'tspan', 'linearGradient', 'radialGradient',
+                                         'script', 'foreignObject', 'use'})
+                self.assertFalse(any(key.endswith('href') for node in svg.iter() for key in node.attrib))
+                self.assertIn('fill="#061331"', raw, 'White handset needs its navy backing on light surfaces')
+                self.assertIn('stroke="#00AEEF"', raw)
+                self.assertIn('stroke="#FF9800"', raw)
 
     def test_only_builder_supported_tokens_are_required(self):
         tokens = set()

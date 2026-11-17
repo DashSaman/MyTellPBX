@@ -1,5 +1,5 @@
 /* MytelPBX GTK3 installer chrome. No functional controls or base policy change. */
-@define-color mytelpbx_background #142640;
+@define-color mytelpbx_background #061331;
 
 .logo-sidebar {
     background-color: @mytelpbx_background;
@@ -9,9 +9,11 @@
 .logo {
     background-color: @mytelpbx_background;
     background-image: url('/usr/share/anaconda/pixmaps/mytelpbx-wordmark.svg');
-    background-position: 50% 32px;
-    background-size: 176px 112px;
+    /* The native 1024px installer can allocate only 153px to this sidebar. */
+    background-position: 50% 24px;
+    background-size: 80% auto;
     background-repeat: no-repeat;
+    min-height: 192px;
 }
 
 .product-logo {

@@ -1,0 +1,99 @@
+postinstall scriptlet (using /bin/sh):
+
+if [ -d /etc/systemd ] ; then
+    cat > /usr/lib/systemd/system/issabel-firstboot.service <<'ISSABELFIRSTBOOT'
+[Unit]
+Description=issabel-firstboot.service
+After=getty@tty2.service
+After=mariadb.service
+After=asterisk.service
+
+[Service]
+Type=oneshot
+ExecStart=/bin/bash -c "dmesg -D && chvt 2 && /usr/bin/issabel-admin-passwords --init && chvt 1 && dmesg -E"
+#ExecStartPre=-/bin/bash -c "chvt 2 && /usr/src/geoip_install.sh && chvt 1"
+ExecReload=/bin/kill -HUP $MAINPID
+RemainAfterExit=no
+WorkingDirectory=/
+Environment=TERM=linux
+StandardInput=tty
+StandardOutput=tty
+TTYPath=/dev/tty2
+TTYReset=yes
+TTYVHangup=yes
+
+[Install]
+WantedBy=default.target
+ISSABELFIRSTBOOT
+    systemctl enable issabel-firstboot.service
+
+    cat > /usr/lib/systemd/system/amportal-reload.service <<'AMPORTALRELOAD'
+[Unit]
+Description=amportal-reload.service
+After=asterisk.service
+
+[Service]
+Type=oneshot
+ExecStart=/usr/sbin/amportal a r
+RemainAfterExit=no
+WorkingDirectory=/
+
+[Install]
+WantedBy=default.target
+
+AMPORTALRELOAD
+    systemctl enable amportal-reload.service
+else
+    chkconfig --del issabel-firstboot
+    chkconfig --add issabel-firstboot
+    chkconfig --level 2345 issabel-firstboot on
+fi
+
+# The following scripts are placed in the spool directory if the corresponding
+# database does not exist. This is only temporary and should be removed when the
+# corresponding package does this by itself.
+if [ ! -d /var/lib/mysql/asteriskcdrdb ] ; then
+	cp /usr/share/issabel-firstboot/compat-dbscripts/02-asteriskuser-password.sql /var/spool/issabel-mysqldbscripts/
+fi
+
+# If installing, the system might have mysql running (upgrading from a RC).
+# The default password is written to the configuration file.
+if [ $1 -eq 1 ] ; then
+	if [ -e /var/lib/mysql/mysql ] ; then
+		if [ ! -e /etc/issabel.conf ] ; then
+			echo "Installing in active system - creating empty /etc/issabel.conf"
+                        touch /etc/issabel.conf
+			#echo "mysqlrootpwd=iSsAbEl.2o17" >> /etc/issabel.conf
+		fi
+                if [ -f /etc/issabel.conf  ] ; then
+                        grep 'cyrususerpwd' /etc/issabel.conf &> /dev/null
+                        res=$?
+                        if [ $res != 0 ] ; then
+                            echo "cyrususerpwd=issabel" >> /etc/issabel.conf
+                        fi
+                fi
+
+	fi
+fi
+
+# If updating, and there is no /etc/issabel.conf , a default file is generated with
+# legacy password so new modules continue to work.
+if [ $1 -eq 2 ] ; then
+	if [ ! -e /etc/issabel.conf ] ; then
+		echo "Updating in active system -  creating empty /etc/issabel.conf"
+                touch /etc/issabel.conf
+		#echo "mysqlrootpwd=iSsAbEl.2o17" >> /etc/issabel.conf
+	fi
+	if [ -f /etc/issabel.conf  ] ; then
+		grep 'cyrususerpwd' /etc/issabel.conf &> /dev/null
+		res=$?
+		if [ $res != 0 ] ; then
+		    echo "cyrususerpwd=issabel" >> /etc/issabel.conf
+		fi
+	fi
+fi
+
+# If updating, ensure issabel-firstboot now runs at shutdown
+if [ $1 -eq 2 ] ; then
+    touch /var/lock/subsys/issabel-firstboot
+fi

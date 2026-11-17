@@ -2,7 +2,6 @@
 import importlib.util
 import os
 from pathlib import Path
-import shlex
 import shutil
 import subprocess
 import tempfile
@@ -232,33 +231,29 @@ class AsternicDirectionPatcherTests(unittest.TestCase):
             with self.assertRaises(ValueError):patcher.apply(changes,base/'backups')
 
     def test_main_and_bundle_require_direction_runtime_dependencies(self):
-        self.assertTrue('patch-asternic-direction.py' in (ROOT / 'install-mytellpbx.sh').read_text(encoding='utf-8'), 'Optional Asternic installer hook missing')
+        native = (ROOT / 'installer/native-addons.py').read_text(encoding='utf-8')
+        self.assertIn('patch-asternic-direction.py', native, 'Shared native addon hook missing')
+        self.assertIn('native-addons.py', (ROOT / 'installer/install-mytel-addons.sh').read_text(encoding='utf-8'))
         bundle = (ROOT / 'scripts/build-installer-bundle.sh').read_text(encoding='utf-8')
         for name in ('patch-asternic-direction.py', 'asternic-direction.php', 'licenses/GPL-3.0.txt'):
             self.assertTrue('copy_path "admin-fixes/' + name + '"' in bundle, 'Bundle dependency missing: ' + name)
 
-    def test_optional_installer_hook_skips_absent_module_and_propagates_real_child_failure(self):
-        bash = 'C:/Program Files/Git/bin/bash.exe' if os.name == 'nt' else shutil.which('bash')
-        self.assertTrue(bash and Path(bash).is_file(), 'Bash runtime required')
-        source = (ROOT / 'install-mytellpbx.sh').read_text(encoding='utf-8').rsplit('\nmain "$@"', 1)[0]
+    def test_optional_installer_hook_skips_absent_module_and_propagates_source_failure(self):
+        spec=importlib.util.spec_from_file_location('native_addons_asternic',str(ROOT/'installer/native-addons.py'))
+        native=importlib.util.module_from_spec(spec);spec.loader.exec_module(native)
         with tempfile.TemporaryDirectory() as directory:
-            base = Path(directory); definitions = base/'definitions.sh'; definitions.write_text(source, encoding='utf-8')
-            (base/'admin-fixes').mkdir(); (base/'admin-fixes/patch-asternic-direction.py').write_text('# recording fixture only')
-            calls=base/'calls'; script=base/'run.sh'
-            setup = 'source '+shlex.quote(definitions.as_posix())+'\n'
-            for name,value in [('WEB_ROOT',str(base/'web')),('BUNDLE_DIR',str(base)),('LOG',str(base/'log')),('CALLS',str(calls))]:
-                setup += name+'='+shlex.quote(value.replace('\\','/'))+'\n'
-            setup += 'PY_BIN=fixture_python\nfixture_python(){ printf "%s\\n" "$*" >>"$CALLS"; return "${FIXTURE_RC:-0}"; }\n'
-            script.write_text(setup+'repair_optional_asternic_direction\n', encoding='utf-8')
-            first=subprocess.run([bash,str(script)],stdout=subprocess.PIPE,stderr=subprocess.PIPE)
-            self.assertEqual(first.returncode,0,first.stderr);self.assertFalse(calls.exists())
-            module=base/'web/admin/modules/asternic_cdr';module.mkdir(parents=True)
-            second=subprocess.run([bash,str(script)],stdout=subprocess.PIPE,stderr=subprocess.PIPE)
-            self.assertEqual(second.returncode,0,second.stderr);self.assertIn('--module-root',calls.read_text())
-            script.write_text(setup+'FIXTURE_RC=17\nrepair_optional_asternic_direction\n', encoding='utf-8')
-            third=subprocess.run([bash,str(script)],stdout=subprocess.PIPE,stderr=subprocess.PIPE)
-            self.assertNotEqual(third.returncode,0)
-            self.assertIn(b'optional Asternic direction repair failed',third.stderr)
+            web=Path(directory)/'web'
+            self.assertEqual(native.optional_asternic_plan(ROOT,web),{})
+            self.assertFalse(web.exists())
+            module=web/'admin/modules/asternic_cdr';module.parent.mkdir(parents=True)
+            installed_fixture(module)
+            changes=native.optional_asternic_plan(ROOT,web)
+            self.assertIn(module/'mytell-direction.php',changes)
+            (module/'module.xml').write_text('<module><version>1.6.7</version></module>')
+            before=(module/'page.asternic_cdr.php').read_bytes()
+            with self.assertRaisesRegex(ValueError,'Unsupported'):
+                native.optional_asternic_plan(ROOT,web)
+            self.assertEqual((module/'page.asternic_cdr.php').read_bytes(),before)
 
 
 if __name__ == '__main__': unittest.main()

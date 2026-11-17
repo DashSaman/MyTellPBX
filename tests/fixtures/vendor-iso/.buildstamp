@@ -1,0 +1,9 @@
+[Main]
+Product=Issabel
+Version=5
+BugURL=http://www.issabel.org
+IsFinal=True
+UUID=2024.x86_64
+Variant=ISO
+[Compose]
+Lorax=28.14.71-1

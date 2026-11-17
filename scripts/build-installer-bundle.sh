@@ -50,28 +50,19 @@ copy_path() {
     fi
 }
 
-copy_path "installer/packages/rocky8-stage1.txt"
-copy_path "installer/packages/rocky8-stage2-asterisk20.txt"
-copy_path "installer/repos/mytelpbx-base.repo.in"
+copy_path "installer/vendor-native/issabel5-netinstall.sh"
+copy_path "installer/vendor-native/mytelpbx-netinstall.sh"
+copy_path "installer/vendor-native/derive-native.py"
+copy_path "installer/vendor-native/brand-native-dialogs.py"
+copy_path "installer/vendor-native/provenance.json"
+copy_path "installer/vendor-native/run-offline.sh"
+copy_path "installer/install-mytel-addons.sh"
+copy_path "installer/native-addons.py"
 copy_path "installer/payload/lang/fa.lang"
 copy_path "installer/install-myteldesk.py"
 copy_path "installer/media.py"
-copy_path "installer/offline-vendor-geoip.py"
-copy_path "installer/prepare-native-geoip.py"
 copy_path "installer/myteldesk-release.json"
-copy_path "installer/password-init.php"
-copy_path "installer/patch-cli-status.py"
 copy_path "installer/repair-repository-transport.py"
-copy_path "installer/repair-platform-repositories.py"
-copy_path "installer/dnf-progress.py"
-copy_path "installer/prepare-tls.py"
-copy_path "installer/prepare-webrtc-dtls.py"
-copy_path "installer/prepare-pjsip-websocket.py"
-copy_path "installer/prepare-native-start.py"
-copy_path "installer/patch-native-include-order.py"
-copy_path "installer/pjsip-websocket-native.php"
-copy_path "installer/prepare-geoip-module.py"
-copy_path "installer/geoip-update.py"
 copy_path "modules/mytellpbxgeoip/index.php"
 copy_path "modules/mytellpbxopdesk/launcher-access.php"
 copy_path "modules/mytellpbxopdesk/index.php"
@@ -94,7 +85,6 @@ copy_path "admin-fixes/reload-guard.php"
 copy_path "admin-fixes/patch-calendar.py"
 copy_path "admin-fixes/patch-submit.py"
 copy_path "admin-fixes/sip-save-transaction.php"
-copy_path "admin-fixes/install-scoped-repairs.py"
 copy_path "admin-fixes/patch-asternic-direction.py"
 copy_path "admin-fixes/asternic-direction.php"
 copy_path "admin-fixes/licenses/GPL-3.0.txt"
@@ -141,7 +131,9 @@ manifest = {
     'name': f'mytelpbx-bundle-{version}',
     'version': version,
     'platform': 'rocky-8.10-x86_64',
-    'asterisk': '20',
+    'asterisk_choices': ['16', '18', '20'],
+    'asterisk_default': '18',
+    'installation_engine': 'issabel-native',
     'created_utc': datetime.datetime.utcnow().isoformat() + 'Z',
     'file_count': count,
     'patch_inputs': {

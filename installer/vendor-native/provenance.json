@@ -1,0 +1,47 @@
+{
+  "schema": "mytelpbx-native-source/1",
+  "netinstaller": {
+    "reference": "issabel5-netinstall.sh",
+    "origin": "Owner-supplied exact reference, not a recreated installation engine",
+    "sha256": "d0793041a422981293d74153f1aa56b29ff9803d18ee3319a53865b5b6132d46",
+    "upstream_url": "http://repo.issabel.org/issabel5-netinstall.sh",
+    "upstream_guidance": "https://forum.issabel.org/d/19981/1",
+    "derived_file": "mytelpbx-netinstall.sh",
+    "generator": "derive-native.py",
+    "verify": "python3 installer/vendor-native/derive-native.py --check"
+  },
+  "dialog_sources": {
+    "issabel-patreon": {
+      "origin": "Exact optional helper extracted from native issabel-firstboot-5.0.0-2.noarch.rpm",
+      "sha256": "aa865928497e0c32f42a73e2e15b73cd0be201ca4157df07098d695fe7718af9",
+      "change": "Owner-authorized replacement of optional donation and fake-erasure joke UX with a truthful Mytel completion display. Original helper is backed up. Native password initializer and its call remain unchanged."
+    },
+    "issabel-admin-passwords": {
+      "url": "https://github.com/IssabelFoundation/firstboot/blob/19865a67f0ce47e6b36834abc8ac687779934559/issabel-admin-passwords",
+      "sha256": "aa1a9bc962d5f34c57483d802b7f5e1e010133d2bf3245dc07b644387d9ef410",
+      "license": "GPL-2.0-only; original source notices preserved in test fixture and installed executable"
+    },
+    "issabel-change-language": {
+      "url": "https://github.com/IssabelFoundation/config_helpers/blob/94d6b7cfe1b60b0fe5f364d97d5b285d6a2319dd/issabel-change-language",
+      "sha256": "c92b4c14ea2d37c1728a08da4741839b111e65f32ce8fdf897ed3b03777b13b6"
+    }
+  },
+  "derivation_changes": [
+    "MytelPBX / Mytel.one display labels; native executable, package, database and repository IDs remain unchanged",
+    "Use the official US repository HTTPS base URLs in the existing native repository definitions; primary and mirrorlist hosts refused HTTPS during read-only checks on 2026-11-17",
+    "Remove the global yum --nogpg switch; preserve each original vendor repository gpgcheck policy, including the two enabled legacy Issabel 4 repositories originally set to zero",
+    "Use the existing narrow Remi HTTPS repository helper after the native Remi release installation",
+    "Keep native temporary package lists and logs in the bootstrap-created private workspace",
+    "Propagate package, repository, database preparation and native password-tool failures before later stages or reboot",
+    "Apply hash-bound display-only labels to the native language and password tools; retain native dialogs, validation and issabel-admin-passwords --init",
+    "Replace only the known optional Patreon helper with a truthful core-wizard-complete, add-ons-next dialog; preserve its original bytes in a private backup",
+    "Run the shared Mytel add-on hook after successful native password setup and before native cleanup, completion dialog and reboot"
+  ],
+  "transport_observation": {
+    "checked_utc_date": "2026-11-17",
+    "repository_metadata": "https://repo.us.issabel.org/issabel/5/base/x86_64/repodata/repomd.xml",
+    "signing_key": "https://repo.us.issabel.org/issabel/RPM-GPG-KEY-Issabel",
+    "signing_key_sha256": "f7eb76b75127d29c5e5aa33ca2b7504680592e0882af7aeea185eeffcd8b4a0d",
+    "result": "Both returned HTTP 200 over verified HTTPS; this does not establish a completed installation"
+  }
+}

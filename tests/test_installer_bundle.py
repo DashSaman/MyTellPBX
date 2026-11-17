@@ -22,8 +22,6 @@ class InstallerBundleTests(unittest.TestCase):
         paths=re.findall(r'^copy_path "([^"]+)"', (REPO/'scripts/build-installer-bundle.sh').read_text(),re.M)
         for name in set(paths+['VERSION','LICENSE','.gitattributes']):
             p=self.root/name;p.parent.mkdir(parents=True,exist_ok=True);p.write_bytes((REPO/name).read_bytes())
-        for name in ['installer/install-myteldesk.py','installer/myteldesk-release.json','installer/password-init.php','modules/mytellpbxopdesk/launcher-access.php','admin-fixes/patch-asternic-direction.py','admin-fixes/asternic-direction.php']:
-            p=self.root/name;p.parent.mkdir(parents=True,exist_ok=True);p.write_bytes(b'fixture corresponding source: '+name.encode())
         (self.root/'.gitignore').write_text('.env\n*.tgz\n')
         self.env=dict(os.environ)
         self.env.update(GIT_CONFIG_GLOBAL=os.devnull,GIT_CONFIG_NOSYSTEM='1')
@@ -40,10 +38,12 @@ class InstallerBundleTests(unittest.TestCase):
         result,archive,prefix=self.build();self.assertEqual(result.returncode,0,result.stdout)
         with tarfile.open(archive) as tar:
             names=set(tar.getnames())
-            for name in ['installer/install-myteldesk.py','installer/myteldesk-release.json','installer/password-init.php','installer/repair-repository-transport.py','installer/repair-platform-repositories.py','installer/dnf-progress.py','installer/prepare-tls.py','installer/geoip-update.py','modules/mytellpbxgeoip/index.php','modules/mytellpbxopdesk/index.php','modules/mytellpbxopdesk/launcher-access.php','admin-theme/patch-login-branding.py','admin-fixes/patch-asternic-direction.py','admin-fixes/asternic-direction.php','admin-fixes/licenses/GPL-3.0.txt','LICENSE']:
+            for name in ['installer/install-myteldesk.py','installer/myteldesk-release.json','installer/repair-repository-transport.py','installer/install-mytel-addons.sh','installer/native-addons.py','installer/media.py','installer/vendor-native/issabel5-netinstall.sh','installer/vendor-native/mytelpbx-netinstall.sh','installer/vendor-native/derive-native.py','installer/vendor-native/brand-native-dialogs.py','installer/vendor-native/provenance.json','installer/vendor-native/run-offline.sh','modules/mytellpbxgeoip/index.php','modules/mytellpbxopdesk/index.php','modules/mytellpbxopdesk/launcher-access.php','admin-theme/patch-login-branding.py','admin-fixes/patch-asternic-direction.py','admin-fixes/asternic-direction.php','admin-fixes/licenses/GPL-3.0.txt','LICENSE']:
                 with self.subTest(name=name):
                     self.assertIn(prefix+name,names)
                     if prefix+name in names:self.assertEqual(tar.extractfile(prefix+name).read(),(self.root/name).read_bytes())
+            for name in ['password-init.php','repair-platform-repositories.py','dnf-progress.py','prepare-tls.py','geoip-update.py','prepare-native-start.py','prepare-native-geoip.py','prepare-pjsip-websocket.py','prepare-webrtc-dtls.py']:
+                self.assertNotIn(prefix+'installer/'+name,names,'Retired custom core must not enter the native product bundle')
 
     def test_ignored_local_secret_is_not_part_of_theme_payload(self):
         (self.root/'theme/.env').write_text('PRIVATE_BUNDLE_FIXTURE_SENTINEL')

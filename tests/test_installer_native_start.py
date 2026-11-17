@@ -237,51 +237,6 @@ class NativeStartTests(unittest.TestCase):
         with self.assertRaises((ValueError, RuntimeError)): self.m.prepare_configs(self.ctx)
         self.assertFalse(self.ready().exists())
 
-    def test_real_bash_wiring_holds_before_shortcut_and_prepares_before_one_start(self):
-        bash = 'C:/Program Files/Git/bin/bash.exe' if os.name == 'nt' else shutil.which('bash')
-        if not bash: self.skipTest('Bash unavailable')
-        text = (ROOT / 'install-mytellpbx.sh').read_text(encoding='utf-8')
-        self.assertEqual(text.count('\nmain "$@"'), 1)
-        definitions = self.put('definitions.sh', text.rsplit('\nmain "$@"', 1)[0].encode())
-        events = self.root / 'events'; bundle = self.root / 'bundle'
-        self.put('bundle/installer/patch-native-include-order.py', b'# never executed\n')
-        self.put('bundle/installer/prepare-native-start.py', b'# never executed\n')
-        settings = {'EVENTS': events, 'LOG': self.root / 'log', 'BUNDLE_DIR': bundle,
-                    'STATE_DIR': self.root / 'state', 'MYTELLPBX_VERSION': '7.6.2',
-                    'MYTELLPBX_BUNDLE_SHA256': 'a' * 64, 'PY_BIN': 'fixture_python', 'ADMIN_PASS': 'fixture'}
-        body = 'source ' + shlex.quote(definitions.as_posix()) + '\n'
-        body += '\n'.join(k + '=' + shlex.quote(str(v).replace('\\', '/')) for k, v in settings.items()) + '\n'
-        body += '''
-event(){ printf '%s\\n' "$1" >>"$EVENTS"; }
-step(){ :; }; say(){ :; }; warn(){ :; }
-die(){ event FORBIDDEN; exit 98; }
-stage_done(){ event "DONE:$1"; [ "$1" = native-platform ]; }
-mark_stage(){ event "MARK:$1"; }
-native_start(){ event "NATIVE:$*"; }
-ensure_credentials(){ :; }
-framework_service_config(){ printf 'fixture-digest'; }
-guard_empty_framework_bootstrap(){ event GUARD; }
-run_logged(){ case "$*" in *patch-native-include-order.py*) event PATCH;; */create_fop2_manager_user.pl*) :;; *) event FORBIDDEN; return 97;; esac; }
-systemctl(){ case "$*" in 'start asterisk') event START;; 'enable asterisk') event ENABLE;; *) event FORBIDDEN; return 96;; esac; }
-wait_asterisk_ready(){ event WAIT; }
-bootstrap_empty_framework(){ event BOOTSTRAP; }
-initialize_preserving_framework_keys(){ event INIT; }
-verify_native_migrations_complete(){ :; }; verify_mysql_root_password(){ :; }
-verify_mysql_authentication(){ :; }; ensure_admin_credentials(){ :; }; verify_amp_admin_password(){ :; }
-php(){ cat >/dev/null; }
-stage_native_platform
-stage_framework_init
-'''
-        script = self.put('run-wiring.sh', body.encode())
-        result = subprocess.run([bash, '--noprofile', '--norc', str(script)], stdin=subprocess.DEVNULL,
-                                stdout=subprocess.PIPE, stderr=subprocess.PIPE, timeout=20)
-        self.assertEqual(result.returncode, 0, result.stderr.decode(errors='replace'))
-        log = events.read_text().splitlines(); self.assertNotIn('FORBIDDEN', log)
-        self.assertLess(log.index('NATIVE:--hold'), log.index('DONE:native-platform'))
-        ordered = ['GUARD', 'PATCH', 'NATIVE:--prepare-config', 'START', 'WAIT', 'BOOTSTRAP']
-        self.assertEqual([name for name in log if name in ordered][:len(ordered)], ordered)
-        self.assertEqual(log.count('START'), 1); self.assertEqual(log.count('WAIT'), 2)
-        self.assertEqual(log[-2:], ['WAIT', 'MARK:framework'])
 
     def test_escaping_live_include_cannot_create_files_outside_native_directory(self):
         self.put('etc/asterisk/modules.conf', b'#include ../operator.conf\n')
