@@ -24,6 +24,7 @@ class OfflineGeoipWiringTests(unittest.TestCase):
         (packages / 'rocky8-stage2-asterisk20.txt').write_bytes(b'asterisk20\nGeoIP\n')
         self.definitions = self.base / 'definitions.sh'
         self.definitions.write_text((ROOT / 'install-mytellpbx.sh').read_text(encoding='utf-8').rsplit('\nmain "$@"', 1)[0], encoding='utf-8')
+        with self.definitions.open("a", encoding="utf-8") as fixture: fixture.write("\nensure_local_hostname_resolution(){ :; }\n")
 
     def exercise(self, offline=True, fail='', resume=False, action='main'):
         q = shlex.quote

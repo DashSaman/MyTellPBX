@@ -252,6 +252,7 @@ class InstallerStageTests(unittest.TestCase):
         self.temp = tempfile.TemporaryDirectory(); self.addCleanup(self.temp.cleanup); self.base = Path(self.temp.name)
         source = (ROOT / 'install-mytellpbx.sh').read_text(encoding='utf-8')
         self.source = self.base / 'definitions.sh'; self.source.write_text(source.rsplit('\nmain "$@"', 1)[0] + '\n', encoding='utf-8')
+        with self.source.open("a", encoding="utf-8") as fixture: fixture.write("\nensure_local_hostname_resolution(){ :; }\n")
         self.log = self.base / 'install.log'; self.state = self.base / 'state'; self.bundle = self.base / 'bundle'
         (self.bundle / 'installer').mkdir(parents=True); (self.bundle / 'installer/install-myteldesk.py').write_text('# fixture')
 

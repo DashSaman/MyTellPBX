@@ -20,6 +20,7 @@ class FirstBootTests(unittest.TestCase):
         self.source = (ROOT / 'install-mytellpbx.sh').read_text(encoding='utf-8')
         self.definitions = self.base / 'definitions.sh'
         self.definitions.write_text(self.source.rsplit('\nmain "$@"', 1)[0] + '\n', encoding='utf-8')
+        with self.definitions.open("a", encoding="utf-8") as fixture: fixture.write("\nensure_local_hostname_resolution(){ :; }\n")
         self.credentials = self.base / 'credentials'
 
     def run_shell(self, body, input_text='', env=None):

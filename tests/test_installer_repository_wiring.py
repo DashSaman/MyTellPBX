@@ -27,6 +27,7 @@ class RepositoryWiringTests(unittest.TestCase):
         source = source.replace('/etc/yum.repos.d', self.repos.as_posix())
         source = source.replace('/etc/dnf/dnf.conf', (self.base / 'dnf.conf').as_posix())
         self.definitions = self.base / 'definitions.sh'; self.definitions.write_text(source, encoding='utf-8')
+        with self.definitions.open("a", encoding="utf-8") as fixture: fixture.write("\nensure_local_hostname_resolution(){ :; }\n")
 
     def run_fixture(self, action, done=False, failure='', extra=''):
         body = 'source ' + repr(self.definitions.as_posix()) + '\n'

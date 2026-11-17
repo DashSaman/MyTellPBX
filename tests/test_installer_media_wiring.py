@@ -23,6 +23,7 @@ class MediaWiringTests(unittest.TestCase):
         repo = self.bundle / 'installer/repos/mytelpbx-base.repo.in'; repo.parent.mkdir(); repo.write_text('# inert repository fixture\n')
         self.defs = self.base / 'definitions.sh'
         self.defs.write_text((ROOT / 'install-mytellpbx.sh').read_text(encoding='utf-8').rsplit('\nmain "$@"', 1)[0], encoding='utf-8')
+        with self.defs.open("a", encoding="utf-8") as fixture: fixture.write("\nensure_local_hostname_resolution(){ :; }\n")
 
     def run_fixture(self, action, offline=True, extra='', failure=0):
         body = 'source ' + shlex.quote(self.defs.as_posix()) + '\n'

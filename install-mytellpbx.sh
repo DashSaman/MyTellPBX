@@ -606,6 +606,122 @@ PY
 # --------------------------------------------------------------------------
 # Stage 1: repositories + PHP module stream
 # --------------------------------------------------------------------------
+hostname_hosts_file() {
+    "${PY_BIN}" -B - "$1" /etc/hosts "${STATE_DIR}" "${MYTELLPBX_VERSION}" "${MYTELLPBX_BUNDLE_SHA256}" <<'PY_HOSTNAME'
+import base64, hashlib, ipaddress, json, os, pathlib, re, socket, stat, sys, tempfile
+mode, filename, state_dir, version, bundle = sys.argv[1:]
+hosts, state = pathlib.Path(filename), pathlib.Path(state_dir)
+hostname = socket.gethostname()
+if (mode not in ('inspect', 'prepare') or not 1 <= len(hostname) <= 253
+        or not re.search('[A-Za-z]', hostname)
+        or any(not re.fullmatch(r'[A-Za-z0-9](?:[A-Za-z0-9-]{0,61}[A-Za-z0-9])?', label) for label in hostname.split('.'))):
+    raise ValueError('Invalid kernel hostname or mode')
+owner = os.geteuid() if hasattr(os, 'geteuid') else None
+def directory(path, private=False):
+    info = path.lstat()
+    if (not stat.S_ISDIR(info.st_mode) or path.resolve() != path.absolute()
+            or (os.name == 'posix' and (info.st_uid != owner or info.st_mode & 0o022
+                                      or (private and stat.S_IMODE(info.st_mode) != 0o700)))):
+        raise ValueError('Untrusted hostname file directory')
+def signature(info):
+    return (info.st_dev, info.st_ino, info.st_mode, info.st_uid, info.st_gid,
+            info.st_size, info.st_mtime_ns, info.st_ctime_ns if os.name == 'posix' else None, info.st_nlink)
+def read(path, private=False, limit=2 * 1024 * 1024):
+    before = path.lstat()
+    if (not stat.S_ISREG(before.st_mode) or before.st_nlink != 1 or before.st_size > limit or before.st_mode & 0o7111
+            or path.resolve() != path.absolute()
+            or (os.name == 'posix' and (before.st_uid != owner or before.st_mode & 0o022
+                                      or (private and stat.S_IMODE(before.st_mode) != 0o600)))):
+        raise ValueError('Untrusted hostname input file')
+    flags = os.O_RDONLY | getattr(os, 'O_NOFOLLOW', 0) | getattr(os, 'O_NONBLOCK', 0) | getattr(os, 'O_BINARY', 0)
+    with os.fdopen(os.open(str(path), flags), 'rb') as stream:
+        if signature(os.fstat(stream.fileno())) != signature(before): raise ValueError('Hostname input replaced')
+        raw = stream.read(limit + 1)
+        attrs = {name: os.getxattr(stream.fileno(), name) for name in os.listxattr(stream.fileno())} if hasattr(os, 'listxattr') else {}
+        if (len(raw) > limit or signature(os.fstat(stream.fileno())) != signature(before)
+                or signature(path.lstat()) != signature(before)):
+            raise ValueError('Hostname input changed during read')
+    return raw, before, attrs
+def sync_dir(path):
+    if os.name == 'posix':
+        fd = os.open(str(path), os.O_RDONLY | os.O_DIRECTORY)
+        try: os.fsync(fd)
+        finally: os.close(fd)
+directory(hosts.parent)
+raw, before, attrs = read(hosts, limit=1024 * 1024)
+if b'\0' in raw: raise ValueError('Binary hosts file refused')
+mapped = False
+for line in raw.splitlines():
+    fields = line.split(b'#', 1)[0].split()
+    if len(fields) > 1 and hostname.lower().encode('ascii') in [name.lower() for name in fields[1:]]:
+        try: ipaddress.ip_address(fields[0].decode('ascii'))
+        except (UnicodeError, ValueError): raise ValueError('Existing hostname mapping has an invalid address')
+        mapped = True
+if mapped or mode == 'inspect':
+    print('mapped' if mapped else 'missing'); raise SystemExit(0)
+directory(state, private=True)
+source, _meta, _attrs = read(state / 'source.json', private=True)
+expected = dict(owner='MyTellPBX', schema=1, version=version, bundle_sha256=bundle)
+value = json.loads(source.decode('utf-8'))
+if value != expected or type(value.get('schema')) is not int or not re.fullmatch('[0-9a-f]{64}', bundle):
+    raise ValueError('Hostname preparation requires the owned installer source')
+system = hosts.parent.parent
+if any(os.path.lexists(str(path)) for path in [state / 'stages/framework.done'] + [system / name for name in
+       ('etc/asterisk', 'etc/issabel.conf', 'etc/amportal.conf', 'var/www/html/admin', 'etc/myteldesk', 'opt/myteldesk', 'var/lib/myteldesk')]):
+    raise ValueError('Existing PBX deployment requires reviewed hostname maintenance')
+if any(name.startswith('security.') and name != 'security.selinux' for name in attrs):
+    raise ValueError('Signed or executable hosts metadata requires reviewed maintenance')
+record = dict(owner='MyTellPBX', schema=1, hostname=hostname, source_sha256=hashlib.sha256(source).hexdigest(),
+              hosts_base64=base64.b64encode(raw).decode('ascii'),
+              metadata=dict(dev=before.st_dev, ino=before.st_ino, uid=before.st_uid, gid=before.st_gid, mode=stat.S_IMODE(before.st_mode)),
+              xattrs={name: base64.b64encode(value).decode('ascii') for name, value in attrs.items()})
+backup = state / 'hostname-hosts.before.json'
+if os.path.lexists(str(backup)):
+    old, _meta, _attrs = read(backup, private=True)
+    if json.loads(old.decode('utf-8')) != record: raise ValueError('Unknown hostname backup retained')
+else:
+    fd, temp = tempfile.mkstemp(prefix='.hostname-before-', dir=str(state))
+    try:
+        with os.fdopen(fd, 'w', encoding='utf-8') as out:
+            json.dump(record, out, sort_keys=True); out.write('\n'); out.flush(); os.fsync(out.fileno())
+        os.link(temp, str(backup)); sync_dir(state); sync_dir(state.parent)
+    finally:
+        if os.path.exists(temp): os.unlink(temp)
+replacement = raw + (b'\n' if raw and not raw.endswith(b'\n') else b'') + b'127.0.0.1 ' + hostname.encode('ascii') + b'\n'
+fd, temp = tempfile.mkstemp(prefix='.mytel-hosts-', dir=str(hosts.parent))
+try:
+    with os.fdopen(fd, 'wb') as out:
+        if out.write(replacement) != len(replacement): raise OSError('Short hostname file write')
+        out.flush()
+        if os.name == 'posix': os.fchown(out.fileno(), before.st_uid, before.st_gid)
+        os.fchmod(out.fileno(), stat.S_IMODE(before.st_mode)) if hasattr(os, 'fchmod') else os.chmod(temp, stat.S_IMODE(before.st_mode))
+        for name, value in attrs.items(): os.setxattr(out.fileno(), name, value)
+        copied = os.fstat(out.fileno())
+        copied_attrs = {name: os.getxattr(out.fileno(), name) for name in os.listxattr(out.fileno())} if hasattr(os, 'listxattr') else {}
+        if copied_attrs != attrs or (os.name == 'posix' and (copied.st_uid, copied.st_gid, stat.S_IMODE(copied.st_mode)) != (before.st_uid, before.st_gid, stat.S_IMODE(before.st_mode))):
+            raise ValueError('Hostname metadata could not be preserved')
+        os.fsync(out.fileno())
+    current, metadata, current_attrs = read(hosts, limit=1024 * 1024)
+    if current != raw or signature(metadata) != signature(before) or current_attrs != attrs:
+        raise ValueError('Concurrent hostname file change retained')
+    os.replace(temp, str(hosts)); sync_dir(hosts.parent)
+finally:
+    if os.path.exists(temp): os.unlink(temp)
+print('Local hostname alias prepared; original file retained in private installer state')
+PY_HOSTNAME
+}
+
+ensure_local_hostname_resolution() {
+    local mapping
+    mapping=$(hostname_hosts_file inspect 2>>"$LOG") || die "cannot validate local hostname resolution; hosts retained"
+    case "${mapping}" in mapped) return 0;; missing) ;; *) die "unexpected local hostname inspection result";; esac
+    guard_install_source
+    [ ! -e "${STATE_DIR}/stages/framework.done" ] && [ ! -L "${STATE_DIR}/stages/framework.done" ] \
+        || die "existing framework requires reviewed hostname maintenance"
+    require_fresh_base
+    hostname_hosts_file prepare >>"$LOG" 2>&1 || die "local hostname preparation failed; retain state and review the private log"
+}
+
 repair_platform_catalog() {
     [ -z "${MEDIA_ROOT:-}" ] || return 0
     local mode="${1:-optional}" vendor args=()
@@ -1708,6 +1824,7 @@ main() {
     # Only the collector consumes inherited stdin. Later vendor commands get
     # EOF; explicit SQL/PHP pipes and heredocs keep their own input streams.
     exec </dev/null || die "cannot close inherited installer input"
+    ensure_local_hostname_resolution
 
     # Revalidate before stage shortcuts: RPMs can recreate their repository
     # files during an earlier interrupted package transaction.

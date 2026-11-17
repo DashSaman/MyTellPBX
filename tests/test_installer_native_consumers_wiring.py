@@ -27,6 +27,7 @@ class NativeConsumerWiringTests(unittest.TestCase):
         self.definitions = self.base / 'definitions.sh'
         text = (ROOT / 'install-mytellpbx.sh').read_text(encoding='utf-8')
         self.definitions.write_text(text.rsplit('\nmain "$@"', 1)[0], encoding='utf-8')
+        with self.definitions.open("a", encoding="utf-8") as fixture: fixture.write("\nensure_local_hostname_resolution(){ :; }\n")
 
     def run_fixture(self, action, fail='', done=False):
         if self.events.exists():
