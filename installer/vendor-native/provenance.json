@@ -43,5 +43,11 @@
     "signing_key": "https://repo.us.issabel.org/issabel/RPM-GPG-KEY-Issabel",
     "signing_key_sha256": "f7eb76b75127d29c5e5aa33ca2b7504680592e0882af7aeea185eeffcd8b4a0d",
     "result": "Both returned HTTP 200 over verified HTTPS; this does not establish a completed installation"
+  },
+  "iso_reference": {
+    "origin": "Owner-supplied original Issabel ISO; locally hashed before remastering",
+    "filename": "issabel5-USB-DVD-x86_64-20261001.iso",
+    "bytes": 3682598912,
+    "sha256": "c63b7512d3ba05af645e144c58bf00c87353ddf2b3318e2fda8c262c057c07f9"
   }
 }
