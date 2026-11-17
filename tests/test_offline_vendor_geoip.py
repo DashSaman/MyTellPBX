@@ -171,6 +171,41 @@ class OfflineVendorGeoIPTests(unittest.TestCase):
         self.assertEqual(self.m.inventory(self.root/self.m.BACKUP),value['packed'])
         self.assertEqual(self.m.handoff(self.root,media,pin,lookup=lambda rows:None)['packed'],value['packed'])
 
+    def test_native_factory_numeric_alias_filenames_are_preserved_in_all_layouts(self):
+        media,pin=self.consumed();aliases={}
+        for prefix in ['', 'BE/', 'LE/']:
+            for code in ['A1','A2','O1']:
+                for family in (4,6):
+                    name=prefix+code+'.iv'+str(family);data=b'\x01'*(8 if family==4 else 32)
+                    (self.root/self.m.ACTIVE/name).write_bytes(data);aliases[name]=data
+        try:value=self.m.handoff(self.root,media,pin,lookup=lambda rows:None)
+        except ValueError:self.fail('Native factory archive aliases A1/A2/O1 were incorrectly rejected')
+        for name,data in aliases.items():
+            self.assertEqual((self.root/self.m.BACKUP/name).read_bytes(),data)
+            self.assertEqual(value['packed'][name],{'bytes':len(data),'sha256':hashlib.sha256(data).hexdigest()})
+        self.assertFalse(any((self.root/self.m.ACTIVE).iterdir()))
+        # Filename aliases do not relax the separate actual country-data parser.
+        path=self.root/'invalid-country.csv.gz'
+        path.write_bytes(gzip.compress(b'1.0.0.0,1.0.0.1,A1\n'))
+        with self.assertRaises(ValueError):self.m.samples(path)
+
+    def test_invalid_native_archive_filenames_still_refuse_without_moving_data(self):
+        media,pin=self.consumed()
+        for name in ['A_.iv4','AAA.iv4','a1.iv4','A1.dat','.A1.iv4']:
+            with self.subTest(name=name):
+                path=self.root/self.m.ACTIVE/name;path.write_bytes(b'\0'*8)
+                with self.assertRaises(ValueError):self.m.handoff(self.root,media,pin,lookup=lambda rows:None)
+                self.assertEqual(path.read_bytes(),b'\0'*8);self.assertFalse((self.root/self.m.BACKUP).exists())
+                path.unlink()
+
+    @unittest.skipUnless(os.name=='posix','Native archive alias symlink boundary')
+    def test_numeric_alias_symlink_is_refused_and_original_target_is_preserved(self):
+        media,pin=self.consumed();target=self.root/'operator-data';target.write_bytes(b'\0'*8)
+        alias=self.root/self.m.ACTIVE/'A1.iv4';alias.symlink_to(target)
+        with self.assertRaises(ValueError):self.m.handoff(self.root,media,pin,lookup=lambda rows:None)
+        self.assertTrue(alias.is_symlink());self.assertEqual(target.read_bytes(),b'\0'*8)
+        self.assertFalse((self.root/self.m.BACKUP).exists())
+
     def test_interrupted_handoff_resumes_only_exact_recorded_native_output(self):
         media,pin=self.consumed()
         with mock.patch.object(self.m.os,'rename',side_effect=OSError('Interrupted before move')):

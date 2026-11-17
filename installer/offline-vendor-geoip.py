@@ -299,7 +299,7 @@ def inventory(path):
         if stat.S_ISDIR(info.st_mode) and relative in ('BE','LE'):
             if os.name=='posix' and (info.st_uid!=EXPECTED_UID or info.st_mode&0o022):raise ValueError('Unsafe native country directory')
             continue
-        if not re.fullmatch(r'(?:(?:BE|LE)/)?[A-Z]{2}\.iv[46]',relative):raise ValueError('Unknown native country output retained')
+        if not re.fullmatch(r'(?:(?:BE|LE)/)?[A-Z0-9]{2}\.iv[46]',relative):raise ValueError('Unknown native country output retained')
         raw=read(child,33554432);total+=len(raw)
         if total>128*1024*1024 or len(result)>=3000 or len(raw)%(8 if relative.endswith('4') else 32):raise ValueError('Invalid packed country output')
         result[relative]={'bytes':len(raw),'sha256':hashlib.sha256(raw).hexdigest()}
