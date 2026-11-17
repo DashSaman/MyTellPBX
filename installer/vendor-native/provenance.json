@@ -49,6 +49,7 @@
     "Use the existing narrow Remi HTTPS repository helper after the native Remi release installation",
     "Keep native temporary package lists and logs in the bootstrap-created private workspace",
     "Propagate package, repository, database preparation and native password-tool failures before later stages or reboot",
+    "In post_install, defer genuinely absent custom configuration to the following native --init even if RPMs have partially created a regular amportal.conf; reject symlink/wrong-type paths, preserve existing custom targets, and move only a regular sample without clobbering. Run amportal chown when its regular configuration exists and keep real failures fatal; defer ownership work only when that configuration is genuinely absent. Append the existing native cdr_mysql noload directive only when absent, with read/write errors fatal, so scoped pre-init recovery does not duplicate it",
     "Apply hash-bound labels to the native language, password and post-package SIP tools, plus the language tool's narrowly scoped early missing-config guard; retain native dialogs, options, selection, validation and issabel-admin-passwords --init",
     "Prepare only the exact native default certificate generator with product Organization and bounded validated FQDN/global-scope IPv4 SANs for future native generation; preserve its existing EKU guard and certificate/key policy",
     "Replace only the known optional Patreon helper with a truthful core-wizard-complete, add-ons-next dialog; preserve its original bytes in a private backup",

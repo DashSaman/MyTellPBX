@@ -537,6 +537,148 @@ which(){ printf '%s' "$MYSQLAUTH" > "$AUTH_FILE"; return 1; }
 
 
 @unittest.skipUnless(BASH and Path(BASH).is_file(), 'Bash is required')
+class NativePostInstallTests(unittest.TestCase):
+    def setUp(self):
+        self.temp = tempfile.TemporaryDirectory(); self.addCleanup(self.temp.cleanup)
+        self.base = Path(self.temp.name); self.counter = 0
+
+    def fixture(self, sample=False, custom=False, configured=False, fail='', runs=1, invalid=''):
+        self.counter += 1; root = self.base / str(self.counter)
+        for name in ('etc/asterisk', 'etc/selinux', 'etc/sysconfig', 'work'):
+            (root / name).mkdir(parents=True)
+        (root / 'etc/selinux/config').write_text('SELINUX=enforcing\n')
+        (root / 'etc/sysconfig/iptables').write_text('fixture firewall\n')
+        modules = root / 'etc/asterisk/modules_additional.conf'
+        modules.write_text('; native module content\n')
+        sample_path = root / 'etc/asterisk/extensions_custom.conf.sample'
+        custom_path = root / 'etc/asterisk/extensions_custom.conf'
+        amportal = root / 'etc/amportal.conf'
+        if sample: sample_path.write_bytes(b'[native-sample]\n')
+        if custom: custom_path.write_bytes(b'[customer-kept]\nexten => fixture,1,NoOp(keep)\n')
+        if configured: amportal.write_text('native configuration fixture\n')
+        if invalid:
+            name, kind = invalid.split(':', 1)
+            path = {'sample':sample_path, 'custom':custom_path, 'amportal':amportal, 'modules':modules}[name]
+            if path.exists(): path.unlink()
+            if kind == 'directory': path.mkdir()
+            elif kind == 'symlink': path.symlink_to(root / 'absent-destination')
+            elif kind == 'file-symlink':
+                other = root / 'untouched-file'; other.write_bytes(b'unchanged\n'); path.symlink_to(other)
+            else: self.fail('Unknown fixture path kind')
+        events = root / 'events'
+        setup = 'EVENTS=' + shlex.quote(events.as_posix()) + '\nFAIL=' + shlex.quote(fail) + '\n'
+        setup += '''systemctl(){
+  printf 'systemctl:%s\n' "$*" >> "$EVENTS"
+  [ "$FAIL" != "systemctl:$*" ] || return 31
+}
+MYSQL_CALLS=0
+mysql(){
+  MYSQL_CALLS=$((MYSQL_CALLS + 1))
+  printf 'mysql:%s\n' "$MYSQL_CALLS" >> "$EVENTS"
+  [ "$FAIL" != "mysql:$MYSQL_CALLS" ] || return 29
+}
+setenforce(){ :; }
+firewall-cmd(){ :; }
+fixture_amportal(){ printf 'amportal:chown\n' >> "$EVENTS"; [ "$FAIL" != chown ] || return 33; }
+mv(){ [ "$FAIL" != move ] || return 35; command mv "$@"; }
+grep(){ [ "$FAIL" != grep ] || return 36; command grep "$@"; }
+echo(){ [ "$FAIL" != append ] || return 37; builtin echo "$@"; }
+'''
+        source = (NATIVE / 'mytelpbx-netinstall.sh').read_text(encoding='utf-8')
+        body = source.split('function post_install\n{\n', 1)[1].split('\n}\n', 1)[0]
+        # Exercise the actual function with every filesystem path confined to this
+        # temporary fixture. DB, service and firewall commands are shell fakes.
+        body = body.replace('/etc/', shlex.quote((root / 'etc').as_posix() + '/'))
+        body = body.replace('/var/log/', shlex.quote((root / 'var/log').as_posix() + '/'))
+        body = body.replace('/usr/sbin/amportal', 'fixture_amportal')
+        setup += 'MYTEL_NATIVE_WORK=' + shlex.quote((root / 'work').as_posix()) + '\n'
+        script = root / 'run.sh'
+        calls = '\n'.join('post_install\nstatus=$?\n[ "$status" = 0 ] || exit "$status"' for _ in range(runs))
+        script.write_text('#!/bin/bash\n' + setup + 'post_install(){\n' + body + '\n}\n' + calls + '\n', encoding='utf-8')
+        env = dict(os.environ, LANG='C', LC_ALL='C'); env.pop('BASH_ENV', None); env.pop('SHELLOPTS', None)
+        result = subprocess.run([BASH, '--noprofile', '--norc', str(script)], stdin=subprocess.DEVNULL,
+                                capture_output=True, timeout=20, env=env)
+        observed = events.read_text().splitlines() if events.exists() else []
+        return result, root, observed
+
+    def test_genuine_preinit_absence_defers_configs_and_chown_to_native_initializer(self):
+        result, root, events = self.fixture()
+        self.assertEqual(result.returncode, 0, result.stderr)
+        for name in ('extensions_custom.conf', 'extensions_custom.conf.sample'):
+            self.assertFalse((root / 'etc/asterisk' / name).exists())
+        self.assertFalse((root / 'etc/amportal.conf').exists())
+        self.assertNotIn('amportal:chown', events)
+        self.assertEqual((root / 'etc/asterisk/modules_additional.conf').read_text().count('noload => cdr_mysql.so\n'), 1)
+        source = (NATIVE / 'mytelpbx-netinstall.sh').read_text(encoding='utf-8')
+        body = source.split('function post_install\n{\n', 1)[1].split('\n}\n', 1)[0]
+        self.assertNotIn('issabel-admin-passwords', body)
+        self.assertNotIn('install_amp', body)
+
+    def test_regular_sample_moves_and_configured_chown_runs(self):
+        result, root, events = self.fixture(sample=True, configured=True)
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertFalse((root / 'etc/asterisk/extensions_custom.conf.sample').exists())
+        self.assertEqual((root / 'etc/asterisk/extensions_custom.conf').read_bytes(), b'[native-sample]\n')
+        self.assertEqual(events.count('amportal:chown'), 1)
+
+    def test_existing_custom_target_is_preserved_with_or_without_sample(self):
+        for sample in (False, True):
+            with self.subTest(sample=sample):
+                result, root, events = self.fixture(sample=sample, custom=True, configured=True)
+                self.assertEqual(result.returncode, 0, result.stderr)
+                self.assertEqual((root / 'etc/asterisk/extensions_custom.conf').read_bytes(),
+                                 b'[customer-kept]\nexten => fixture,1,NoOp(keep)\n')
+                self.assertEqual((root / 'etc/asterisk/extensions_custom.conf.sample').exists(), sample)
+                self.assertEqual(events.count('amportal:chown'), 1)
+
+    def test_recovery_repeat_does_not_duplicate_native_noload_line(self):
+        for sample in (False, True):
+            with self.subTest(sample=sample):
+                result, root, _events = self.fixture(sample=sample, runs=2)
+                self.assertEqual(result.returncode, 0, result.stderr)
+                self.assertEqual((root / 'etc/asterisk/modules_additional.conf').read_text(),
+                                 '; native module content\nnoload => cdr_mysql.so\n')
+
+    def test_partial_amportal_configuration_defers_missing_custom_files_but_rejects_wrong_types(self):
+        result, root, events = self.fixture(configured=True)
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertEqual(events.count('amportal:chown'), 1)
+        for name in ('extensions_custom.conf', 'extensions_custom.conf.sample'):
+            self.assertFalse((root / 'etc/asterisk' / name).exists())
+        failed, _root, events = self.fixture(configured=True,fail='chown')
+        self.assertNotEqual(failed.returncode, 0)
+        self.assertEqual(events[-1], 'amportal:chown')
+        for path in ('sample', 'custom', 'amportal', 'modules'):
+            with self.subTest(path=path):
+                self.assertNotEqual(self.fixture(invalid=path+':directory')[0].returncode, 0)
+
+    @unittest.skipUnless(os.name == 'posix', 'Native POSIX symlinks')
+    def test_symlinks_including_broken_links_are_not_treated_as_absence(self):
+        for path in ('sample', 'custom', 'amportal', 'modules'):
+            for kind in ('symlink', 'file-symlink'):
+                with self.subTest(path=path,kind=kind):
+                    result, root, _events = self.fixture(invalid=path+':'+kind)
+                    self.assertNotEqual(result.returncode, 0)
+                    other = root / 'untouched-file'
+                    if other.exists(): self.assertEqual(other.read_bytes(), b'unchanged\n')
+
+    def test_real_move_grep_or_configured_chown_errors_remain_fatal(self):
+        for failed in ('move', 'grep', 'append', 'chown'):
+            with self.subTest(failed=failed):
+                self.assertNotEqual(self.fixture(sample=True,configured=True,fail=failed)[0].returncode, 0)
+
+    def test_mysql_and_required_service_errors_still_stop_before_later_work(self):
+        for failed in ('mysql:1', 'mysql:2', 'systemctl:enable mariadb.service',
+                       'systemctl:start mariadb', 'systemctl:enable httpd'):
+            with self.subTest(failed=failed):
+                result, root, events = self.fixture(fail=failed)
+                self.assertNotEqual(result.returncode, 0)
+                self.assertEqual(events[-1], failed)
+                self.assertNotIn('amportal:chown', events)
+                self.assertEqual((root / 'etc/asterisk/modules_additional.conf').read_text(), '; native module content\n')
+
+
+@unittest.skipUnless(BASH and Path(BASH).is_file(), 'Bash is required')
 class NativeFlowTests(unittest.TestCase):
     def fixture(self, fail=''):
         temp = tempfile.TemporaryDirectory()

@@ -421,11 +421,36 @@ function post_install
   mysql -piSsAbEl.2o17 -e "SET PASSWORD FOR 'root'@'localhost' = PASSWORD('')" || exit 1
 
   #patch config files
-  echo "noload => cdr_mysql.so" >> /etc/asterisk/modules_additional.conf
+  # RPMs can precede native --init: missing pre-init files are not a failure.
+  [ -d /etc/asterisk ] && [ ! -L /etc/asterisk ] || exit 1
+  for MYTEL_NATIVE_PATH in /etc/asterisk/modules_additional.conf /etc/asterisk/extensions_custom.conf.sample /etc/asterisk/extensions_custom.conf /etc/amportal.conf; do
+    if [ -L "$MYTEL_NATIVE_PATH" ] || { [ -e "$MYTEL_NATIVE_PATH" ] && [ ! -f "$MYTEL_NATIVE_PATH" ]; }; then
+      printf 'Invalid native configuration path: %s\n' "$MYTEL_NATIVE_PATH" >&2
+      exit 1
+    fi
+  done
+  MYTEL_NATIVE_ADD_NOLOAD=1
+  if [ -e /etc/asterisk/modules_additional.conf ]; then
+    if grep -Fxq -- "noload => cdr_mysql.so" /etc/asterisk/modules_additional.conf; then
+      MYTEL_NATIVE_ADD_NOLOAD=0
+    else
+      [ "$?" = 1 ] || exit 1
+    fi
+  fi
+  if [ "$MYTEL_NATIVE_ADD_NOLOAD" = 1 ]; then
+    echo "noload => cdr_mysql.so" >> /etc/asterisk/modules_additional.conf || exit 1
+  fi
   mkdir -p /var/log/asterisk
   mkdir -p /var/log/asterisk/cdr-csv
-  mv /etc/asterisk/extensions_custom.conf.sample /etc/asterisk/extensions_custom.conf || exit 1
-  /usr/sbin/amportal chown
+  if [ ! -e /etc/asterisk/extensions_custom.conf ]; then
+    if [ -f /etc/asterisk/extensions_custom.conf.sample ]; then
+      mv -nT -- /etc/asterisk/extensions_custom.conf.sample /etc/asterisk/extensions_custom.conf || exit 1
+      [ -f /etc/asterisk/extensions_custom.conf ] && [ ! -L /etc/asterisk/extensions_custom.conf ] || exit 1
+    fi
+  fi
+  if [ -f /etc/amportal.conf ]; then
+    /usr/sbin/amportal chown || exit 1
+  fi
   ) &>>"${MYTEL_NATIVE_WORK}/netinstall.log"
 }
 

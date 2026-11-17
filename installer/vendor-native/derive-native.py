@@ -96,11 +96,44 @@ def derive(original):
     for command in ('systemctl enable mariadb.service', 'systemctl start mariadb',
                     'mysql -e "SET PASSWORD FOR \'root\'@\'localhost\' = PASSWORD(\'iSsAbEl.2o17\')"',
                     'systemctl enable httpd',
-                    'mysql -piSsAbEl.2o17 -e "SET PASSWORD FOR \'root\'@\'localhost\' = PASSWORD(\'\')"',
-                    'mv /etc/asterisk/extensions_custom.conf.sample /etc/asterisk/extensions_custom.conf'):
+                    'mysql -piSsAbEl.2o17 -e "SET PASSWORD FOR \'root\'@\'localhost\' = PASSWORD(\'\')"'):
         source = replace(source, '  ' + command + '\n', '  ' + command + ' || exit 1\n')
-    source = replace(source, '  /usr/sbin/amportal chown\n  ) &> /dev/null',
-                     '  /usr/sbin/amportal chown\n  ) &>>"${MYTEL_NATIVE_WORK}/netinstall.log"')
+    source = replace(source, '''  echo "noload => cdr_mysql.so" >> /etc/asterisk/modules_additional.conf
+  mkdir -p /var/log/asterisk
+  mkdir -p /var/log/asterisk/cdr-csv
+  mv /etc/asterisk/extensions_custom.conf.sample /etc/asterisk/extensions_custom.conf
+  /usr/sbin/amportal chown
+  ) &> /dev/null''', '''  # RPMs can precede native --init: missing pre-init files are not a failure.
+  [ -d /etc/asterisk ] && [ ! -L /etc/asterisk ] || exit 1
+  for MYTEL_NATIVE_PATH in /etc/asterisk/modules_additional.conf /etc/asterisk/extensions_custom.conf.sample /etc/asterisk/extensions_custom.conf /etc/amportal.conf; do
+    if [ -L "$MYTEL_NATIVE_PATH" ] || { [ -e "$MYTEL_NATIVE_PATH" ] && [ ! -f "$MYTEL_NATIVE_PATH" ]; }; then
+      printf 'Invalid native configuration path: %s\\n' "$MYTEL_NATIVE_PATH" >&2
+      exit 1
+    fi
+  done
+  MYTEL_NATIVE_ADD_NOLOAD=1
+  if [ -e /etc/asterisk/modules_additional.conf ]; then
+    if grep -Fxq -- "noload => cdr_mysql.so" /etc/asterisk/modules_additional.conf; then
+      MYTEL_NATIVE_ADD_NOLOAD=0
+    else
+      [ "$?" = 1 ] || exit 1
+    fi
+  fi
+  if [ "$MYTEL_NATIVE_ADD_NOLOAD" = 1 ]; then
+    echo "noload => cdr_mysql.so" >> /etc/asterisk/modules_additional.conf || exit 1
+  fi
+  mkdir -p /var/log/asterisk
+  mkdir -p /var/log/asterisk/cdr-csv
+  if [ ! -e /etc/asterisk/extensions_custom.conf ]; then
+    if [ -f /etc/asterisk/extensions_custom.conf.sample ]; then
+      mv -nT -- /etc/asterisk/extensions_custom.conf.sample /etc/asterisk/extensions_custom.conf || exit 1
+      [ -f /etc/asterisk/extensions_custom.conf ] && [ ! -L /etc/asterisk/extensions_custom.conf ] || exit 1
+    fi
+  fi
+  if [ -f /etc/amportal.conf ]; then
+    /usr/sbin/amportal chown || exit 1
+  fi
+  ) &>>"${MYTEL_NATIVE_WORK}/netinstall.log"''')
     source = replace(source, 'function set_passwords()\n{\n',
                      'function set_passwords()\n{\n'
                      '  "${MYTEL_PYTHON}" -B "${MYTEL_BUNDLE_ROOT}/installer/vendor-native/brand-native-dialogs.py" --tool completion || return 1\n'
