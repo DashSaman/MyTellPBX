@@ -85,13 +85,64 @@ SETTINGS_DB="/var/www/db/settings.db"
 FA_LANG="${WEB_ROOT}/lang/fa.lang"
 PASS_RE='^[A-Za-z0-9 ._@=!-]+$'
 
+# Linux virtual consoles cannot shape Persian even with a UTF-8 locale.
+# Capture stdin's terminal before main closes inherited credential input.
+CONSOLE_ENGLISH=0
+detect_console_language() {
+    local input_tty
+    CONSOLE_ENGLISH=0
+    input_tty=$(tty 2>/dev/null) || return 0
+    [[ "${input_tty}" =~ ^/dev/tty[0-9]+$ ]] && CONSOLE_ENGLISH=1
+    return 0
+}
+
+console_text() {
+    local text="$*"
+    if [ "${CONSOLE_ENGLISH}" = "1" ]; then
+        case "${text}" in
+            'بررسی پیش‌نیازها') text='Checking prerequisites';;
+            'پیش‌نیازها تأیید شد') text='Prerequisites verified';;
+            'دانلود بستهٔ قالب و امکانات') text='Downloading the platform bundle';;
+            'راستی‌آزمایی بسته') text='Verifying the platform bundle';;
+            'آماده‌سازی نمایش وضعیت نصب خودکار') text='Preparing installation progress display';;
+            'پیکربندی مخازن بسته‌ها') text='Configuring package repositories';;
+            'آماده‌سازی پیش‌نیازهای بومی مرکز تماس') text='Preparing native contact-center prerequisites';;
+            'به‌روزرسانی سیستم‌عامل') text='Updating the operating system';;
+            'نصب بسته‌های پایه (Asterisk 20 / MariaDB / Apache / PHP)') text='Installing base packages (Asterisk 20 / MariaDB / Apache / PHP)';;
+            'آماده‌سازی گواهی MytelPBX برای سرویس‌های وب') text='Preparing the MytelPBX web certificate';;
+            'نصب ماژول‌های مرکز تماس') text='Installing contact-center modules';;
+            'پیکربندی اولیهٔ سرویس‌های پایه') text='Configuring base services';;
+            'رمزهای موجود حفظ شد (اجرای مجدد)') text='Existing passwords preserved (repeat run)';;
+            'رمز مدیر پنل') text='Panel administrator password';;
+            'رمز MariaDB') text='MariaDB root password';;
+            'راه‌اندازی چارچوب مرکز تماس و رمزها') text='Initializing the contact-center framework and passwords';;
+            'نصب قالب و برندسازی مای‌تل') text='Installing the MytelPBX theme and branding';;
+            'نصب و اعتبارسنجی خودکار پایگاه دادهٔ کشورها (بدون نیاز به کلید)') text='Installing and verifying country databases (no key required)';;
+            'نصب و بررسی میز کار اپراتور و تحلیل گفتار خودکار') text='Installing and checking the operator desk and automatic speech analysis';;
+            'راستی‌آزمایی نهایی نصب') text='Verifying the completed installation';;
+            'راه‌اندازی مجدد در ۵ ثانیه...') text='Rebooting in 5 seconds...';;
+            'برای بارگذاری کامل سرویس‌ها یک بار راه‌اندازی مجدد توصیه می‌شود.') text='A reboot is recommended to load all services fully.';;
+            'دانلود ناموفق (تلاش '*) text="Download failed (attempt ${text#* (تلاش }";;
+            'به‌روزرسانی ناموفق (تلاش '*) text="OS update failed (attempt ${text#* (تلاش }"; text="${text/ — میرور جایگزین آزمایش می‌شود/ - trying another mirror}";;
+            *': ناموفق (تلاش '*) text="${text/: ناموفق (تلاش /: failed (attempt }"; text="${text/ — میرور جایگزین آزمایش می‌شود/ - trying another mirror}";;
+            'راه‌اندازی چارچوب پیشرفتی نداشت؛ تلاش '*) text="Framework initialization made no progress; attempt ${text#*تلاش }";;
+        esac
+    fi
+    printf '%s' "${text}"
+}
+
 log()   { printf '%s\n' "$*" >>"$LOG"; }
-say()   { printf '\033[1;36m[MytelPBX]\033[0m %s\n' "$*"; log "INFO: $*"; }
-step()  { printf '\033[1;35m==> %s\033[0m\n' "$*"; log "STEP: $*"; }
-warn()  { printf '\033[1;33m[!] %s\033[0m\n' "$*"; log "WARN: $*"; }
+say()   { printf '\033[1;36m[MytelPBX]\033[0m %s\n' "$(console_text "$*")"; log "INFO: $*"; }
+step()  { printf '\033[1;35m==> %s\033[0m\n' "$(console_text "$*")"; log "STEP: $*"; }
+warn()  { printf '\033[1;33m[!] %s\033[0m\n' "$(console_text "$*")"; log "WARN: $*"; }
 die()   {
-    printf '\n\033[1;31m[MytelPBX] نصب در مرحله «%s» متوقف شد\033[0m\n' "$*" 1>&2
-    printf '\033[1;31mگزارش کامل: %s\033[0m\n' "$LOG" 1>&2
+    if [ "${CONSOLE_ENGLISH}" = "1" ]; then
+        printf '\n\033[1;31m[MytelPBX] Installation stopped: %s\033[0m\n' "$(console_text "$*")" 1>&2
+        printf '\033[1;31mFull log: %s\033[0m\n' "$LOG" 1>&2
+    else
+        printf '\n\033[1;31m[MytelPBX] نصب در مرحله «%s» متوقف شد\033[0m\n' "$*" 1>&2
+        printf '\033[1;31mگزارش کامل: %s\033[0m\n' "$LOG" 1>&2
+    fi
     log "FATAL: $*"
     exit 1
 }
@@ -119,8 +170,8 @@ run_dnf_logged() {
         done
         media_args=("--setopt=reposdir=${MEDIA_REPOS_DIR}" --setopt=gpgcheck=1 --setopt=localpkg_gpgcheck=1)
     fi
-    PYTHONIOENCODING=utf-8 "${PY_BIN}" -u -B "${BUNDLE_DIR}/installer/dnf-progress.py" --log "${LOG}" --kind "${kind}" --check-log 9>&- || return 1
-    LC_ALL=C dnf "${media_args[@]}" "$@" 9>&- 2>&1 | PYTHONIOENCODING=utf-8 "${PY_BIN}" -u -B "${BUNDLE_DIR}/installer/dnf-progress.py" --log "${LOG}" --kind "${kind}" 9>&-
+    MYTELL_CONSOLE_ENGLISH="${CONSOLE_ENGLISH}" PYTHONIOENCODING=utf-8 "${PY_BIN}" -u -B "${BUNDLE_DIR}/installer/dnf-progress.py" --log "${LOG}" --kind "${kind}" --check-log 9>&- || return 1
+    LC_ALL=C dnf "${media_args[@]}" "$@" 9>&- 2>&1 | MYTELL_CONSOLE_ENGLISH="${CONSOLE_ENGLISH}" PYTHONIOENCODING=utf-8 "${PY_BIN}" -u -B "${BUNDLE_DIR}/installer/dnf-progress.py" --log "${LOG}" --kind "${kind}" 9>&-
     local statuses=("${PIPESTATUS[@]}")
     [ "${statuses[0]}" = "0" ] || return "${statuses[0]}"
     return "${statuses[1]}"
@@ -842,7 +893,11 @@ credential_input_is_tty() { [ -t 0 ] && [ -t 2 ]; }
 choose_password() {
     local variable="$1" selected="$2" prompt="$3"
     if [ -z "${selected}" ] && credential_input_is_tty; then
-        printf '%s (Enter = تولید خودکار): ' "${prompt}" >&2
+        if [ "${CONSOLE_ENGLISH}" = "1" ]; then
+            printf '%s (Enter = generate automatically): ' "$(console_text "${prompt}")" >&2
+        else
+            printf '%s (Enter = تولید خودکار): ' "${prompt}" >&2
+        fi
         IFS= read -r -s selected || { printf '\n' >&2; die "password input interrupted; no credentials saved"; }
         printf '\n' >&2
     fi
@@ -1590,15 +1645,27 @@ finish() {
     ip=$(hostname -I | awk '{print $1}')
     echo
     echo "=============================================================="
-    echo "   نصب MytelPBX با موفقیت کامل شد"
-    echo "=============================================================="
-    echo "   نشانی پنل:      https://${ip}/"
-    echo "   نام کاربری:     admin"
-    echo "   میز کار:        https://${ip}/MytellDesk/ (ورود با حساب مستقل میز کار)"
-    echo "   مدیر محلی میز کار: /etc/myteldesk/initial-admin.txt (فقط root)"
-    echo "   رمز‌ها:          ${CRED_FILE} (فقط root)"
-    echo "   مستندات:        github.com/DashSaman/MyTellPBX"
-    echo "   پشتیبانی:       mytel.one"
+    if [ "${CONSOLE_ENGLISH}" = "1" ]; then
+        echo "   MytelPBX installation completed successfully"
+        echo "=============================================================="
+        echo "   Panel URL:       https://${ip}/"
+        echo "   Username:        admin"
+        echo "   Operator desk:   https://${ip}/MytellDesk/ (separate Desk account)"
+        echo "   Desk admin:      /etc/myteldesk/initial-admin.txt (root only)"
+        echo "   Passwords:       ${CRED_FILE} (root only)"
+        echo "   Documentation:   github.com/DashSaman/MyTellPBX"
+        echo "   Support:         mytel.one"
+    else
+        echo "   نصب MytelPBX با موفقیت کامل شد"
+        echo "=============================================================="
+        echo "   نشانی پنل:      https://${ip}/"
+        echo "   نام کاربری:     admin"
+        echo "   میز کار:        https://${ip}/MytellDesk/ (ورود با حساب مستقل میز کار)"
+        echo "   مدیر محلی میز کار: /etc/myteldesk/initial-admin.txt (فقط root)"
+        echo "   رمز‌ها:          ${CRED_FILE} (فقط root)"
+        echo "   مستندات:        github.com/DashSaman/MyTellPBX"
+        echo "   پشتیبانی:       mytel.one"
+    fi
     echo "=============================================================="
     echo
     if [ "${REBOOT_AFTER}" = "1" ]; then
@@ -1615,6 +1682,7 @@ finish() {
 # Main
 # --------------------------------------------------------------------------
 main() {
+    detect_console_language
     mkdir -p "$(dirname "${LOG}")"
 
     echo "MytelPBX ${MYTELLPBX_VERSION} installer — $(date)" | tee -a "${LOG}"

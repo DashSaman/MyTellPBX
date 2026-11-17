@@ -37,6 +37,12 @@ kernel, expose its original signed RPM repository as an additional explicit
 source; do not substitute the currently cached latest kernel. The collector
 requests the exact kernel/core/modules/devel/headers versions, Python3.11/pip,
 tar/xz, the minimal OS environment and both installer package lists.
+It also requests `glibc-all-langpacks`: the native Rocky DVD installs this
+package with an exact-version dependency on glibc. If compiler/native-module
+dependencies require a newer glibc, the depot must include its matching language
+package so the installed sibling can upgrade without removal. This is a depot
+closure root; the online installer package lists are unchanged. Recollect and
+verify a new depot after root changes; do not merely reseal the previous output.
 DNF leaves `file://` RPMs on the original media; the collector explicitly copies
 only selected stable bytes into the new depot and rejects filename collisions.
 Original DVD/cache RPMs are never modified.

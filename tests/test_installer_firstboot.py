@@ -135,6 +135,68 @@ class FirstBootTests(unittest.TestCase):
         finish = self.source.split('finish() {', 1)[1].split('\n# ----', 1)[0]
         self.assertNotIn('${ADMIN_PASS}', finish); self.assertNotIn('${MYSQL_ROOT_PASS}', finish)
 
+    def console_setup(self, terminal):
+        return "tty(){ printf '%s\\n' " + repr(terminal) + "; }\nif declare -F detect_console_language >/dev/null; then detect_console_language; fi\n"
+
+    def test_virtual_console_has_two_readable_hidden_prompts_and_persistent_summary(self):
+        body = self.console_setup('/dev/tty2')
+        body += 'credential_input_is_tty(){ return 0; }\n'
+        body += 'read(){ { printf "%s " "$@"; printf "\\n"; } >> "${CRED_FILE}.reads"; builtin read "$@"; }\n'
+        body += 'ensure_credentials\nexec </dev/null\nsay "رمزهای موجود حفظ شد (اجرای مجدد)"\nstep "بررسی پیش‌نیازها"\n'
+        body += 'REBOOT_AFTER=0; hostname(){ printf 127.0.0.1; }; finish\n'
+        result = self.run_shell(body, 'Panel Console_12!\nDatabase Console_34=\n', env={'LANG': 'C.UTF-8'})
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertEqual(self.load_values(), {'ADMIN_PASS': 'Panel Console_12!', 'MYSQL_ROOT_PASS': 'Database Console_34='})
+        reads = Path(str(self.credentials) + '.reads').read_text().splitlines()
+        self.assertEqual(len(reads), 2)
+        self.assertTrue(all('-r' in line.split() and '-s' in line.split() for line in reads))
+        output = result.stdout + result.stderr
+        self.assertIn('Panel administrator password (Enter = generate automatically): ', output)
+        self.assertIn('MariaDB root password (Enter = generate automatically): ', output)
+        self.assertIn('installation completed successfully', output)
+        self.assertIn('/etc/myteldesk/initial-admin.txt', output)
+        self.assertNotRegex(output, r'[\u0600-\u06ff]')
+        self.assertNotIn('Panel Console_12!', output); self.assertNotIn('Database Console_34=', output)
+        self.assertIn('رمزهای موجود حفظ شد', (self.base / 'log').read_text(encoding='utf-8'))
+
+    def test_ssh_and_other_terminals_keep_persian_independent_of_locale(self):
+        for terminal in ['/dev/pts/7', '/dev/ttyS0', '/dev/console', '/dev/tty2/other', 'not a tty']:
+            with self.subTest(terminal=terminal):
+                if self.credentials.exists(): self.credentials.unlink()
+                result = self.run_shell(self.console_setup(terminal) + 'credential_input_is_tty(){ return 0; }\nensure_credentials\n', '\n\n', env={'LANG': 'en_US.UTF-8'})
+                self.assertEqual(result.returncode, 0, result.stderr)
+                self.assertIn('رمز مدیر پنل', result.stderr)
+                self.assertIn('Enter = تولید خودکار', result.stderr)
+                self.assertNotIn('Panel administrator password', result.stderr)
+
+    def test_failed_stdin_tty_query_cannot_select_console_language(self):
+        result = self.run_shell("tty(){ printf '/dev/tty2\\n'; return 1; }\nif declare -F detect_console_language >/dev/null; then detect_console_language; fi\ncredential_input_is_tty(){ return 0; }\nensure_credentials\n", '\n\n')
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertIn('رمز مدیر پنل', result.stderr)
+        self.assertNotIn('Panel administrator password', result.stderr)
+
+    def test_all_existing_persian_messages_and_fatal_heading_are_readable_on_console(self):
+        calls = re.findall(r'^\s*((?:say|step|warn) "[^"\n]*[\u0600-\u06ff][^"\n]*")', self.source, re.M)
+        self.assertGreater(len(calls), 20)
+        result = self.run_shell(self.console_setup('/dev/tty63') + 'attempt=2; label=packages\n' + '\n'.join(calls) + '\ndie "fixture failure"\n')
+        self.assertNotEqual(result.returncode, 0)
+        self.assertNotRegex(result.stdout + result.stderr, r'[\u0600-\u06ff]')
+        self.assertIn('Installation stopped: fixture failure', result.stderr)
+        self.assertIn('Full log:', result.stderr)
+        self.assertRegex((self.base / 'log').read_text(encoding='utf-8'), r'[\u0600-\u06ff]')
+
+    def test_virtual_console_dnf_counters_are_english_and_raw_output_stays_private(self):
+        body = self.console_setup('/dev/tty2') + 'BUNDLE_DIR=' + repr(ROOT.as_posix()) + '\n'
+        body += "dnf(){ printf 'PrivateRepositoryToken\\n(1/3): package.rpm 1 kB/s\\n  Installing : package 2/3\\n  Verifying : package 3/3\\n'; return 42; }\nrun_dnf_logged packages -y install fixture\n"
+        result = self.run_shell(body)
+        self.assertEqual(result.returncode, 42, result.stderr)
+        self.assertNotRegex(result.stdout, r'[\u0600-\u06ff]')
+        self.assertIn('1 of 3', result.stdout)
+        self.assertIn('2 of 3', result.stdout)
+        self.assertIn('3 of 3', result.stdout)
+        self.assertNotIn('PrivateRepositoryToken', result.stdout + result.stderr)
+        self.assertIn('PrivateRepositoryToken', (self.base / 'log').read_text(encoding='utf-8'))
+
     def test_framework_and_selfcheck_use_hard_verifiers(self):
         framework = self.source.split('stage_framework_init() {', 1)[1].split('\n# ----', 1)[0]
         selfcheck = self.source.split('stage_selfcheck() {', 1)[1].split('\nfinish()', 1)[0]
@@ -163,7 +225,8 @@ class FirstBootTests(unittest.TestCase):
         body = 'STATE_DIR=' + repr((self.base / 'state').as_posix()) + '\n'
         # Every provisioning/host interaction is replaced; only the real main,
         # credential collector and writes inside this temporary fixture run.
-        body += '''credential_input_is_tty(){ return 0; }
+        body += '''tty(){ printf '/dev/tty2\\n'; }
+credential_input_is_tty(){ return 0; }
 preflight(){ :; }; acquire_lock(){ :; }; write_install_source(){ :; }; initialize_workspace(){ :; }; verify_bundle(){ :; }
 ensure_asterisk_identity(){ :; }
 repair_platform_catalog(){ :; }
@@ -180,6 +243,9 @@ stage_mytel_layer(){ :; }; stage_webrtc_dtls(){ :; }; stage_geoip(){ :; }; stage
         self.assertEqual(self.load_values(), {'ADMIN_PASS': 'ChosenPanel!', 'MYSQL_ROOT_PASS': 'ChosenDatabase='})
         self.assertEqual(inherited.read_text(), 'EOF')
         self.assertEqual(explicit.read_text(), 'ExplicitPipeInput')
+        self.assertIn('Panel administrator password (Enter = generate automatically)', result.stderr)
+        self.assertIn('MariaDB root password (Enter = generate automatically)', result.stderr)
+        self.assertNotRegex(result.stdout + result.stderr, r'[\u0600-\u06ff]')
 
 
 if __name__ == '__main__': unittest.main()

@@ -305,6 +305,21 @@ def main():
 
 if __name__ == '__main__':
     try: main()
-    except (OSError, ValueError, KeyError, IndexError, subprocess.SubprocessError):
+    except (OSError, ValueError, KeyError, IndexError, subprocess.SubprocessError) as error:
+        frame = error.__traceback__
+        while frame and frame.tb_next: frame = frame.tb_next
+        code = frame.tb_frame.f_code if frame else None
+        public = code and code.co_filename == __file__ and code in {
+            value.__code__ for value in list(globals().values()) if type(value) is type(main)}
+        function = code.co_name if public and re.fullmatch('[A-Za-z_][A-Za-z0-9_]{0,63}', code.co_name) else 'unknown'
+        known = {'OSError','ValueError','KeyError','IndexError','SubprocessError','CalledProcessError','TimeoutExpired',
+                 'FileNotFoundError','PermissionError','FileExistsError','NotADirectoryError','IsADirectoryError',
+                 'TimeoutError','UnicodeDecodeError','UnicodeEncodeError','JSONDecodeError'}
+        record = dict(event='pjsip_websocket_refused', error_class=type(error).__name__ if type(error).__name__ in known else 'unknown',
+                      phase=sys.argv[1] if len(sys.argv)>1 and sys.argv[1] in ('prepare','activate') else 'unknown',
+                      file='prepare-pjsip-websocket.py' if public else 'unknown', function=function,
+                      line=frame.tb_lineno if frame and 0 < frame.tb_lineno <= 10000000 else 0)
+        try: print(json.dumps(record, sort_keys=True), file=sys.stderr)
+        except (OSError, ValueError): pass
         print('MyTellPBX WebSocket bootstrap refused; native state and private intent retained.', file=sys.stderr)
         sys.exit(1)

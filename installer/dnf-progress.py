@@ -14,15 +14,16 @@ import sys
 import time
 
 KINDS = {'update': 'به‌روزرسانی سیستم', 'packages': 'نصب بسته‌ها', 'repositories': 'آماده‌سازی مخازن'}
+ENGLISH_KINDS = {'update': 'System update', 'packages': 'Package installation', 'repositories': 'Repository setup'}
 DOWNLOAD = re.compile(rb'^\(\s*([0-9]{1,9})\s*/\s*([0-9]{1,9})\s*\):\s')
 TRANSACTION = re.compile(rb'^\s*(Installing|Upgrading|Updating|Downgrading|Reinstalling|Erasing|Cleanup|Verifying|Running scriptlet|Preparing)\s*:\s+.*?\s+([0-9]{1,9})\s*/\s*([0-9]{1,9})\s*$')
 
 
 class ProgressReporter:
-    def __init__(self, output, kind, clock=time.monotonic, interval=30.0):
+    def __init__(self, output, kind, clock=time.monotonic, interval=30.0, english=False):
         if kind not in KINDS:
             raise ValueError('Unknown DNF stage kind')
-        self.output = output; self.kind = kind; self.clock = clock
+        self.output = output; self.kind = kind; self.clock = clock; self.english = english
         self.interval = interval; self.last_emit = None; self.seen = set()
 
     def observe(self, record):
@@ -43,7 +44,11 @@ class ProgressReporter:
         # immediately. Alternating scriptlet/install lines share one category.
         if major in self.seen and self.last_emit is not None and now - self.last_emit < self.interval:
             return
-        self.output.write('[MyTellPBX] {}: {} {} از {}\n'.format(KINDS[self.kind], label, current, total))
+        if self.english:
+            label = {'download': 'Download', 'verify': 'Verification', 'transaction': 'Transaction'}[major]
+            self.output.write('[MyTellPBX] {}: {} {} of {}\n'.format(ENGLISH_KINDS[self.kind], label, current, total))
+        else:
+            self.output.write('[MyTellPBX] {}: {} {} از {}\n'.format(KINDS[self.kind], label, current, total))
         self.output.flush(); self.seen.add(major); self.last_emit = now
 
 
@@ -110,20 +115,24 @@ def main():
     parser.add_argument('--kind', required=True, choices=sorted(KINDS))
     parser.add_argument('--check-log', action='store_true', help='validate private logging before DNF starts')
     args = parser.parse_args()
+    english = os.environ.get('MYTELL_CONSOLE_ENGLISH') == '1'
     try:
         with open_private_log(args.log) as private_log:
             if args.check_log: return 0
             console_failed = False
             try:
-                print('[MyTellPBX] {}: در حال اجرا؛ گزارش کامل در فایل خصوصی نصب ثبت می‌شود.'.format(KINDS[args.kind]), flush=True)
+                if english:
+                    print('[MyTellPBX] {}: running; full output is recorded in the private installer log.'.format(ENGLISH_KINDS[args.kind]), flush=True)
+                else:
+                    print('[MyTellPBX] {}: در حال اجرا؛ گزارش کامل در فایل خصوصی نصب ثبت می‌شود.'.format(KINDS[args.kind]), flush=True)
             except (OSError, ValueError): console_failed = True
-            valid = copy_progress(sys.stdin.buffer, private_log, ProgressReporter(sys.stdout, args.kind), console_failed=console_failed)
+            valid = copy_progress(sys.stdin.buffer, private_log, ProgressReporter(sys.stdout, args.kind, english=english), console_failed=console_failed)
             if not valid: return 1
     except (OSError, ValueError):
         if not args.check_log:
             read = getattr(sys.stdin.buffer, 'read1', sys.stdin.buffer.read)
             while read(65536): pass
-        try: print('[MyTellPBX] ثبت امن گزارش بسته‌ها ناموفق بود؛ نصب متوقف شد.', file=sys.stderr)
+        try: print('[MyTellPBX] Private package logging failed; installation stopped.' if english else '[MyTellPBX] ثبت امن گزارش بسته‌ها ناموفق بود؛ نصب متوقف شد.', file=sys.stderr)
         except (OSError, ValueError): pass
         return 1
     return 0

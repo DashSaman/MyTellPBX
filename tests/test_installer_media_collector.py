@@ -27,7 +27,7 @@ class CollectorTests(unittest.TestCase):
 
     def test_kernel_and_minimal_prerequisites_are_real_resolver_roots(self):
         roots=self.c.package_roots(['asterisk20','httpd'],['issabel'], '4.18.0-553.134.1.el8_10.x86_64')
-        for name in ['@^minimal-environment','policycoreutils','python3.11','python3.11-pip',
+        for name in ['@^minimal-environment','glibc-all-langpacks','policycoreutils','python3.11','python3.11-pip',
                      'kernel-devel-4.18.0-553.134.1.el8_10.x86_64','kernel-headers-4.18.0-553.134.1.el8_10.x86_64']:
             self.assertIn(name,roots)
         self.assertEqual(len(roots),len(set(roots)))
@@ -238,6 +238,7 @@ class CollectorTests(unittest.TestCase):
         bootstrap.write_text('MYTELLPBX_VERSION="7.6.2"\nMYTELLPBX_BUNDLE_SHA256="'+self.c.digest(bundle)+'"\n')
         value=self.c.inputs(bootstrap,bundle,desk,'4.18.0-553.134.1.el8_10.x86_64')
         self.assertIn('issabel',value['roots']);self.assertEqual(value['desk']['version'],'1.1.2')
+        self.assertIn('glibc-all-langpacks',value['roots'])
         bundle.write_bytes(b'changed')
         with self.assertRaises(ValueError):self.c.inputs(bootstrap,bundle,desk,'4.18.0-553.134.1.el8_10.x86_64')
 

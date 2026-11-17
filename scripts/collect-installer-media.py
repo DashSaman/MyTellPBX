@@ -100,7 +100,8 @@ def stage_rpm(source, directory, expected_size):
 def package_roots(stage1, stage2, kernel):
     if not re.fullmatch(r'4\.18\.0-[A-Za-z0-9_.]+\.x86_64', kernel):
         raise ValueError('Exact installed Rocky8.10 kernel release required')
-    values = list(stage1) + list(stage2) + ['@^minimal-environment', 'policycoreutils', 'tar', 'xz', 'python3.11', 'python3.11-pip']
+    # The Rocky DVD installs this exact-glibc sibling; retain its upgrade candidate.
+    values = list(stage1) + list(stage2) + ['@^minimal-environment', 'glibc-all-langpacks', 'policycoreutils', 'tar', 'xz', 'python3.11', 'python3.11-pip']
     values += [name + '-' + kernel for name in ['kernel', 'kernel-core', 'kernel-modules', 'kernel-devel', 'kernel-headers']]
     if any(not re.fullmatch(r'@\^[a-z0-9_-]+|[A-Za-z0-9_.+:-]+', p) for p in values):
         raise ValueError('Invalid package root')

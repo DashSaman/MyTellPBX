@@ -1,4 +1,8 @@
 """Fresh-only native WebSocket ownership; all subprocesses are fixture-owned."""
+import ast
+import contextlib
+import io
+import sys
 import importlib.util
 import copy
 import json
@@ -14,6 +18,63 @@ ROOT = Path(__file__).resolve().parents[1]
 SPEC = importlib.util.spec_from_file_location('pjsip_websocket', ROOT / 'installer/prepare-pjsip-websocket.py')
 WS = importlib.util.module_from_spec(SPEC)
 SPEC.loader.exec_module(WS)
+
+
+
+class FailureObservabilityTests(unittest.TestCase):
+    def catch_failure(self, error, phase, filename=None):
+        script = ROOT / 'installer/prepare-pjsip-websocket.py'
+        source = ast.parse(script.read_text(encoding='utf-8'))
+        entry = source.body[-1]
+        self.assertIsInstance(entry, ast.If)
+        block = ast.Module(body=entry.body)
+        if hasattr(ast, 'TypeIgnore'): block.type_ignores = []
+        namespace = dict(WS.__dict__)
+        # Only this inert fixture main executes; the real helper/native guards do not.
+        fake = compile('def main():\n    raise SENTINEL_ERROR\n', filename or str(script), 'exec')
+        exec(fake, namespace)
+        namespace['SENTINEL_ERROR'] = error
+        output = io.StringIO()
+        with mock.patch.object(sys, 'argv', [str(script), phase, 'PrivateSentinel_Secret']), contextlib.redirect_stderr(output):
+            with self.assertRaises(SystemExit) as result:
+                exec(compile(ast.fix_missing_locations(block), str(script), 'exec'), namespace)
+        self.assertEqual(result.exception.code, 1)
+        lines = output.getvalue().splitlines()
+        self.assertEqual(lines[-1], 'MyTellPBX WebSocket bootstrap refused; native state and private intent retained.')
+        self.assertEqual(len(lines), 2, 'Expected one structured metadata line and the unchanged generic refusal')
+        record = json.loads(lines[0])
+        self.assertEqual(set(record), {'event','error_class','phase','file','function','line'})
+        self.assertEqual(record['event'], 'pjsip_websocket_refused')
+        self.assertIs(type(record['line']), int)
+        self.assertTrue(0 <= record['line'] <= 10000000)
+        self.assertNotIn('PrivateSentinel', output.getvalue())
+        self.assertNotIn('/private/', output.getvalue())
+        self.assertNotIn('password=', output.getvalue())
+        return record
+
+    def test_exception_metadata_never_contains_messages_paths_commands_or_native_output(self):
+        cases = [(ValueError('PrivateSentinel_Secret password=/private/config'), 'ValueError'),
+                 (OSError(13, 'PrivateSentinel_Secret', '/private/PrivateSentinel/file'), 'PermissionError'),
+                 (KeyError('PrivateSentinel_Secret'), 'KeyError'),
+                 (subprocess.CalledProcessError(7, ['/private/PrivateSentinel/tool','password=PrivateSentinel'],
+                                               output=b'PrivateSentinel_stdout', stderr=b'PrivateSentinel_stderr'), 'CalledProcessError'),
+                 (subprocess.TimeoutExpired(['/private/PrivateSentinel/tool'], 3,
+                                            output=b'PrivateSentinel_stdout', stderr=b'PrivateSentinel_stderr'), 'TimeoutExpired'),
+                 (type('PrivateSentinel_Secret', (ValueError,), {})('PrivateSentinel'), 'unknown')]
+        for error, name in cases:
+            for phase in ['prepare','activate','PrivateSentinel_Secret']:
+                with self.subTest(error_class=name, phase=phase):
+                    record = self.catch_failure(error, phase)
+                    self.assertEqual(record['error_class'], name)
+                    self.assertEqual(record['phase'], phase if phase in ['prepare','activate'] else 'unknown')
+                    self.assertEqual(record['file'], 'prepare-pjsip-websocket.py')
+                    self.assertEqual(record['function'], 'main')
+                    self.assertGreater(record['line'], 0)
+
+    def test_nonpublic_traceback_filename_and_function_are_not_disclosed(self):
+        record = self.catch_failure(ValueError('PrivateSentinel_Secret'), 'prepare',
+                                    '/private/PrivateSentinel_customer.py')
+        self.assertEqual((record['file'],record['function']), ('unknown','unknown'))
 
 
 class NativeRowsTests(unittest.TestCase):

@@ -84,6 +84,34 @@ class DnfProgressTests(unittest.TestCase):
             status = self.module.main()
         return status, log, output
 
+    def test_console_language_preserves_private_bytes_counters_and_failure_drain(self):
+        class BrokenConsole:
+            def write(self, _data): raise BrokenPipeError('fixture')
+            def flush(self): pass
+        fixture = b'RawSecret URL=https://private.invalid\n(176/200): private-package\n'
+        for english in ['0', '1']:
+            with self.subTest(english=english), patch.dict(os.environ, {'MYTELL_CONSOLE_ENGLISH': english}):
+                log_path = self.base / 'direct.log'
+                if log_path.exists(): log_path.unlink()
+                status, log, output = self.invoke_main(io.BytesIO(fixture))
+                self.assertEqual(status, 0); self.assertEqual(log.read_bytes(), fixture)
+                self.assertIn('176 of 200' if english == '1' else '176 از 200', output.getvalue())
+                if english == '1': self.assertNotRegex(output.getvalue(), r'[\u0600-\u06ff]')
+                self.assertNotIn('RawSecret', output.getvalue()); self.assertNotIn('private-package', output.getvalue())
+                log_path.unlink()
+                source = io.BytesIO(fixture + b'x' * 70000 + b'\n')
+                status, log, _output = self.invoke_main(source, BrokenConsole())
+                self.assertEqual(status, 1); self.assertEqual(source.tell(), len(fixture) + 70001)
+                self.assertEqual(log.read_bytes(), fixture + b'x' * 70000 + b'\n')
+                error_output = io.StringIO(); source = io.BytesIO(fixture)
+                with patch.object(self.module, 'open_private_log', side_effect=OSError('fixture error')), \
+                     patch.object(sys, 'argv', [str(SCRIPT), '--log', str(log_path), '--kind', 'update']), \
+                     patch.object(sys, 'stdin', SimpleNamespace(buffer=source)), patch.object(sys, 'stderr', error_output):
+                    self.assertEqual(self.module.main(), 1)
+                self.assertEqual(source.tell(), len(fixture))
+                self.assertIn('Private package logging failed' if english == '1' else 'ثبت امن گزارش', error_output.getvalue())
+                if english == '1': self.assertNotRegex(error_output.getvalue(), r'[\u0600-\u06ff]')
+
     def test_main_check_log_never_reads_input_or_prints_progress(self):
         class UnreadInput:
             def read(self, _size): raise AssertionError('check-log must never read stdin')
@@ -172,9 +200,25 @@ class DnfProgressTests(unittest.TestCase):
     @unittest.skipIf(os.name != 'posix', 'Native POSIX FIFO boundary')
     def test_log_fifo_is_refused_without_blocking(self):
         fifo = self.base / 'fifo'; os.mkfifo(str(fifo), 0o600)
-        code = "import importlib.util,sys; s=importlib.util.spec_from_file_location('p',sys.argv[1]);m=importlib.util.module_from_spec(s);s.loader.exec_module(m);m.open_private_log(sys.argv[2])"
+        # Expected refusal is a test result, not an unhandled crash-report event.
+        # Unexpected exceptions must never satisfy this exact sentinel assertion.
+        code = """import errno, importlib.util, sys
+s=importlib.util.spec_from_file_location('p',sys.argv[1])
+m=importlib.util.module_from_spec(s);s.loader.exec_module(m)
+try:
+    stream=m.open_private_log(sys.argv[2])
+except OSError as error:
+    if error.errno != errno.ENXIO: raise
+    sys.exit(23)
+except ValueError as error:
+    if str(error) != 'DNF log must be a regular file': raise
+    sys.exit(23)
+else:
+    stream.close()
+    sys.exit(0)
+"""
         result = subprocess.run([sys.executable, '-c', code, str(SCRIPT), str(fifo)], stdout=subprocess.PIPE, stderr=subprocess.PIPE, timeout=2)
-        self.assertNotEqual(result.returncode, 0)
+        self.assertEqual(result.returncode, 23, result.stderr)
 
     def test_only_dnf_paths_use_progress_and_bundle_contains_logger(self):
         source = (ROOT / 'install-mytellpbx.sh').read_text(encoding='utf-8')
