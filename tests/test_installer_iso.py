@@ -106,6 +106,25 @@ class IsoTests(unittest.TestCase):
         lines=out.splitlines();self.assertIn('inst.ks=hd:LABEL=MytelPBX-7.6.2:/ks/mytelpbx.ks',lines[1])
         self.assertNotIn('inst.ks=',lines[2]);self.assertIn('inst.rescue',lines[2])
 
+    def test_syslinux_root_branding_preserves_troubleshooting_submenu_and_boot_options(self):
+        # Native Syslinux pattern: root title, then an independently named menu.
+        raw=('menu title Rocky Linux 8.10\n'
+             'label linux\n  menu label ^Install Rocky Linux 8.10\n'
+             '  append initrd=initrd.img inst.stage2=hd:LABEL=Rocky-8-10-x86_64-dvd quiet rd.live.check\n'
+             'menu begin ^Troubleshooting\n  menu title Troubleshooting\n'
+             'label rescue\n  menu label ^Rescue a Rocky Linux system\n'
+             '  append initrd=initrd.img inst.stage2=hd:LABEL=Rocky-8-10-x86_64-dvd inst.rescue quiet\n'
+             'menu begin Advanced\n  menu title Advanced diagnostics\nmenu end\nmenu end\n')
+        out=self.b.boot_config(raw,'Rocky-8-10-x86_64-dvd','MytelPBX-7.6.2','7.6.2')
+        self.assertEqual([line.strip()for line in out.splitlines()if line.strip().startswith('menu title ')],
+                         ['menu title MytelPBX 7.6.2 - https://mytel.one',
+                          'menu title Troubleshooting','menu title Advanced diagnostics'])
+        self.assertIn('menu begin ^Troubleshooting\n',out);self.assertIn('menu begin Advanced\n',out)
+        actual=[line.strip()for line in out.splitlines()if line.strip().startswith('append ')]
+        self.assertEqual(actual,[
+            'append initrd=initrd.img inst.stage2=hd:LABEL=MytelPBX-7.6.2 quiet rd.live.check inst.ks=hd:LABEL=MytelPBX-7.6.2:/ks/mytelpbx.ks',
+            'append initrd=initrd.img inst.stage2=hd:LABEL=MytelPBX-7.6.2 inst.rescue quiet'])
+
     def test_output_scope_and_exclusive_publication_preserve_existing(self):
         with tempfile.TemporaryDirectory()as d:
             root=Path(d);source=root/'temporary';source.write_bytes(b'new');out=root/'output.iso';out.write_bytes(b'old')

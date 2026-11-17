@@ -4,6 +4,6 @@
   <rect x="40" y="96" width="560" height="3" rx="1.5" fill="#f7941d"/>
   <g font-family="DejaVu Sans,sans-serif" text-anchor="middle">
     <text x="320" y="70" font-size="44" font-weight="700" fill="#ffffff">Mytel<tspan fill="#f7941d">PBX</tspan></text>
-    <text x="320" y="453" font-size="19" fill="#ffffff">https://mytel.one</text>
+    <text x="320" y="395" font-size="19" fill="#ffffff">https://mytel.one</text>
   </g>
 </svg>

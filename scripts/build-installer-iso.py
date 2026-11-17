@@ -63,9 +63,11 @@ def boot_config(text,old_label,new_label,version):
     text=text.replace(old_label,new_label)
     text=text.replace('Rocky Linux 8.10','MytelPBX '+version).replace('Rocky Linux system','MytelPBX system')
     if 'Issabel'in text:raise ValueError('Wrong base boot configuration')
-    result=[]
+    result=[];root_title_changed=False
     for line in text.splitlines():
-        if line.lstrip().startswith('menu title '):line='menu title MytelPBX '+version+' - https://mytel.one'
+        if line.lstrip().startswith('menu title ')and not root_title_changed:
+            line='menu title MytelPBX '+version+' - https://mytel.one'
+            root_title_changed=True
         if line.lstrip().startswith('menuentry ')and'MytelPBX'in line:
             line=line.replace("' --class"," - https://mytel.one' --class",1)
         if 'inst.stage2='in line and not re.search(r'(?:^|\s)(?:inst\.rescue|rescue)(?:\s|$)',line):
