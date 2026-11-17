@@ -117,12 +117,18 @@ see [the third-party notices](../THIRD_PARTY_NOTICES.md).
 
 ## Owner-lab native ISO
 
-The separate ISO remasters the original **Issabel 5 ISO**, retaining its original
-RPM depot/metadata, native `@^issabelast20`, `@rbl` and `@guru` package groups,
-`/installamp` trigger and native firstboot/password command. This ISO therefore
-uses the original **Asterisk 20** profile. The native firstboot success hook runs
-only the shared Mytel add-on after native setup; it does not run another PBX core
-installer.
+The separate ISO remasters the original **Issabel 5 ISO**, retaining its RPM bytes,
+non-group repository metadata, `/installamp` trigger and native firstboot/password
+command. The native **Software Selection** screen offers **MytelPBX with Asterisk
+16, 18 or 20**. Open that screen from Installation Summary, select the version,
+and finish the selection before beginning installation. The original **20 default**
+remains available; it does not lock the choice.
+
+The missing native 16 environment references the existing Asterisk 16 group;
+existing package/group identifiers and optional `rbl`/`guru` choices remain intact.
+Only the environment/human-label metadata and its repository index are updated.
+The native firstboot success hook runs only the shared Mytel add-on after native
+setup; it does not run another PBX core installer.
 
 The ISO retains the vendor Kickstart storage policy, including `clearpart --all
 --initlabel` and automatic ext4 partitioning. It is for the designated fresh lab

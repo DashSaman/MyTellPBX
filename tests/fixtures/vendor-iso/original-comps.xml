@@ -1,0 +1,1129 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE comps PUBLIC "-//CentOS//DTD Comps info//EN" "comps.dtd">
+<comps>
+  <group>
+    <id>core</id>
+    <name>Core</name>
+    <name xml:lang="af">Kern</name>
+    <name xml:lang="am">ማዕከላዊ ቦታ</name>
+    <name xml:lang="ar">اللبّ</name>
+    <name xml:lang="as">ভিত্তি</name>
+    <name xml:lang="bal">هستگ</name>
+    <name xml:lang="be">Падмурак</name>
+    <name xml:lang="bg">Основа</name>
+    <name xml:lang="bn">কোর</name>
+    <name xml:lang="bn_IN">কোর</name>
+    <name xml:lang="bs">Jezgra</name>
+    <name xml:lang="ca">Nucli</name>
+    <name xml:lang="cs">Úplný základ</name>
+    <name xml:lang="cy">Craidd</name>
+    <name xml:lang="da">Grundlæggende</name>
+    <name xml:lang="de">Kern</name>
+    <name xml:lang="el">Πυρήνας</name>
+    <name xml:lang="en_GB">Core</name>
+    <name xml:lang="es">Núcleo</name>
+    <name xml:lang="et">Tuum</name>
+    <name xml:lang="fa">اصل</name>
+    <name xml:lang="fi">Keskeiset</name>
+    <name xml:lang="fr">Core</name>
+    <name xml:lang="gl">Núcleo</name>
+    <name xml:lang="gu">મૂળ</name>
+    <name xml:lang="he">ליבה</name>
+    <name xml:lang="hi">कोर</name>
+    <name xml:lang="hr">Jezgra</name>
+    <name xml:lang="hu">Mag</name>
+    <name xml:lang="hy">Հիմք</name>
+    <name xml:lang="ia">Nucleo</name>
+    <name xml:lang="id">Inti</name>
+    <name xml:lang="ilo">Bugas</name>
+    <name xml:lang="is">Lágmarkskerfi</name>
+    <name xml:lang="it">Principale</name>
+    <name xml:lang="ja">コア</name>
+    <name xml:lang="ka">ბირთვი</name>
+    <name xml:lang="kn">ಅಂತಸ್ಸಾರ</name>
+    <name xml:lang="ko">핵심</name>
+    <name xml:lang="lv">Pamatsistēma</name>
+    <name xml:lang="mai">कोर</name>
+    <name xml:lang="mk">Основни</name>
+    <name xml:lang="ml">കോറ്‍</name>
+    <name xml:lang="mr">कोर</name>
+    <name xml:lang="ms">Teras</name>
+    <name xml:lang="nb">Kjerne</name>
+    <name xml:lang="ne">कोर</name>
+    <name xml:lang="nl">Kern</name>
+    <name xml:lang="no">Kjerne</name>
+    <name xml:lang="nso">Bogare</name>
+    <name xml:lang="or">ପ୍ରମୂଖ</name>
+    <name xml:lang="pa">ਮੂਲ</name>
+    <name xml:lang="pl">Rdzeń</name>
+    <name xml:lang="pt">Núcleo</name>
+    <name xml:lang="pt_BR">Núcleo</name>
+    <name xml:lang="ro">Nucleu</name>
+    <name xml:lang="ru">Основа</name>
+    <name xml:lang="si">න්‍යෂ්ඨිය</name>
+    <name xml:lang="sk">Jadro</name>
+    <name xml:lang="sl">Jedro</name>
+    <name xml:lang="sq">Bërthama</name>
+    <name xml:lang="sr">Срж</name>
+    <name xml:lang="sr@latin">Srž</name>
+    <name xml:lang="sr@Latn">Srž</name>
+    <name xml:lang="sv">Grund</name>
+    <name xml:lang="ta">கோர்</name>
+    <name xml:lang="te">అంతర్భాగం</name>
+    <name xml:lang="tg">Система</name>
+    <name xml:lang="th">แกนหลัก</name>
+    <name xml:lang="tr">Çekirdek</name>
+    <name xml:lang="uk">Основа</name>
+    <name xml:lang="ur">مرکز</name>
+    <name xml:lang="vi">Lõi</name>
+    <name xml:lang="zh_CN">核心</name>
+    <name xml:lang="zh_TW">核心</name>
+    <name xml:lang="zu">Okuyikhona</name>
+    <description>Smallest possible installation.</description>
+    <description xml:lang="as">ন্যূনতম ইনস্টল।</description>
+    <description xml:lang="bn">ন্যূনতম ইনস্টলেশন।</description>
+    <description xml:lang="bn_IN">ন্যূনতম ইনস্টলেশন।</description>
+    <description xml:lang="cs">Nejmenší možná instalace.</description>
+    <description xml:lang="de">Kleinstmögliche Installation.</description>
+    <description xml:lang="es">La instalación más pequeña posible.</description>
+    <description xml:lang="fr">Plus petite installation possible.</description>
+    <description xml:lang="gu">નાનામાં નાના શક્ય સ્થાપન.</description>
+    <description xml:lang="hi">लघुतम संभावित संस्थापन.</description>
+    <description xml:lang="ia">Le minime possibile installation.</description>
+    <description xml:lang="it">Minima installazione possibile.</description>
+    <description xml:lang="ja">最小限のインストール</description>
+    <description xml:lang="kn">ಅತ್ಯಲ್ಪಸಾಧ್ಯ ಅನುಸ್ಥಾಪನೆ.</description>
+    <description xml:lang="ko">가능한 최소 설치</description>
+    <description xml:lang="ml">സാധ്യമായ ഏറ്റവും ചെറിയ ഇന്‍സ്റ്റലേഷന്‍.</description>
+    <description xml:lang="mr">शक्यतया सर्वात लहान प्रतिष्ठापन.</description>
+    <description xml:lang="or">କ୍ଷୁଦ୍ରତମ ସମ୍ଭାବ୍ଯ ସ୍ଥାପନା।</description>
+    <description xml:lang="pa">ਘੱਟੋ-ਘੱਟ ਸੰਭਵ ਇੰਸਟਾਲੇਸ਼ਨ।</description>
+    <description xml:lang="pl">Najmniejsza możliwa instalacja.</description>
+    <description xml:lang="pt_BR">Menor instalação possível</description>
+    <description xml:lang="ru">Минимально возможная установка</description>
+    <description xml:lang="sv">Minsta möjliga installation</description>
+    <description xml:lang="ta">மிகச் சிறிய செயல்படுத்தக்கூடிய நிறுவல்.</description>
+    <description xml:lang="te">సాధ్యమగు అతిచిన్న సంస్థాపన.</description>
+    <description xml:lang="uk">Мінімально можливе встановлення.</description>
+    <description xml:lang="zh_CN">最小可能安装。</description>
+    <description xml:lang="zh_TW">最小型安裝。</description>
+    <default>false</default>
+    <uservisible>false</uservisible>
+    <packagelist>
+      <packagereq type="default">aic94xx-firmware</packagereq>
+      <packagereq type="default">alsa-firmware</packagereq>
+      <packagereq type="default">at</packagereq>
+      <packagereq type="default">bfa-firmware</packagereq>
+      <packagereq type="default">dracut-config-rescue</packagereq>
+      <packagereq type="default">ivtv-firmware</packagereq>
+      <packagereq type="default">iwl1000-firmware</packagereq>
+      <packagereq type="default">iwl100-firmware</packagereq>
+      <packagereq type="default">iwl105-firmware</packagereq>
+      <packagereq type="default">iwl135-firmware</packagereq>
+      <packagereq type="default">iwl2000-firmware</packagereq>
+      <packagereq type="default">iwl2030-firmware</packagereq>
+      <packagereq type="default">iwl3160-firmware</packagereq>
+      <packagereq type="default">iwl3945-firmware</packagereq>
+      <packagereq type="default">iwl4965-firmware</packagereq>
+      <packagereq type="default">iwl5000-firmware</packagereq>
+      <packagereq type="default">iwl5150-firmware</packagereq>
+      <packagereq type="default">iwl6000-firmware</packagereq>
+      <packagereq type="default">iwl6000g2a-firmware</packagereq>
+      <packagereq type="default">iwl6000g2b-firmware</packagereq>
+      <packagereq type="default">iwl6050-firmware</packagereq>
+      <packagereq type="default">iwl7260-firmware</packagereq>
+      <packagereq type="default">kernel-tools</packagereq>
+      <packagereq type="default">libertas-sd8686-firmware</packagereq>
+      <packagereq type="default">libertas-sd8787-firmware</packagereq>
+      <packagereq type="default">libertas-usb8388-firmware</packagereq>
+      <packagereq type="default">linux-firmware</packagereq>
+      <packagereq type="default">microcode_ctl</packagereq>
+      <packagereq type="default">NetworkManager</packagereq>
+      <packagereq type="default">NetworkManager-tui</packagereq>
+      <packagereq type="default">postfix</packagereq>
+      <packagereq type="default">ql2100-firmware</packagereq>
+      <packagereq type="default">ql2200-firmware</packagereq>
+      <packagereq type="default">ql23xx-firmware</packagereq>
+      <packagereq type="mandatory">audit</packagereq>
+      <packagereq type="mandatory">basesystem</packagereq>
+      <packagereq type="mandatory">bash</packagereq>
+      <packagereq type="mandatory">biosdevname</packagereq>
+      <packagereq type="mandatory">btrfs-progs</packagereq>
+      <packagereq type="mandatory">coreutils</packagereq>
+      <packagereq type="mandatory">dosfstools</packagereq>
+      <packagereq type="mandatory">cronie</packagereq>
+      <packagereq type="mandatory">curl</packagereq>
+      <packagereq type="mandatory">dhclient</packagereq>
+      <packagereq type="mandatory">e2fsprogs</packagereq>
+      <packagereq type="mandatory">filesystem</packagereq>
+      <packagereq type="mandatory">glibc</packagereq>
+      <packagereq type="mandatory">hostname</packagereq>
+      <packagereq type="mandatory">initscripts</packagereq>
+      <packagereq type="mandatory">iproute</packagereq>
+      <packagereq type="mandatory">iprutils</packagereq>
+      <packagereq type="mandatory">iptables</packagereq>
+      <packagereq type="mandatory">iptables-devel</packagereq>
+      <packagereq type="mandatory">iputils</packagereq>
+      <packagereq type="mandatory">irqbalance</packagereq>
+      <packagereq type="mandatory">kbd</packagereq>
+      <packagereq type="mandatory">kexec-tools</packagereq>
+      <packagereq type="mandatory">less</packagereq>
+      <packagereq type="mandatory">man-db</packagereq>
+      <packagereq type="mandatory">ncurses</packagereq>
+      <packagereq type="mandatory">openssh-clients</packagereq>
+      <packagereq type="mandatory">openssh-server</packagereq>
+      <packagereq type="mandatory">parted</packagereq>
+      <packagereq type="mandatory">passwd</packagereq>
+      <packagereq type="mandatory">plymouth</packagereq>
+      <packagereq type="mandatory">policycoreutils</packagereq>
+      <packagereq type="mandatory">procps-ng</packagereq>
+      <packagereq type="mandatory">rootfiles</packagereq>
+      <packagereq type="mandatory">rpm</packagereq>
+      <packagereq type="mandatory">rsyslog</packagereq>
+      <packagereq type="mandatory">selinux-policy-targeted</packagereq>
+      <packagereq type="mandatory">setup</packagereq>
+      <packagereq type="mandatory">shadow-utils</packagereq>
+      <packagereq type="mandatory">sudo</packagereq>
+      <packagereq type="mandatory">systemd</packagereq>
+      <packagereq type="mandatory">tar</packagereq>
+      <packagereq type="mandatory">tuned</packagereq>
+      <packagereq type="mandatory">util-linux</packagereq>
+      <packagereq type="mandatory">vim-minimal</packagereq>
+      <packagereq type="mandatory">xfsprogs</packagereq>
+      <packagereq type="mandatory">yum</packagereq>
+      <packagereq type="optional">dracut-config-generic</packagereq>
+      <packagereq type="optional">dracut-fips-aesni</packagereq>
+      <packagereq type="optional">dracut-fips</packagereq>
+      <packagereq type="optional">dracut-network</packagereq>
+      <packagereq type="optional">openssh-keycat</packagereq>
+      <packagereq type="optional">selinux-policy-mls</packagereq>
+      <packagereq type="optional">tboot</packagereq>
+    </packagelist>
+  </group>
+  <group>
+    <id>asterisk11</id>
+    <name>Asterisk 11</name>
+    <default>false</default>
+    <uservisible>false</uservisible>
+    <packagelist>
+      <packagereq type="mandatory">compat-libical1</packagereq>
+      <packagereq type="mandatory">asterisk11</packagereq>
+      <packagereq type="mandatory">asterisk11-addons</packagereq>
+      <packagereq type="mandatory">asterisk11-devel</packagereq>
+      <packagereq type="mandatory">asterisk-perl</packagereq>
+      <packagereq type="mandatory">asterisk-es-sounds</packagereq>
+      <packagereq type="mandatory">asterisk-fr-sounds</packagereq>
+      <packagereq type="mandatory">asterisk-pr-sounds</packagereq>
+      <packagereq type="mandatory">asterisk-pt_BR-sounds</packagereq>
+      <packagereq type="mandatory">issabel-asterisk-sounds</packagereq>
+    </packagelist>
+  </group>
+  <group>
+    <id>asterisk13</id>
+    <name>Asterisk 13</name>
+    <default>false</default>
+    <uservisible>false</uservisible>
+    <packagelist>
+      <packagereq type="mandatory">asterisk13</packagereq>
+      <packagereq type="mandatory">asterisk13-addons</packagereq>
+      <packagereq type="mandatory">asterisk13-devel</packagereq>
+      <packagereq type="mandatory">asterisk13-core</packagereq>
+      <packagereq type="mandatory">asterisk13-sqlite3</packagereq>
+      <packagereq type="mandatory">asterisk-sounds-en-gsm</packagereq>
+      <packagereq type="mandatory">asterisk-perl</packagereq>
+      <packagereq type="mandatory">asterisk-es-sounds</packagereq>
+      <packagereq type="mandatory">asterisk-fr-sounds</packagereq>
+      <packagereq type="mandatory">asterisk-pr-sounds</packagereq>
+      <packagereq type="mandatory">asterisk-pt_BR-sounds</packagereq>
+      <packagereq type="mandatory">issabel-asterisk-sounds</packagereq>
+    </packagelist>
+  </group>
+ <group>
+    <id>asterisk16</id>
+    <name>Asterisk 16</name>
+    <default>false</default>
+    <uservisible>false</uservisible>
+    <packagelist>
+      <packagereq type="mandatory">asterisk16</packagereq>
+      <packagereq type="mandatory">asterisk16-addons</packagereq>
+      <packagereq type="mandatory">asterisk16-devel</packagereq>
+      <packagereq type="mandatory">asterisk16-core</packagereq>
+      <packagereq type="mandatory">asterisk16-configs</packagereq>
+      <packagereq type="mandatory">asterisk16-curl</packagereq>
+      <packagereq type="mandatory">asterisk16-sqlite3</packagereq>
+      <packagereq type="mandatory">asterisk-sounds-en-gsm</packagereq>
+      <packagereq type="mandatory">asterisk-perl</packagereq>
+      <packagereq type="mandatory">asterisk-es-sounds</packagereq>
+      <packagereq type="mandatory">asterisk-fr-sounds</packagereq>
+      <packagereq type="mandatory">asterisk-pr-sounds</packagereq>
+      <packagereq type="mandatory">asterisk16-configs</packagereq>
+      <packagereq type="mandatory">asterisk-pt_BR-sounds</packagereq>
+      <packagereq type="mandatory">issabel-asterisk-sounds</packagereq>
+    </packagelist>
+  </group>
+  <group>
+    <id>asterisk18</id>
+    <name>Asterisk 18</name>
+    <default>false</default>
+    <uservisible>false</uservisible>
+    <packagelist>
+      <packagereq type="mandatory">asterisk18</packagereq>
+      <packagereq type="mandatory">asterisk18-addons</packagereq>
+      <packagereq type="mandatory">asterisk18-devel</packagereq>
+      <packagereq type="mandatory">asterisk18-core</packagereq>
+      <packagereq type="mandatory">asterisk18-configs</packagereq>
+      <packagereq type="mandatory">asterisk18-curl</packagereq>
+      <packagereq type="mandatory">asterisk18-sqlite3</packagereq>
+      <packagereq type="mandatory">asterisk-sounds-en-gsm</packagereq>
+      <packagereq type="mandatory">asterisk-perl</packagereq>
+      <packagereq type="mandatory">asterisk-es-sounds</packagereq>
+      <packagereq type="mandatory">asterisk-fr-sounds</packagereq>
+      <packagereq type="mandatory">asterisk-pr-sounds</packagereq>
+      <packagereq type="mandatory">asterisk18-configs</packagereq>
+      <packagereq type="mandatory">asterisk-pt_BR-sounds</packagereq>
+      <packagereq type="mandatory">issabel-asterisk-sounds</packagereq>
+    </packagelist>
+  </group>
+  <group>
+    <id>asterisk20</id>
+    <name>Asterisk 20</name>
+    <default>false</default>
+    <uservisible>false</uservisible>
+    <packagelist>
+      <packagereq type="mandatory">asterisk20</packagereq>
+      <packagereq type="mandatory">asterisk20-addons</packagereq>
+      <packagereq type="mandatory">asterisk20-devel</packagereq>
+      <packagereq type="mandatory">asterisk20-core</packagereq>
+      <packagereq type="mandatory">asterisk20-configs</packagereq>
+      <packagereq type="mandatory">asterisk20-curl</packagereq>
+      <packagereq type="mandatory">asterisk20-sqlite3</packagereq>
+      <packagereq type="mandatory">asterisk-sounds-en-gsm</packagereq>
+      <packagereq type="mandatory">asterisk-perl</packagereq>
+      <packagereq type="mandatory">asterisk-es-sounds</packagereq>
+      <packagereq type="mandatory">asterisk-fr-sounds</packagereq>
+      <packagereq type="mandatory">asterisk-pr-sounds</packagereq>
+      <packagereq type="mandatory">asterisk20-configs</packagereq>
+      <packagereq type="mandatory">asterisk-pt_BR-sounds</packagereq>
+      <packagereq type="mandatory">issabel-asterisk-sounds</packagereq>
+    </packagelist>
+  </group>
+  <group>
+    <id>callcenter</id>
+    <name>Call Center CE</name>
+    <default>false</default>
+    <uservisible>false</uservisible>
+    <packagelist>
+      <packagereq type="mandatory">issabel-callcenter</packagereq>
+    </packagelist>
+  </group>
+  <group>
+    <id>contactcenter</id>
+    <name>Issabel Contact Center -DEMO-</name>
+    <default>true</default>
+    <uservisible>false</uservisible>
+    <packagelist>
+	    <packagereq type="mandatory">issabel-contact-center</packagereq>
+	    <packagereq type="mandatory">issabel-contact-center_applet</packagereq>
+    </packagelist>
+  </group>
+  <group>
+    <id>wanpipe</id>
+    <name>Sangoma Wanpipe drivers</name>
+    <default>false</default>
+    <uservisible>false</uservisible>
+    <packagelist>
+      <packagereq type="mandatory">wanpipe-util</packagereq>
+      <packagereq type="mandatory">wanpipe</packagereq>
+    </packagelist>
+  </group>
+ <group>
+    <id>rbl</id>
+    <name>Issabel.guru community RBL (Realtime Blackhole List)</name>
+    <default>true</default>
+    <uservisible>false</uservisible>
+    <packagelist>
+      <packagereq type="mandatory">issabel-packetbl</packagereq>
+    </packagelist>
+  </group>
+ <group>
+    <id>guru</id>
+    <name>Issabel Network Licensed modules (http://issabel.guru)</name>
+    <default>true</default>
+    <uservisible>false</uservisible>
+    <packagelist>
+      <packagereq type="mandatory">issabel-network-agent</packagereq>
+      <packagereq type="mandatory">issabel-network_applet</packagereq>
+      <packagereq type="mandatory">issabel-wizard</packagereq>
+      <packagereq type="mandatory">issabel-upnpc</packagereq>
+      <packagereq type="mandatory">issabel-packet_capture</packagereq>
+      <packagereq type="mandatory">issabel-theme_designer</packagereq>
+      <packagereq type="mandatory">issabel-two_factor_auth</packagereq>
+      <packagereq type="mandatory">issabel-webphone</packagereq>
+    </packagelist>
+  </group>
+  <group>
+    <id>fax</id>
+    <name>Virtual Fax</name>
+    <default>false</default>
+    <uservisible>false</uservisible>
+    <packagelist>
+      <packagereq type="mandatory">hylafax</packagereq>
+      <packagereq type="mandatory">issabel-fax</packagereq>
+      <packagereq type="mandatory">iaxmodem</packagereq>
+    </packagelist>
+  </group>
+  <group>
+    <id>issabel</id>
+    <name>Issabel PBX</name>
+    <name xml:lang="en_GB">Issabel PBX</name>
+    <name xml:lang="es">Issabel PBX</name>
+    <description>The basic installation of Linux plus Issabel packages.</description>
+    <description xml:lang="es">Instalación básica  Linux con los paquetes Issabel.</description>
+    <default>false</default>
+    <uservisible>false</uservisible>
+    <packagelist>
+      <packagereq type="mandatory">ModemManager-glib</packagereq>
+      <packagereq type="mandatory">MySQL-python</packagereq>
+      <packagereq type="mandatory">NetworkManager</packagereq>
+      <packagereq type="mandatory">NetworkManager-glib</packagereq>
+      <packagereq type="mandatory">NetworkManager-tui</packagereq>
+      <packagereq type="mandatory">RoundCubeMail</packagereq>
+      <packagereq type="mandatory">asterisk-codec-g729</packagereq>
+      <packagereq type="mandatory">acl</packagereq>
+      <packagereq type="mandatory">aic94xx-firmware</packagereq>
+      <packagereq type="mandatory">alsa-firmware</packagereq>
+      <packagereq type="mandatory">alsa-lib</packagereq>
+      <packagereq type="mandatory">alsa-tools-firmware</packagereq>
+      <packagereq type="mandatory">apr</packagereq>
+      <packagereq type="mandatory">apr-util</packagereq>
+      <packagereq type="mandatory">audit</packagereq>
+      <packagereq type="mandatory">audit-libs</packagereq>
+      <packagereq type="mandatory">authconfig</packagereq>
+      <packagereq type="mandatory">autogen-libopts</packagereq>
+      <packagereq type="mandatory">avahi</packagereq>
+      <packagereq type="mandatory">avahi-autoipd</packagereq>
+      <packagereq type="mandatory">avahi-libs</packagereq>
+      <packagereq type="mandatory">basesystem</packagereq>
+      <packagereq type="mandatory">bash</packagereq>
+      <packagereq type="mandatory">bind-libs-lite</packagereq>
+      <packagereq type="mandatory">bind-license</packagereq>
+      <packagereq type="mandatory">binutils</packagereq>
+      <packagereq type="mandatory">biosdevname</packagereq>
+      <packagereq type="mandatory">btrfs-progs</packagereq>
+      <packagereq type="mandatory">bzip2-libs</packagereq>
+      <packagereq type="mandatory">ca-certificates</packagereq>
+      <packagereq type="mandatory">chkconfig</packagereq>
+      <packagereq type="mandatory">chrony</packagereq>
+      <packagereq type="mandatory">compat-libtiff3</packagereq>
+      <packagereq type="mandatory">coreutils</packagereq>
+      <packagereq type="mandatory">cpio</packagereq>
+      <packagereq type="mandatory">cracklib</packagereq>
+      <packagereq type="mandatory">cracklib-dicts</packagereq>
+      <packagereq type="mandatory">cronie</packagereq>
+      <packagereq type="mandatory">cronie-noanacron</packagereq>
+      <packagereq type="mandatory">crontabs</packagereq>
+      <packagereq type="mandatory">cryptsetup-libs</packagereq>
+      <packagereq type="mandatory">cups-libs</packagereq>
+      <packagereq type="mandatory">curl</packagereq>
+      <packagereq type="mandatory">cyrus-imapd</packagereq>
+      <packagereq type="mandatory">cyrus-imapd-utils</packagereq>
+      <packagereq type="mandatory">cyrus-sasl</packagereq>
+      <packagereq type="mandatory">cyrus-sasl-lib</packagereq>
+      <packagereq type="mandatory">cyrus-sasl-plain</packagereq>
+      <packagereq type="mandatory">dahdi</packagereq>
+      <packagereq type="mandatory">dkms</packagereq>
+      <packagereq type="mandatory">dahdi-linux</packagereq>
+      <packagereq type="mandatory">dbus</packagereq>
+      <packagereq type="mandatory">dbus-glib</packagereq>
+      <packagereq type="mandatory">dbus-libs</packagereq>
+      <packagereq type="mandatory">dbus-python</packagereq>
+      <packagereq type="mandatory">device-mapper</packagereq>
+      <packagereq type="mandatory">device-mapper-event</packagereq>
+      <packagereq type="mandatory">device-mapper-event-libs</packagereq>
+      <packagereq type="mandatory">device-mapper-libs</packagereq>
+      <packagereq type="mandatory">device-mapper-persistent-data</packagereq>
+      <packagereq type="mandatory">dhclient</packagereq>
+      <packagereq type="mandatory">dhcp-server</packagereq>
+      <packagereq type="mandatory">dhcp-common</packagereq>
+      <packagereq type="mandatory">dhcp-libs</packagereq>
+      <packagereq type="mandatory">dialog</packagereq>
+      <packagereq type="mandatory">diffutils</packagereq>
+      <packagereq type="mandatory">dmidecode</packagereq>
+      <packagereq type="mandatory">dmraid</packagereq>
+      <packagereq type="mandatory">dmraid-events</packagereq>
+      <packagereq type="mandatory">dnsmasq</packagereq>
+      <packagereq type="mandatory">dracut</packagereq>
+      <packagereq type="mandatory">dracut-config-rescue</packagereq>
+      <packagereq type="mandatory">dracut-network</packagereq>
+      <packagereq type="mandatory">e2fsprogs</packagereq>
+      <packagereq type="mandatory">e2fsprogs-libs</packagereq>
+      <packagereq type="mandatory">ebtables</packagereq>
+      <packagereq type="mandatory">issabel</packagereq>
+      <packagereq type="mandatory">issabel-fixfonts</packagereq>
+      <packagereq type="mandatory">issabel-addons</packagereq>
+      <packagereq type="mandatory">issabel-agenda</packagereq>
+      <packagereq type="mandatory">issabel-config_helpers</packagereq>
+      <packagereq type="mandatory">issabel-email_admin</packagereq>
+      <packagereq type="mandatory">issabel-endpointconfig2</packagereq>
+      <packagereq type="mandatory">issabel-extras</packagereq>
+      <packagereq type="mandatory">issabel-firstboot</packagereq>
+      <packagereq type="mandatory">issabel-fixfonts</packagereq>
+      <packagereq type="mandatory">issabel-framework</packagereq>
+      <packagereq type="mandatory">issabel-framework-themes-extra</packagereq>
+      <packagereq type="mandatory">issabel-geoip</packagereq>
+      <packagereq type="mandatory">issabel-license</packagereq>
+      <packagereq type="mandatory">issabel-my_extension</packagereq>
+      <packagereq type="mandatory">issabel-pbx</packagereq>
+      <packagereq type="mandatory">issabel-portknock</packagereq>
+      <packagereq type="mandatory">issabel-prosody-auth</packagereq>
+      <packagereq type="mandatory">issabel-reports</packagereq>
+      <packagereq type="mandatory">issabel-security</packagereq>
+      <packagereq type="mandatory">issabel-system</packagereq>
+      <packagereq type="mandatory">issabelPBX</packagereq>
+      <packagereq type="mandatory">fail2ban-sendmail</packagereq>
+      <packagereq type="mandatory">fail2ban-server</packagereq>
+      <packagereq type="mandatory">fop2</packagereq>
+      <packagereq type="mandatory">ipset</packagereq>
+      <packagereq type="mandatory">audit-libs-python</packagereq>
+      <packagereq type="mandatory">certbot</packagereq>
+      <packagereq type="mandatory">checkpolicy</packagereq>
+      <packagereq type="mandatory">langpacks-en</packagereq>
+      <packagereq type="mandatory">langpacks-es</packagereq>
+      <packagereq type="mandatory">langpacks-pt</packagereq>
+      <packagereq type="mandatory">langpacks-pt_BR</packagereq>
+      <packagereq type="mandatory">langpacks-fa</packagereq>
+      <packagereq type="mandatory">langpacks-fr</packagereq>
+      <packagereq type="mandatory">libcgroup</packagereq>
+      <packagereq type="mandatory">libnsl-2</packagereq>
+      <packagereq type="mandatory">libsemanage-python</packagereq>
+      <packagereq type="mandatory">policycoreutils-python</packagereq>
+      <packagereq type="mandatory">python2-acme</packagereq>
+      <packagereq type="mandatory">python2-certbot</packagereq>
+      <packagereq type="mandatory">python2-certbot-apache</packagereq>
+      <packagereq type="mandatory">python-augeas</packagereq>
+      <packagereq type="mandatory">augeas-libs</packagereq>
+      <packagereq type="mandatory">GeoIP</packagereq>
+      <packagereq type="mandatory">pv</packagereq>
+      <packagereq type="mandatory">python2-configargparse</packagereq>
+      <packagereq type="mandatory">python2-cryptography</packagereq>
+      <packagereq type="mandatory">python2-dialog</packagereq>
+      <packagereq type="mandatory">python2-future</packagereq>
+      <packagereq type="mandatory">python2-mock</packagereq>
+      <packagereq type="mandatory">python2-pyasn1</packagereq>
+      <packagereq type="mandatory">python2-pyrfc3339</packagereq>
+      <packagereq type="mandatory">python-cffi</packagereq>
+      <packagereq type="mandatory">python-enum34</packagereq>
+      <packagereq type="mandatory">python-idna</packagereq>
+      <packagereq type="mandatory">python-ipaddress</packagereq>
+      <packagereq type="mandatory">python-IPy</packagereq>
+      <packagereq type="mandatory">python-ndg_httpsclient</packagereq>
+      <packagereq type="mandatory">python-parsedatetime</packagereq>
+      <packagereq type="mandatory">python-ply</packagereq>
+      <packagereq type="mandatory">python-psutil</packagereq>
+      <packagereq type="mandatory">python-pycparser</packagereq>
+      <packagereq type="mandatory">python-requests</packagereq>
+      <packagereq type="mandatory">python-six</packagereq>
+      <packagereq type="mandatory">python-urllib3</packagereq>
+      <packagereq type="mandatory">python-zope-component</packagereq>
+      <packagereq type="mandatory">python-zope-event</packagereq>
+      <packagereq type="mandatory">python-zope-interface</packagereq>
+      <packagereq type="mandatory">setools-libs</packagereq>
+      <packagereq type="mandatory">systemd-python</packagereq>
+      <packagereq type="mandatory">e2fsprogs</packagereq>
+      <packagereq type="mandatory">efibootmgr</packagereq>
+      <packagereq type="mandatory">elfutils-libelf</packagereq>
+      <packagereq type="mandatory">elfutils-libs</packagereq>
+      <packagereq type="mandatory">epel-release</packagereq>
+      <packagereq type="mandatory">ethtool</packagereq>
+      <packagereq type="mandatory">expat</packagereq>
+      <packagereq type="mandatory">festival</packagereq>
+      <packagereq type="mandatory">festival-lib</packagereq>
+      <packagereq type="mandatory">festival-speechtools-libs</packagereq>
+      <packagereq type="mandatory">festvox-slt-arctic-hts</packagereq>
+      <packagereq type="mandatory">file</packagereq>
+      <packagereq type="mandatory">file-libs</packagereq>
+      <packagereq type="mandatory">filesystem</packagereq>
+      <packagereq type="mandatory">findutils</packagereq>
+      <packagereq type="mandatory">fipscheck</packagereq>
+      <packagereq type="mandatory">fipscheck-lib</packagereq>
+      <packagereq type="mandatory">firewalld</packagereq>
+      <packagereq type="mandatory">flac-libs</packagereq>
+      <packagereq type="mandatory">fontconfig</packagereq>
+      <packagereq type="mandatory">fontpackages-filesystem</packagereq>
+      <packagereq type="mandatory">freetype</packagereq>
+      <packagereq type="mandatory">fxload</packagereq>
+      <packagereq type="mandatory">gawk</packagereq>
+      <packagereq type="mandatory">gdbm</packagereq>
+      <packagereq type="mandatory">gdbm-devel</packagereq>
+      <packagereq type="mandatory">gettext</packagereq>
+      <packagereq type="mandatory">gettext-libs</packagereq>
+      <packagereq type="mandatory">ghostscript</packagereq>
+      <packagereq type="mandatory">ghostscript-fonts</packagereq>
+      <packagereq type="mandatory">glib-networking</packagereq>
+      <packagereq type="mandatory">glib2</packagereq>
+      <packagereq type="mandatory">glibc</packagereq>
+      <packagereq type="mandatory">glibc-common</packagereq>
+      <packagereq type="mandatory">glibc-devel</packagereq>
+      <packagereq type="mandatory">glibc-headers</packagereq>
+      <packagereq type="mandatory">gmp</packagereq>
+      <packagereq type="mandatory">gnupg2</packagereq>
+      <packagereq type="mandatory">gnutls</packagereq>
+      <packagereq type="mandatory">gobject-introspection</packagereq>
+      <packagereq type="mandatory">gpgme</packagereq>
+      <packagereq type="mandatory">gpm-libs</packagereq>
+      <packagereq type="mandatory">grep</packagereq>
+      <packagereq type="mandatory">groff-base</packagereq>
+      <packagereq type="mandatory">grub2</packagereq>
+      <packagereq type="mandatory">grub2-efi-x64</packagereq>
+      <packagereq type="mandatory">grub2-tools</packagereq>
+      <packagereq type="mandatory">grubby</packagereq>
+      <packagereq type="mandatory">gsettings-desktop-schemas</packagereq>
+      <packagereq type="mandatory">gsm</packagereq>
+      <packagereq type="mandatory">gzip</packagereq>
+      <packagereq type="mandatory">hardlink</packagereq>
+      <packagereq type="mandatory">hdparm</packagereq>
+      <packagereq type="mandatory">hostname</packagereq>
+      <packagereq type="mandatory">httpd</packagereq>
+      <packagereq type="mandatory">httpd-tools</packagereq>
+      <packagereq type="mandatory">hwdata</packagereq>
+      <packagereq type="mandatory">iksemel</packagereq>
+      <packagereq type="mandatory">info</packagereq>
+      <packagereq type="mandatory">initscripts</packagereq>
+      <packagereq type="mandatory">iproute</packagereq>
+      <packagereq type="mandatory">iprutils</packagereq>
+      <packagereq type="mandatory">iptables</packagereq>
+      <packagereq type="mandatory">iptables-services</packagereq>
+      <packagereq type="mandatory">iputils</packagereq>
+      <packagereq type="mandatory">irqbalance</packagereq>
+      <packagereq type="mandatory">ivtv-firmware</packagereq>
+      <packagereq type="mandatory">iwl100-firmware</packagereq>
+      <packagereq type="mandatory">iwl1000-firmware</packagereq>
+      <packagereq type="mandatory">iwl105-firmware</packagereq>
+      <packagereq type="mandatory">iwl135-firmware</packagereq>
+      <packagereq type="mandatory">iwl2000-firmware</packagereq>
+      <packagereq type="mandatory">iwl2030-firmware</packagereq>
+      <packagereq type="mandatory">iwl3160-firmware</packagereq>
+      <packagereq type="mandatory">iwl3945-firmware</packagereq>
+      <packagereq type="mandatory">iwl4965-firmware</packagereq>
+      <packagereq type="mandatory">iwl5000-firmware</packagereq>
+      <packagereq type="mandatory">iwl5150-firmware</packagereq>
+      <packagereq type="mandatory">iwl6000-firmware</packagereq>
+      <packagereq type="mandatory">iwl6000g2a-firmware</packagereq>
+      <packagereq type="mandatory">iwl6000g2b-firmware</packagereq>
+      <packagereq type="mandatory">iwl6050-firmware</packagereq>
+      <packagereq type="mandatory">iwl7260-firmware</packagereq>
+      <packagereq type="mandatory">jansson</packagereq>
+      <packagereq type="mandatory">jbigkit-libs</packagereq>
+      <packagereq type="mandatory">json-c</packagereq>
+      <packagereq type="mandatory">kbd</packagereq>
+      <packagereq type="mandatory">kbd-misc</packagereq>
+      <packagereq type="mandatory">kernel</packagereq>
+      <packagereq type="mandatory">kernel-devel</packagereq>
+      <packagereq type="mandatory">kernel-headers</packagereq>
+      <packagereq type="mandatory">kernel-tools</packagereq>
+      <packagereq type="mandatory">kernel-tools-libs</packagereq>
+      <packagereq type="mandatory">kexec-tools</packagereq>
+      <packagereq type="mandatory">keyutils-libs</packagereq>
+      <packagereq type="mandatory">kmod</packagereq>
+      <packagereq type="mandatory">kmod-dahdi</packagereq>
+      <packagereq type="mandatory">kmod-libs</packagereq>
+      <packagereq type="mandatory">kmod-rhino</packagereq>
+      <packagereq type="mandatory">kpartx</packagereq>
+      <packagereq type="mandatory">krb5-libs</packagereq>
+      <packagereq type="mandatory">lcdissabel</packagereq>
+      <packagereq type="mandatory">lcdproc</packagereq>
+      <packagereq type="mandatory">lcms2</packagereq>
+      <packagereq type="mandatory">less</packagereq>
+      <packagereq type="mandatory">libICE</packagereq>
+      <packagereq type="mandatory">libSM</packagereq>
+      <packagereq type="mandatory">libX11</packagereq>
+      <packagereq type="mandatory">libX11-common</packagereq>
+      <packagereq type="mandatory">libXau</packagereq>
+      <packagereq type="mandatory">libXext</packagereq>
+      <packagereq type="mandatory">libXfont</packagereq>
+      <packagereq type="mandatory">libXi</packagereq>
+      <packagereq type="mandatory">libXpm</packagereq>
+      <packagereq type="mandatory">libXt</packagereq>
+      <packagereq type="mandatory">libXtst</packagereq>
+      <packagereq type="mandatory">libacl</packagereq>
+      <packagereq type="mandatory">libaio</packagereq>
+      <packagereq type="mandatory">liballogsmat</packagereq>
+      <packagereq type="mandatory">libao</packagereq>
+      <packagereq type="mandatory">libassuan</packagereq>
+      <packagereq type="mandatory">libasyncns</packagereq>
+      <packagereq type="mandatory">libattr</packagereq>
+      <packagereq type="mandatory">libblkid</packagereq>
+      <packagereq type="mandatory">libc-client</packagereq>
+      <packagereq type="mandatory">libcap</packagereq>
+      <packagereq type="mandatory">libcap-ng</packagereq>
+      <packagereq type="mandatory">libcom_err</packagereq>
+      <packagereq type="mandatory">libcroco</packagereq>
+      <packagereq type="mandatory">libcurl</packagereq>
+      <packagereq type="mandatory">libdaemon</packagereq>
+      <packagereq type="mandatory">libdb</packagereq>
+      <packagereq type="mandatory">libdb-devel</packagereq>
+      <packagereq type="mandatory">libdb-utils</packagereq>
+      <packagereq type="mandatory">libdrm</packagereq>
+      <packagereq type="mandatory">libedit</packagereq>
+      <packagereq type="mandatory">libertas-sd8686-firmware</packagereq>
+      <packagereq type="mandatory">libertas-sd8787-firmware</packagereq>
+      <packagereq type="mandatory">libertas-usb8388-firmware</packagereq>
+      <packagereq type="mandatory">libestr</packagereq>
+      <packagereq type="mandatory">libffi</packagereq>
+      <packagereq type="mandatory">libfontenc</packagereq>
+      <packagereq type="mandatory">gcc</packagereq>
+      <packagereq type="mandatory">libgcc</packagereq>
+      <packagereq type="mandatory">libgcrypt</packagereq>
+      <packagereq type="mandatory">libgomp</packagereq>
+      <packagereq type="mandatory">libgpg-error</packagereq>
+      <packagereq type="mandatory">libgsmat</packagereq>
+      <packagereq type="mandatory">libgudev1</packagereq>
+      <packagereq type="mandatory">libical</packagereq>
+      <packagereq type="mandatory">libidn</packagereq>
+      <packagereq type="mandatory">libjpeg-turbo</packagereq>
+      <packagereq type="mandatory">libmcrypt</packagereq>
+      <packagereq type="mandatory">libmnl</packagereq>
+      <packagereq type="mandatory">libmodman</packagereq>
+      <packagereq type="mandatory">libmount</packagereq>
+      <packagereq type="mandatory">libndp</packagereq>
+      <packagereq type="mandatory">libnetfilter_conntrack</packagereq>
+      <packagereq type="mandatory">libnfnetlink</packagereq>
+      <packagereq type="mandatory">libnl3</packagereq>
+      <packagereq type="mandatory">libnl3-cli</packagereq>
+      <packagereq type="mandatory">libogg</packagereq>
+      <packagereq type="mandatory">libopenr2</packagereq>
+      <packagereq type="mandatory">libpcap</packagereq>
+      <packagereq type="mandatory">libpciaccess</packagereq>
+      <packagereq type="mandatory">libpipeline</packagereq>
+      <packagereq type="mandatory">libpng</packagereq>
+      <packagereq type="mandatory">libpri</packagereq>
+      <packagereq type="mandatory">libproxy</packagereq>
+      <packagereq type="mandatory">libpwquality</packagereq>
+      <packagereq type="mandatory">libreport-filesystem</packagereq>
+      <packagereq type="mandatory">libselinux</packagereq>
+      <packagereq type="mandatory">libselinux-python</packagereq>
+      <packagereq type="mandatory">libselinux-utils</packagereq>
+      <packagereq type="mandatory">libsemanage</packagereq>
+      <packagereq type="mandatory">libsepol</packagereq>
+      <packagereq type="mandatory">libsndfile</packagereq>
+      <packagereq type="mandatory">libsoup</packagereq>
+      <packagereq type="mandatory">libsrtp</packagereq>
+      <packagereq type="mandatory">libss</packagereq>
+      <packagereq type="mandatory">libss7</packagereq>
+      <packagereq type="mandatory">libssh2</packagereq>
+      <packagereq type="mandatory">libstdc++</packagereq>
+      <packagereq type="mandatory">libsysfs</packagereq>
+      <packagereq type="mandatory">libtasn1</packagereq>
+      <packagereq type="mandatory">libteam</packagereq>
+      <packagereq type="mandatory">libtidy</packagereq>
+      <packagereq type="mandatory">libtiff</packagereq>
+      <packagereq type="mandatory">libtiff-devel</packagereq>
+      <packagereq type="mandatory">libtiff-tools</packagereq>
+      <packagereq type="mandatory">libtool-ltdl</packagereq>
+      <packagereq type="mandatory">libunistring</packagereq>
+      <packagereq type="mandatory">libusb</packagereq>
+      <packagereq type="mandatory">libusbx</packagereq>
+      <packagereq type="mandatory">libuser</packagereq>
+      <packagereq type="mandatory">libutempter</packagereq>
+      <packagereq type="mandatory">libuuid</packagereq>
+      <packagereq type="mandatory">libverto</packagereq>
+      <packagereq type="mandatory">libvorbis</packagereq>
+      <packagereq type="mandatory">libwat</packagereq>
+      <packagereq type="mandatory">libxcb</packagereq>
+      <packagereq type="mandatory">libxml2</packagereq>
+      <packagereq type="mandatory">libxslt</packagereq>
+      <packagereq type="mandatory">libzip</packagereq>
+      <packagereq type="mandatory">linux-firmware</packagereq>
+      <packagereq type="mandatory">lm_sensors-libs</packagereq>
+      <packagereq type="mandatory">lockdev</packagereq>
+      <packagereq type="mandatory">logrotate</packagereq>
+      <packagereq type="mandatory">lua</packagereq>
+      <packagereq type="mandatory">lvm2</packagereq>
+      <packagereq type="mandatory">lvm2-libs</packagereq>
+      <packagereq type="mandatory">lzo</packagereq>
+      <packagereq type="mandatory">mailcap</packagereq>
+      <packagereq type="mandatory">mailman</packagereq>
+      <packagereq type="mandatory">make</packagereq>
+      <packagereq type="mandatory">automake</packagereq>
+      <packagereq type="mandatory">autoconf</packagereq>
+      <packagereq type="mandatory">man-db</packagereq>
+      <packagereq type="mandatory">mariadb</packagereq>
+      <packagereq type="mandatory">mariadb-libs</packagereq>
+      <packagereq type="mandatory">mariadb-server</packagereq>
+      <packagereq type="mandatory">mdadm</packagereq>
+      <packagereq type="mandatory">memtest86+</packagereq>
+      <packagereq type="mandatory">mgetty</packagereq>
+      <packagereq type="mandatory">microcode_ctl</packagereq>
+      <packagereq type="mandatory">mpg123</packagereq>
+      <packagereq type="mandatory">mod_ssl</packagereq>
+      <packagereq type="mandatory">mokutil</packagereq>
+      <packagereq type="mandatory">mozjs17</packagereq>
+      <packagereq type="mandatory">mtools</packagereq>
+      <packagereq type="mandatory">mysql-to-mariadb-server</packagereq>
+      <packagereq type="mandatory">ncurses</packagereq>
+      <packagereq type="mandatory">ncurses-base</packagereq>
+      <packagereq type="mandatory">ncurses-libs</packagereq>
+      <packagereq type="mandatory">net-snmp-agent-libs</packagereq>
+      <packagereq type="mandatory">net-snmp-libs</packagereq>
+      <packagereq type="mandatory">net-tools</packagereq>
+      <packagereq type="mandatory">nettle</packagereq>
+      <packagereq type="mandatory">newt</packagereq>
+      <packagereq type="mandatory">newt-python</packagereq>
+      <packagereq type="mandatory">nmap</packagereq>
+      <packagereq type="mandatory">nmap-ncat</packagereq>
+      <packagereq type="mandatory">nspr</packagereq>
+      <packagereq type="mandatory">nss</packagereq>
+      <packagereq type="mandatory">nss-softokn</packagereq>
+      <packagereq type="mandatory">nss-softokn-freebl</packagereq>
+      <packagereq type="mandatory">nss-sysinit</packagereq>
+      <packagereq type="mandatory">nss-tools</packagereq>
+      <packagereq type="mandatory">nss-util</packagereq>
+      <packagereq type="mandatory">ntp</packagereq>
+      <packagereq type="mandatory">ntpdate</packagereq>
+      <packagereq type="mandatory">numactl-libs</packagereq>
+      <packagereq type="mandatory">openldap</packagereq>
+      <packagereq type="mandatory">openssh</packagereq>
+      <packagereq type="mandatory">openssh-clients</packagereq>
+      <packagereq type="mandatory">openssh-server</packagereq>
+      <packagereq type="mandatory">openssl</packagereq>
+      <packagereq type="mandatory">openssl-libs</packagereq>
+      <packagereq type="mandatory">opus</packagereq>
+      <packagereq type="mandatory">os-prober</packagereq>
+      <packagereq type="mandatory">p11-kit</packagereq>
+      <packagereq type="mandatory">p11-kit-trust</packagereq>
+      <packagereq type="mandatory">pam</packagereq>
+      <packagereq type="mandatory">parted</packagereq>
+      <packagereq type="mandatory">passwd</packagereq>
+      <packagereq type="mandatory">pciutils</packagereq>
+      <packagereq type="mandatory">pciutils-libs</packagereq>
+      <packagereq type="mandatory">pcre</packagereq>
+      <packagereq type="mandatory">perl</packagereq>
+      <packagereq type="mandatory">perl-Archive-Tar</packagereq>
+      <packagereq type="mandatory">perl-Business-ISBN</packagereq>
+      <packagereq type="mandatory">perl-Business-ISBN-Data</packagereq>
+      <packagereq type="mandatory">perl-CGI</packagereq>
+      <packagereq type="mandatory">perl-Carp</packagereq>
+      <packagereq type="mandatory">perl-Compress-Raw-Bzip2</packagereq>
+      <packagereq type="mandatory">perl-Compress-Raw-Zlib</packagereq>
+      <packagereq type="mandatory">perl-Convert-BinHex</packagereq>
+      <packagereq type="mandatory">perl-Crypt-OpenSSL-Bignum</packagereq>
+      <packagereq type="mandatory">perl-Crypt-OpenSSL-RSA</packagereq>
+      <packagereq type="mandatory">perl-Crypt-OpenSSL-Random</packagereq>
+      <packagereq type="mandatory">perl-DBD-MySQL</packagereq>
+      <packagereq type="mandatory">perl-DBI</packagereq>
+      <packagereq type="mandatory">perl-DB_File</packagereq>
+      <packagereq type="mandatory">perl-Data-Dumper</packagereq>
+      <packagereq type="mandatory">perl-Date-Manip</packagereq>
+      <packagereq type="mandatory">perl-Digest</packagereq>
+      <packagereq type="mandatory">perl-Digest-HMAC</packagereq>
+      <packagereq type="mandatory">perl-Digest-MD5</packagereq>
+      <packagereq type="mandatory">perl-Digest-SHA</packagereq>
+      <packagereq type="mandatory">perl-Encode</packagereq>
+      <packagereq type="mandatory">perl-Encode-Detect</packagereq>
+      <packagereq type="mandatory">perl-Encode-Locale</packagereq>
+      <packagereq type="mandatory">perl-Error</packagereq>
+      <packagereq type="mandatory">perl-Exporter</packagereq>
+      <packagereq type="mandatory">perl-ExtUtils-Install</packagereq>
+      <packagereq type="mandatory">perl-ExtUtils-MakeMaker</packagereq>
+      <packagereq type="mandatory">perl-ExtUtils-Manifest</packagereq>
+      <packagereq type="mandatory">perl-ExtUtils-ParseXS</packagereq>
+      <packagereq type="mandatory">perl-FCGI</packagereq>
+      <packagereq type="mandatory">perl-File-Listing</packagereq>
+      <packagereq type="mandatory">perl-File-Path</packagereq>
+      <packagereq type="mandatory">perl-File-Temp</packagereq>
+      <packagereq type="mandatory">perl-Filter</packagereq>
+      <packagereq type="mandatory">perl-Getopt-Long</packagereq>
+      <packagereq type="mandatory">perl-HTML-Parser</packagereq>
+      <packagereq type="mandatory">perl-HTML-Tagset</packagereq>
+      <packagereq type="mandatory">perl-HTTP-Cookies</packagereq>
+      <packagereq type="mandatory">perl-HTTP-Daemon</packagereq>
+      <packagereq type="mandatory">perl-HTTP-Date</packagereq>
+      <packagereq type="mandatory">perl-HTTP-Message</packagereq>
+      <packagereq type="mandatory">perl-HTTP-Negotiate</packagereq>
+      <packagereq type="mandatory">perl-HTTP-Tiny</packagereq>
+      <packagereq type="mandatory">perl-IO-Compress</packagereq>
+      <packagereq type="mandatory">perl-IO-HTML</packagereq>
+      <packagereq type="mandatory">perl-IO-Socket-INET6</packagereq>
+      <packagereq type="mandatory">perl-IO-Socket-IP</packagereq>
+      <packagereq type="mandatory">perl-IO-Socket-SSL</packagereq>
+      <packagereq type="mandatory">perl-IO-Zlib</packagereq>
+      <packagereq type="mandatory">perl-LWP-MediaTypes</packagereq>
+      <packagereq type="mandatory">perl-LWP-Protocol-https</packagereq>
+      <packagereq type="mandatory">perl-MIME-tools</packagereq>
+      <packagereq type="mandatory">perl-Mail-DKIM</packagereq>
+      <packagereq type="mandatory">perl-Mail-IMAPClient</packagereq>
+      <packagereq type="mandatory">perl-Mail-SPF</packagereq>
+      <packagereq type="mandatory">perl-MailTools</packagereq>
+      <packagereq type="mandatory">perl-Net-DNS</packagereq>
+      <packagereq type="mandatory">perl-Net-Daemon</packagereq>
+      <packagereq type="mandatory">perl-Net-HTTP</packagereq>
+      <packagereq type="mandatory">perl-Net-LibIDN</packagereq>
+      <packagereq type="mandatory">perl-Net-SMTP-SSL</packagereq>
+      <packagereq type="mandatory">perl-Net-SSLeay</packagereq>
+      <packagereq type="mandatory">perl-NetAddr-IP</packagereq>
+      <packagereq type="mandatory">perl-Package-Constants</packagereq>
+      <packagereq type="mandatory">perl-Parse-RecDescent</packagereq>
+      <packagereq type="mandatory">perl-PathTools</packagereq>
+      <packagereq type="mandatory">perl-PlRPC</packagereq>
+      <packagereq type="mandatory">perl-Pod-Escapes</packagereq>
+      <packagereq type="mandatory">perl-Pod-Perldoc</packagereq>
+      <packagereq type="mandatory">perl-Pod-Simple</packagereq>
+      <packagereq type="mandatory">perl-Pod-Usage</packagereq>
+      <packagereq type="mandatory">perl-Scalar-List-Utils</packagereq>
+      <packagereq type="mandatory">perl-Socket</packagereq>
+      <packagereq type="mandatory">perl-Socket6</packagereq>
+      <packagereq type="mandatory">perl-Storable</packagereq>
+      <packagereq type="mandatory">perl-Sys-Syslog</packagereq>
+      <packagereq type="mandatory">perl-Test-Harness</packagereq>
+      <packagereq type="mandatory">perl-Text-ParseWords</packagereq>
+      <packagereq type="mandatory">perl-Text-CSV_XS</packagereq>
+      <packagereq type="mandatory">perl-Time-HiRes</packagereq>
+      <packagereq type="mandatory">perl-Time-Local</packagereq>
+      <packagereq type="mandatory">perl-TimeDate</packagereq>
+      <packagereq type="mandatory">perl-URI</packagereq>
+      <packagereq type="mandatory">perl-WWW-RobotRules</packagereq>
+      <packagereq type="mandatory">perl-constant</packagereq>
+      <packagereq type="mandatory">perl-devel</packagereq>
+      <packagereq type="mandatory">perl-libs</packagereq>
+      <packagereq type="mandatory">perl-libwww-perl</packagereq>
+      <packagereq type="mandatory">perl-macros</packagereq>
+      <packagereq type="mandatory">perl-parent</packagereq>
+      <packagereq type="mandatory">perl-podlators</packagereq>
+      <packagereq type="mandatory">perl-threads</packagereq>
+      <packagereq type="mandatory">perl-threads-shared</packagereq>
+      <packagereq type="mandatory">perl-version</packagereq>
+      <packagereq type="mandatory">php</packagereq>
+      <packagereq type="mandatory">php-IDNA_Convert</packagereq>
+      <packagereq type="mandatory">php-PHPMailer</packagereq>
+      <packagereq type="mandatory">php-Smarty</packagereq>
+      <packagereq type="mandatory">php-bcmath</packagereq>
+      <packagereq type="mandatory">php-cli</packagereq>
+      <packagereq type="mandatory">php-common</packagereq>
+      <packagereq type="mandatory">php-gd</packagereq>
+      <packagereq type="mandatory">php-imap</packagereq>
+      <packagereq type="mandatory">php-jpgraph</packagereq>
+      <packagereq type="mandatory">php-magpierss</packagereq>
+      <packagereq type="mandatory">php-mbstring</packagereq>
+      <packagereq type="mandatory">php-mcrypt</packagereq>
+      <packagereq type="mandatory">php-mysqlnd</packagereq>
+      <packagereq type="mandatory">php-pdo</packagereq>
+      <packagereq type="mandatory">php-pear</packagereq>
+      <packagereq type="mandatory">php-pear-DB</packagereq>
+      <packagereq type="mandatory">php-process</packagereq>
+      <packagereq type="mandatory">php-simplepie</packagereq>
+      <packagereq type="mandatory">php-soap</packagereq>
+      <packagereq type="mandatory">php-tcpdf</packagereq>
+      <packagereq type="mandatory">php-tidy</packagereq>
+      <packagereq type="mandatory">php-xml</packagereq>
+      <packagereq type="mandatory">php-ioncubeloader</packagereq>
+      <packagereq type="mandatory">pinentry</packagereq>
+      <packagereq type="mandatory">piper</packagereq>
+      <packagereq type="mandatory">pkgconfig</packagereq>
+      <packagereq type="mandatory">plymouth</packagereq>
+      <packagereq type="mandatory">plymouth-core-libs</packagereq>
+      <packagereq type="mandatory">plymouth-scripts</packagereq>
+      <packagereq type="mandatory">policycoreutils</packagereq>
+      <packagereq type="mandatory">polkit</packagereq>
+      <packagereq type="mandatory">polkit-pkla-compat</packagereq>
+      <packagereq type="mandatory">poppler-data</packagereq>
+      <packagereq type="mandatory">popt</packagereq>
+      <packagereq type="mandatory">portreserve</packagereq>
+      <packagereq type="mandatory">postfix</packagereq>
+      <packagereq type="mandatory">postgresql-libs</packagereq>
+      <packagereq type="mandatory">ppp</packagereq>
+      <packagereq type="mandatory">procmail</packagereq>
+      <packagereq type="mandatory">procps-ng</packagereq>
+      <packagereq type="mandatory">psmisc</packagereq>
+      <packagereq type="mandatory">pth</packagereq>
+      <packagereq type="mandatory">pulseaudio-libs</packagereq>
+      <packagereq type="mandatory">py-Asterisk</packagereq>
+      <packagereq type="mandatory">pyOpenSSL</packagereq>
+      <packagereq type="mandatory">pygobject3-base</packagereq>
+      <packagereq type="mandatory">pygpgme</packagereq>
+      <packagereq type="mandatory">pyliblzma</packagereq>
+      <packagereq type="mandatory">python</packagereq>
+      <packagereq type="mandatory">python-backports</packagereq>
+      <packagereq type="mandatory">python-backports-ssl_match_hostname</packagereq>
+      <packagereq type="mandatory">python-cjson</packagereq>
+      <packagereq type="mandatory">python-configobj</packagereq>
+      <packagereq type="mandatory">python-crypto</packagereq>
+      <packagereq type="mandatory">python-daemon</packagereq>
+      <packagereq type="mandatory">python-decorator</packagereq>
+      <packagereq type="mandatory">python-ecdsa</packagereq>
+      <packagereq type="mandatory">python-eventlet</packagereq>
+      <packagereq type="mandatory">python-greenlet</packagereq>
+      <packagereq type="mandatory">python-iniparse</packagereq>
+      <packagereq type="mandatory">python-libs</packagereq>
+      <packagereq type="mandatory">python-lockfile</packagereq>
+      <packagereq type="mandatory">python-paramiko</packagereq>
+      <packagereq type="mandatory">python-pycurl</packagereq>
+      <packagereq type="mandatory">python-pyudev</packagereq>
+      <packagereq type="mandatory">python-setuptools</packagereq>
+      <packagereq type="mandatory">python-six</packagereq>
+      <packagereq type="mandatory">python-slip</packagereq>
+      <packagereq type="mandatory">python-slip-dbus</packagereq>
+      <packagereq type="mandatory">python-sqlalchemy</packagereq>
+      <packagereq type="mandatory">python-tempita</packagereq>
+      <packagereq type="mandatory">python-urlgrabber</packagereq>
+      <packagereq type="mandatory">pytz</packagereq>
+      <packagereq type="mandatory">audit-libs-python</packagereq>
+      <packagereq type="mandatory">libsemanage-python</packagereq>
+      <packagereq type="mandatory">policycoreutils-python</packagereq>
+      <packagereq type="mandatory">python-requests</packagereq>
+      <packagereq type="mandatory">setools-libs</packagereq>
+      <packagereq type="mandatory">pyxattr</packagereq>
+      <packagereq type="mandatory">qrencode-libs</packagereq>
+      <packagereq type="mandatory">readline</packagereq>
+      <packagereq type="mandatory">remi-release</packagereq>
+      <packagereq type="mandatory">rhino</packagereq>
+      <packagereq type="mandatory">rootfiles</packagereq>
+      <packagereq type="mandatory">rpm</packagereq>
+      <packagereq type="mandatory">rpm-build-libs</packagereq>
+      <packagereq type="mandatory">rpm-libs</packagereq>
+      <packagereq type="mandatory">rpm-python</packagereq>
+      <packagereq type="mandatory">rsyslog</packagereq>
+      <packagereq type="mandatory">sed</packagereq>
+      <packagereq type="mandatory">selinux-policy</packagereq>
+      <packagereq type="mandatory">selinux-policy-targeted</packagereq>
+      <packagereq type="mandatory">setup</packagereq>
+      <packagereq type="mandatory">sgpio</packagereq>
+      <packagereq type="mandatory">shadow-utils</packagereq>
+      <packagereq type="mandatory">shared-mime-info</packagereq>
+      <packagereq type="mandatory">sharutils</packagereq>
+      <packagereq type="mandatory">shim-x64</packagereq>
+      <packagereq type="mandatory">shim-unsigned-x64</packagereq>
+      <packagereq type="mandatory">slang</packagereq>
+      <packagereq type="mandatory">snappy</packagereq>
+      <packagereq type="mandatory">sox</packagereq>
+      <packagereq type="mandatory">spamassassin</packagereq>
+      <packagereq type="mandatory">spandsp</packagereq>
+      <packagereq type="mandatory">spandsp-devel</packagereq>
+      <packagereq type="mandatory">speex</packagereq>
+      <packagereq type="mandatory">sqlite</packagereq>
+      <packagereq type="mandatory">sudo</packagereq>
+      <packagereq type="mandatory">syslinux</packagereq>
+      <packagereq type="mandatory">systemd</packagereq>
+      <packagereq type="mandatory">systemd-libs</packagereq>
+      <packagereq type="mandatory">systemd-sysv</packagereq>
+      <packagereq type="mandatory">systemtap-sdt-devel</packagereq>
+      <packagereq type="mandatory">sysvinit-tools</packagereq>
+      <packagereq type="mandatory">t1lib</packagereq>
+      <packagereq type="mandatory">tar</packagereq>
+      <packagereq type="mandatory">tcp_wrappers-libs</packagereq>
+      <packagereq type="mandatory">teamd</packagereq>
+      <packagereq type="mandatory">tftp-server</packagereq>
+      <packagereq type="mandatory">tuned</packagereq>
+      <packagereq type="mandatory">tzdata</packagereq>
+      <packagereq type="mandatory">unixODBC</packagereq>
+      <packagereq type="mandatory">urw-fonts</packagereq>
+      <packagereq type="mandatory">ustr</packagereq>
+      <packagereq type="mandatory">util-linux</packagereq>
+      <packagereq type="mandatory">uuid</packagereq>
+      <packagereq type="mandatory">uuid-perl</packagereq>
+      <packagereq type="mandatory">unzip</packagereq>
+      <packagereq type="mandatory">vim-common</packagereq>
+      <packagereq type="mandatory">vim-enhanced</packagereq>
+      <packagereq type="mandatory">vim-filesystem</packagereq>
+      <packagereq type="mandatory">vim-minimal</packagereq>
+      <packagereq type="mandatory">wget</packagereq>
+      <packagereq type="mandatory">virt-what</packagereq>
+      <packagereq type="mandatory">vsftpd</packagereq>
+      <packagereq type="mandatory">wavpack</packagereq>
+      <packagereq type="mandatory">which</packagereq>
+      <packagereq type="mandatory">wpa_supplicant</packagereq>
+      <packagereq type="mandatory">xfsprogs</packagereq>
+      <packagereq type="mandatory">xinetd</packagereq>
+      <packagereq type="mandatory">xtables-addons</packagereq>
+      <packagereq type="mandatory">xorg-x11-font-utils</packagereq>
+      <packagereq type="mandatory">xz</packagereq>
+      <packagereq type="mandatory">xz-libs</packagereq>
+      <packagereq type="mandatory">yum</packagereq>
+      <packagereq type="mandatory">yum-metadata-parser</packagereq>
+      <packagereq type="mandatory">yum-plugin-fastestmirror</packagereq>
+      <packagereq type="mandatory">zlib</packagereq>
+      <packagereq type="mandatory">zip</packagereq>
+    </packagelist>
+  </group>
+  <!-- NO AST11
+  <environment>
+    <id>issabelast11</id>
+    <name>Issabel with Asterisk 11</name>
+    <name xml:lang="es">Issabel con Asterisk 11</name>
+    <description>Basic functionality of Issabel/Asterisk 11</description>
+    <description xml:lang="es">Funcionalidad basica de Issabel/Asterisk 11</description>
+    <display_order>1</display_order>
+    <grouplist>
+	    <groupid>issabel</groupid>
+	    <groupid>asterisk11</groupid>
+    </grouplist>
+    <optionlist>
+	    <groupid>callcenter</groupid>
+            <groupid>wanpipe</groupid>
+            <groupid>rbl</groupid>
+            <groupid>guru</groupid>
+    </optionlist>
+  </environment>
+  -->
+  <!-- NO AST13
+  <environment>
+    <id>issabelast13</id>
+    <name>Issabel with Asterisk 13</name>
+    <name xml:lang="es">Issabel con Asterisk 13</name>
+    <description>Basic functionality of Issabel/Asterisk 13</description>
+    <description xml:lang="es">Funcionalidad basica de Issabel/Asterisk 13</description>
+    <display_order>2</display_order>
+    <grouplist>
+	    <groupid>issabel</groupid>
+	    <groupid>asterisk13</groupid>
+    </grouplist>
+    <optionlist>
+            <groupid>wanpipe</groupid>
+            <groupid>rbl</groupid>
+            <groupid>guru</groupid>
+    </optionlist>
+  </environment>
+  -->
+ 
+  <environment>
+    <id>issabelast20</id>
+    <name>Issabel with Asterisk 20</name>
+    <name xml:lang="es">Issabel con Asterisk 20</name>
+    <description>Basic functionality of Issabel/Asterisk 20</description>
+    <description xml:lang="es">Funcionalidad basica de Issabel/Asterisk 20</description>
+    <display_order>1</display_order>
+    <grouplist>
+	    <groupid>asterisk20</groupid>
+            <groupid>issabel</groupid>
+    </grouplist>
+    <optionlist>
+	    <!-- NO ANDA
+	    <groupid>wanpipe</groupid>
+            -->
+	    <groupid>rbl</groupid>
+	    <groupid>guru</groupid>
+	    <groupid>fax</groupid>
+    </optionlist>
+  </environment>
+
+  <environment>
+    <id>issabelast18</id>
+    <name>Issabel with Asterisk 18</name>
+    <name xml:lang="es">Issabel con Asterisk 18</name>
+    <description>Basic functionality of Issabel/Asterisk 18</description>
+    <description xml:lang="es">Funcionalidad basica de Issabel/Asterisk 18</description>
+    <display_order>2</display_order>
+    <grouplist>
+            <groupid>asterisk18</groupid>
+            <groupid>issabel</groupid>
+    </grouplist>
+    <optionlist>
+	    <!-- NO ANDA
+	    <groupid>wanpipe</groupid>
+            -->
+	    <groupid>rbl</groupid>
+	    <groupid>guru</groupid>
+	    <groupid>fax</groupid>
+    </optionlist>
+  </environment>
+</comps>
+

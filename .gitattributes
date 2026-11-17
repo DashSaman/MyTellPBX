@@ -11,4 +11,4 @@
 installer/vendor-native/issabel5-netinstall.sh -whitespace
 installer/vendor-native/mytelpbx-netinstall.sh -whitespace
 tests/fixtures/vendor-native/* -whitespace
-tests/fixtures/vendor-iso/issabel.ks -whitespace
+tests/fixtures/vendor-iso/* -whitespace

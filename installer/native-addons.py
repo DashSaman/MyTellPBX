@@ -182,17 +182,28 @@ def snapshot_settings(settings, backup):
     # iterdump keep this hook compatible with Rocky's platform-python as well.
     with closing(sqlite3.connect(str(settings))) as source:
         source.execute('BEGIN')
-        rows = list(source.execute('SELECT key,value FROM settings WHERE key IN (?,?)', ('theme', 'language')))
+        rows = list(source.execute('SELECT key,value FROM settings WHERE key=?', ('theme',)))
         (backup / 'settings.sql').write_text('\n'.join(source.iterdump()) + '\n', encoding='utf-8')
     return rows
 
 
 def restore_settings(settings, rows):
-    # Restore only the two settings this hook owns, preserving concurrent native
-    # changes to every other setting rather than replacing the whole database.
+    # Own only the theme. Native language selection may change independently,
+    # including while another addon stage fails; never restore that choice.
+    if any(key != 'theme' for key, value in rows):
+        raise ValueError('Rollback settings contain a key not owned by this addon')
     with closing(sqlite3.connect(str(settings))) as database, database:
-        database.execute('DELETE FROM settings WHERE key IN (?,?)', ('theme', 'language'))
+        database.execute('DELETE FROM settings WHERE key=?', ('theme',))
         database.executemany('INSERT INTO settings (key,value) VALUES (?,?)', rows)
+
+
+def activate_theme(settings):
+    # Preserve the language chosen by the original native language wizard.
+    with closing(sqlite3.connect(str(settings))) as database, database:
+        database.execute('DELETE FROM settings WHERE key=?', ('theme',))
+        database.execute('INSERT INTO settings (key,value) VALUES (?,?)', ('theme', 'mytel'))
+        if database.execute('SELECT value FROM settings WHERE key=?', ('theme',)).fetchall() != [('mytel',)]:
+            raise ValueError('Native theme activation verification failed')
 
 
 def optional_asternic_plan(bundle, web):
@@ -418,13 +429,7 @@ def install(bundle, backup_root, requested=None, media=None, public_url=None, ch
                 web_asset = root / 'var/www/html' in path.parents
                 atomic_write(path, data, account.pw_uid if web_asset else 0, account.pw_gid if web_asset else 0)
             brand_database(credentials, 'apply')
-            with closing(sqlite3.connect(str(settings))) as database, database:
-                for key, value in (('theme', 'mytel'), ('language', 'fa')):
-                    database.execute('DELETE FROM settings WHERE key=?', (key,))
-                    database.execute('INSERT INTO settings (key,value) VALUES (?,?)', (key, value))
-                for key, expected in (('theme', 'mytel'), ('language', 'fa')):
-                    if database.execute('SELECT value FROM settings WHERE key=?', (key,)).fetchone() != (expected,):
-                        raise ValueError('Native theme activation verification failed')
+            activate_theme(settings)
             run(['httpd', '-t'])
             run(['systemctl', 'reload', 'httpd'])
         except BaseException:

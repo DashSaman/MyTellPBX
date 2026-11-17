@@ -6,12 +6,16 @@ native firstboot/password initializer remain the installation engine. This is
 not the former Rocky-plus-custom-core ISO builder. Build only on the Linux lab.
 """
 import argparse
+import bz2
+import copy
 import configparser
+import gzip
 import hashlib
 import importlib.util
 import json
+import lzma
 import os
-from pathlib import Path
+from pathlib import Path, PurePosixPath
 import re
 import shutil
 import stat
@@ -19,15 +23,17 @@ import subprocess
 import sys
 import tarfile
 import tempfile
+import xml.etree.ElementTree as ET
 
 VENDOR_ISO_SHA256 = 'c63b7512d3ba05af645e144c58bf00c87353ddf2b3318e2fda8c262c057c07f9'
 VENDOR_ISO_BYTES = 3682598912
 VENDOR_LABEL = 'Issabel5-x86_64'
 VENDOR_KS_SHA256 = '503a1d065d1382355553ca337d0ca99946970fe3c81eaa22c160728d1dbf390e'
+VENDOR_COMPS_SHA256 = '1718aa060cb2b5d63df62e1efb8a47f2b4a16a3d757c623c42b2901974618a43'
+REPO_NS = '{http://linux.duke.edu/metadata/repo}'
+GROUP_TYPES = {'group', 'group_gz'}
 ONLINE_POST_LINES = (
     'chroot /mnt/sysimage dnf -y module enable php:remi-7.4\n',
-    'chroot /mnt/sysimage dnf -y config-manager --set-enabled remi\n',
-    'chroot /mnt/sysimage dnf -y config-manager --set-enabled powertools\n',
     'chroot /mnt/sysimage dnf -y check-upgrade\n',
 )
 
@@ -88,7 +94,7 @@ install -m 0644 "$source/brand-native-dialogs.py" "$target/usr/local/libexec/myt
 install -m 0600 "$source/native-media.json" "$target/etc/mytelpbx-native-media.json"
 install -d -m 0755 "$target/etc/systemd/system/issabel-firstboot.service.d"
 install -m 0644 "$source/20-mytel-addons.conf" "$target/etc/systemd/system/issabel-firstboot.service.d/20-mytel-addons.conf"
-# Display labels only; the vendor PHP program and its native --init stay intact.
+# Native labels/startup guard and optional completion UX; core PHP --init stays intact.
 chroot "$target" /usr/libexec/platform-python -I -S -B /usr/local/libexec/mytelpbx/brand-native-dialogs.py --tool passwords
 chroot "$target" /usr/libexec/platform-python -I -S -B /usr/local/libexec/mytelpbx/brand-native-dialogs.py --tool completion
 chroot "$target" /usr/libexec/platform-python -I -S -B /usr/local/libexec/mytelpbx/brand-native-dialogs.py --tool language
@@ -232,6 +238,206 @@ def inventory(root):
     return result
 
 
+def xml_structure(node, omit_labels=False):
+    """Compare metadata values without XML namespace-prefix/formatting noise."""
+    children = tuple(xml_structure(child, omit_labels) for child in node
+                     if not (omit_labels and child.tag in ('name', 'description')))
+    return node.tag, tuple(sorted(node.attrib.items())), (node.text or '').strip(), children
+
+
+def comps_blocks(source):
+    comments = [(match.start(), match.end()) for match in re.finditer(r'<!--.*?-->', source, re.S)]
+    return [match for match in re.finditer(r'(?ms)^[ \t]*<(group|environment)>\n.*?^[ \t]*</\1>', source)
+            if not any(start <= match.start() < end for start, end in comments)]
+
+
+def derive_comps(original, available_package_names):
+    """Add only missing environment16 and human branding to exact native comps."""
+    if hashlib.sha256(original).hexdigest() != VENDOR_COMPS_SHA256:
+        raise ValueError('Unknown native comps source')
+    before = ET.fromstring(original)
+    groups = {node.findtext('id'): node for node in before.findall('group')}
+    environments = {node.findtext('id'): node for node in before.findall('environment')}
+    if set(environments) != {'issabelast20', 'issabelast18'}:
+        raise ValueError('Unexpected native Asterisk environments')
+    for major in ('16', '18', '20'):
+        group = groups.get('asterisk' + major)
+        if group is None:
+            raise ValueError('Native Asterisk group missing; no synthetic group is authorized')
+        required = {item.text for item in group.findall('packagelist/packagereq')
+                    if item.get('type') == 'mandatory'}
+        missing = required - set(available_package_names)
+        if not required or missing:
+            raise ValueError('Original ISO lacks Asterisk ' + major + ' packages: ' + ', '.join(sorted(missing)))
+    source = original.decode('utf-8')
+    blocks = comps_blocks(source)
+    if len(blocks) != len(groups) + len(environments):
+        raise ValueError('Unknown native comps layout')
+    template = next(match.group(0) for match in blocks
+                    if ET.fromstring(match.group(0)).findtext('id') == 'issabelast18')
+    environment16 = (template.replace('<id>issabelast18</id>', '<id>issabelast16</id>')
+                     .replace('<groupid>asterisk18</groupid>', '<groupid>asterisk16</groupid>')
+                     .replace('Asterisk 18', 'Asterisk 16')
+                     .replace('<display_order>2</display_order>', '<display_order>3</display_order>'))
+    source = source.replace('</comps>', environment16 + '\n</comps>')
+    neutral_names = {
+        'guru': 'Optional upstream licensed add-ons',
+        'rbl': 'Community RBL (Realtime Blackhole List)',
+        'contactcenter': 'Upstream Contact Center -DEMO-',
+    }
+    def brand_block(match):
+        block = match.group(0)
+        identity = ET.fromstring(block).findtext('id')
+        def label(item):
+            tag, attributes, value = item.group(1), item.group(2) or '', item.group(3)
+            if tag == 'name' and identity in neutral_names:
+                value = neutral_names[identity]
+            else:
+                value = value.replace('Issabel', 'MytelPBX')
+            return '<' + tag + attributes + '>' + value + '</' + tag + '>'
+        return re.sub(r'<(name|description)(\s+[^>]*)?>(.*?)</\1>', label, block, flags=re.S)
+    for block in reversed(comps_blocks(source)):
+        source = source[:block.start()] + brand_block(block) + source[block.end():]
+    result = source.encode('utf-8')
+    after = ET.fromstring(result)
+    after_groups = {node.findtext('id'): node for node in after.findall('group')}
+    after_environments = {node.findtext('id'): node for node in after.findall('environment')}
+    if set(after_groups) != set(groups) or set(after_environments) != set(environments) | {'issabelast16'}:
+        raise ValueError('Native comps identities changed')
+    for identity, node in list(groups.items()) + list(environments.items()):
+        actual = (after_groups if identity in groups else after_environments)[identity]
+        if xml_structure(node, True) != xml_structure(actual, True):
+            raise ValueError('Native group/environment data changed: ' + identity)
+    expected16 = copy.deepcopy(environments['issabelast18'])
+    expected16.find('id').text = 'issabelast16'
+    expected16.find('display_order').text = '3'
+    for group in expected16.findall('grouplist/groupid'):
+        if group.text == 'asterisk18':
+            group.text = 'asterisk16'
+    if xml_structure(expected16, True) != xml_structure(after_environments['issabelast16'], True):
+        raise ValueError('Asterisk 16 environment differs from the native template')
+    if any('issabel' in (node.text or '').lower()
+           for item in after for node in item if node.tag in ('name', 'description')):
+        raise ValueError('Unbranded native human label remains')
+    return result
+
+
+def uncompressed_metadata(raw):
+    if raw.startswith(b'\x1f\x8b'):
+        return gzip.decompress(raw)
+    if raw.startswith(b'BZh'):
+        return bz2.decompress(raw)
+    if raw.startswith(b'\xfd7zXZ\x00'):
+        return lzma.decompress(raw)
+    return raw
+
+
+def repository_records(repodata):
+    repodata = Path(repodata).absolute()
+    if repodata.resolve() != repodata or not repodata.is_dir():
+        raise ValueError('Noncanonical repodata directory')
+    index = repodata / 'repomd.xml'
+    if index.is_symlink() or not index.is_file():
+        raise ValueError('Invalid repomd index')
+    root = ET.fromstring(index.read_bytes())
+    if (root.tag != REPO_NS + 'repomd' or any('{http://www.w3.org/XML/1998/namespace}base' in node.attrib
+                                            for node in root.iter())):
+        raise ValueError('Unknown repository index or XML base URI')
+    records, paths = {}, set()
+    for record in root.findall(REPO_NS + 'data'):
+        kind = record.get('type')
+        locations = record.findall(REPO_NS + 'location')
+        if (not kind or kind in records or len(locations) != 1
+                or set(locations[0].attrib) != {'href'}):
+            raise ValueError('Duplicate or missing repository metadata identity')
+        href = locations[0].get('href', '')
+        relative = PurePosixPath(href)
+        if (str(relative) != href or len(relative.parts) != 2 or relative.parts[0] != 'repodata'
+                or not re.fullmatch(r'[A-Za-z0-9_.+-]+', relative.parts[1])
+                or relative.parts[1] in ('.', '..') or href in paths):
+            raise ValueError('Unsafe or duplicate metadata location')
+        paths.add(href)
+        path = repodata / relative.parts[1]
+        if path.is_symlink() or not path.is_file() or path.stat().st_size > 256 * 1024 * 1024:
+            raise ValueError('Missing or unsafe repository metadata file')
+        raw = path.read_bytes()
+        checksum = record.find(REPO_NS + 'checksum')
+        algorithm = checksum.get('type', '') if checksum is not None else ''
+        if algorithm == 'sha':
+            algorithm = 'sha1'
+        if (checksum is None or hashlib.new(algorithm, raw).hexdigest() != checksum.text
+                or int(record.findtext(REPO_NS + 'size', '-1')) != len(raw)):
+            raise ValueError('Repository metadata checksum/size differs: ' + kind)
+        opened = uncompressed_metadata(raw)
+        open_checksum = record.find(REPO_NS + 'open-checksum')
+        if open_checksum is not None and hashlib.new(open_checksum.get('type', ''), opened).hexdigest() != open_checksum.text:
+            raise ValueError('Repository open-checksum differs: ' + kind)
+        open_size = record.findtext(REPO_NS + 'open-size')
+        if open_size is not None and int(open_size) != len(opened):
+            raise ValueError('Repository open-size differs: ' + kind)
+        if kind == 'group' and opened != raw:
+            raise ValueError('Native group metadata must stay uncompressed')
+        if kind == 'group_gz' and (not raw.startswith(b'\x1f\x8b')
+                                   or open_checksum is None or open_size is None):
+            raise ValueError('Native group_gz format/open integrity fields changed')
+        records[kind] = {'node': record, 'filename': relative.parts[1], 'raw': raw,
+                         'open': opened, 'sha256': hashlib.sha256(raw).hexdigest()}
+    if not records or not GROUP_TYPES.issubset(records):
+        raise ValueError('Native group and group_gz records are required')
+    return records
+
+
+def verify_repository_delta(before, after, expected_comps):
+    original, modified = repository_records(before), repository_records(after)
+    if set(original) != set(modified):
+        raise ValueError('Repository metadata types changed')
+    allowed = {'repomd.xml'}
+    for kind in original:
+        if kind in GROUP_TYPES:
+            allowed.update((original[kind]['filename'], modified[kind]['filename']))
+            if modified[kind]['open'] != expected_comps:
+                raise ValueError('Stale or unexpected comps variant: ' + kind)
+        elif (record_identity(original[kind]['node']) != record_identity(modified[kind]['node'])
+              or original[kind]['sha256'] != modified[kind]['sha256']):
+            raise ValueError('Protected metadata changed: ' + kind)
+    old_inventory, new_inventory = inventory(Path(before)), inventory(Path(after))
+    changed = {name for name in set(old_inventory) | set(new_inventory)
+               if old_inventory.get(name) != new_inventory.get(name)}
+    if not changed or not changed.issubset(allowed):
+        raise ValueError('Unlisted repository changes outside comps/repomd')
+    return {name: new_inventory.get(name) for name in sorted(changed)}
+
+
+def record_identity(record):
+    structure = xml_structure(record)
+    return structure[:3] + (tuple(sorted(structure[3])),)
+
+
+def prepare_native_choices(source, stage):
+    before, after = stage / 'before-repodata', stage / 'choice-repodata'
+    extract(source, 'repodata', before)
+    shutil.copytree(str(before), str(after))
+    records = repository_records(before)
+    if records['group']['open'] != records['group_gz']['open']:
+        raise ValueError('Original native comps variants differ')
+    primary = ET.fromstring(records['primary']['open'])
+    namespace = '{http://linux.duke.edu/metadata/common}'
+    names = {node.findtext(namespace + 'name') for node in primary.findall(namespace + 'package')}
+    if not names or None in names:
+        raise ValueError('Original native primary package inventory is invalid')
+    result = derive_comps(records['group']['open'], names)
+    comps = stage / 'mytel-native-comps.xml'
+    comps.write_bytes(result)
+    batch = stage / 'native-comps.batch'
+    batch.write_text('[mytel-native-group]\npath=' + str(comps) + '\ntype=group\ncompress=false\n'
+                     'checksum=sha256\nunique-md-filenames=true\nnew-name=comps.xml\n\n'
+                     '[mytel-native-group-gz]\npath=' + str(comps) + '\ntype=group_gz\ncompress=true\n'
+                     'compress-type=gz\nchecksum=sha256\nunique-md-filenames=true\nnew-name=comps.xml\n', encoding='utf-8')
+    command(['modifyrepo_c', '--batchfile', batch, after])
+    changes = verify_repository_delta(before, after, result)
+    return after, result, changes
+
+
 def bundle_member(archive, version, name):
     expected = 'mytelpbx-bundle-' + version + '/' + name
     with tarfile.open(archive, 'r:gz') as source:
@@ -314,12 +520,13 @@ def build(args):
         raise ValueError('Build on the Linux root lab host')
     repo, source, output, version, label, media, helpers = plan(args)
     for tool in ('xorriso', 'unsquashfs', 'mksquashfs', 'debugfs', 'e2fsck', 'mdir', 'mcopy',
-                 'implantisomd5', 'checkisomd5', 'rsvg-convert'):
+                 'implantisomd5', 'checkisomd5', 'rsvg-convert', 'modifyrepo_c'):
         if not shutil.which(tool):
             raise ValueError('Required build tool missing: ' + tool)
     scratch = work_directory(args.work_dir, output.parent)
     with tempfile.TemporaryDirectory(prefix='.mytel-native-iso-', dir=str(scratch)) as directory:
         stage = Path(directory)
+        choice_repodata, choice_comps, _metadata_changes = prepare_native_choices(source, stage)
         payload = stage / 'mytelpbx'
         payload.mkdir()
         # Only these validated helper bytes are copied into Anaconda's target.
@@ -364,6 +571,7 @@ def build(args):
         candidate = stage / 'candidate.iso'
         args_map = ['xorriso', '-indev', source, '-outdev', candidate, '-volid', label,
                     '-map', payload, '/mytelpbx', '-map', media.root, '/mytelpbx/depot',
+                    '-map', choice_repodata, '/repodata',
                     '-map', ks, '/ks/mytelpbx.ks', '-map', bios, '/isolinux/isolinux.cfg',
                     '-map', grub, '/EFI/BOOT/grub.cfg', '-map', splash, '/isolinux/splash.png',
                     '-map', splash, '/EFI/BOOT/splash.png', '-map', efi, '/images/efiboot.img',
@@ -374,10 +582,10 @@ def build(args):
         command(args_map)
         command(['implantisomd5', '--force', candidate])
         command(['checkisomd5', candidate])
-        # Strong preservation check: compare every original package and native
-        # repository-metadata byte, not merely the build command's return code.
+        # Strong preservation check: every original RPM stays byte-identical;
+        # metadata may differ only in the explicitly derived comps and repomd.
         native_inventory = {}
-        for name in ('Issabel', 'repodata'):
+        for name in ('Issabel',):
             before, after = stage / ('before-' + name), stage / ('after-' + name)
             extract(source, name, before)
             extract(candidate, name, after)
@@ -385,6 +593,13 @@ def build(args):
             if original_files != inventory(after):
                 raise ValueError('Native depot or metadata changed: ' + name)
             native_inventory[name] = original_files
+        checked_repodata = stage / 'after-repodata'
+        extract(candidate, 'repodata', checked_repodata)
+        actual_changes = verify_repository_delta(stage / 'before-repodata', checked_repodata, choice_comps)
+        if ((checked_repodata / 'repomd.xml').read_bytes()
+                != (choice_repodata / 'repomd.xml').read_bytes()):
+            raise ValueError('ISO repomd readback differs from validated choices')
+        native_inventory['repodata'] = inventory(stage / 'before-repodata')
         for name in ('modules.yaml', 'LICENSE'):
             before, after = stage / ('before-' + name), stage / ('after-' + name)
             extract(source, name, before)
@@ -407,6 +622,10 @@ def build(args):
                    'source_iso_sha256': VENDOR_ISO_SHA256, 'iso_sha256': digest(candidate),
                    'iso_bytes': candidate.stat().st_size, 'media_manifest_sha256': args.manifest_sha256,
                    'native_engine': 'issabel-original-iso-firstboot', 'native_packages_preserved': True,
+                   'native_non_group_metadata_preserved': True,
+                   'native_asterisk_choices': ['16', '18', '20'], 'native_asterisk_default': '20',
+                   'native_comps_sha256': hashlib.sha256(choice_comps).hexdigest(),
+                   'native_metadata_changes': actual_changes,
                    'native_inventory_sha256': hashlib.sha256(json.dumps(native_inventory, sort_keys=True).encode()).hexdigest(),
                    'native_files': sum(len(value) for value in native_inventory.values()),
                    'runtime_display_files': runtime_hashes, 'embedded_efi_configs': efi_count,

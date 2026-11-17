@@ -23,7 +23,8 @@
     },
     "issabel-change-language": {
       "url": "https://github.com/IssabelFoundation/config_helpers/blob/94d6b7cfe1b60b0fe5f364d97d5b285d6a2319dd/issabel-change-language",
-      "sha256": "c92b4c14ea2d37c1728a08da4741839b111e65f32ce8fdf897ed3b03777b13b6"
+      "sha256": "c92b4c14ea2d37c1728a08da4741839b111e65f32ce8fdf897ed3b03777b13b6",
+      "change": "Hash-bound display labels plus one startup presence guard around the native source /etc/issabel.conf. Genuine pre-install absence is quiet; existing invalid files, directories and broken symlinks retain native diagnostics. No configuration or credentials are created, and native options, selection, auth and late password flow remain unchanged."
     }
   },
   "derivation_changes": [
@@ -33,7 +34,7 @@
     "Use the existing narrow Remi HTTPS repository helper after the native Remi release installation",
     "Keep native temporary package lists and logs in the bootstrap-created private workspace",
     "Propagate package, repository, database preparation and native password-tool failures before later stages or reboot",
-    "Apply hash-bound display-only labels to the native language and password tools; retain native dialogs, validation and issabel-admin-passwords --init",
+    "Apply hash-bound labels to the native language and password tools, plus the language tool's narrowly scoped early missing-config guard; retain native dialogs, options, selection, validation and issabel-admin-passwords --init",
     "Replace only the known optional Patreon helper with a truthful core-wizard-complete, add-ons-next dialog; preserve its original bytes in a private backup",
     "Run the shared Mytel add-on hook after successful native password setup and before native cleanup, completion dialog and reboot"
   ],

@@ -82,7 +82,7 @@ class NativeSourceTests(unittest.TestCase):
 
 
 class NativeDialogTests(unittest.TestCase):
-    def test_core_tools_change_only_declared_display_spans(self):
+    def test_core_tools_have_only_declared_hash_bound_changes(self):
         branding = module('brand-native-dialogs')
         for tool in ['language', 'passwords']:
             filename, checksum, replacements = branding.TOOLS[tool]
@@ -142,6 +142,95 @@ class NativeDialogTests(unittest.TestCase):
             self.assertEqual(len(recorded), 1)
             self.assertEqual(recorded[0].read_bytes(), original)
             self.assertEqual(recorded[0].stat().st_mode & 0o777, 0o600)
+
+
+@unittest.skipUnless(BASH and Path(BASH).is_file(), 'Bash is required')
+class NativeLanguageStartupTests(unittest.TestCase):
+    def setUp(self):
+        self.temp = tempfile.TemporaryDirectory()
+        self.addCleanup(self.temp.cleanup)
+        self.base = Path(self.temp.name)
+        self.original = (ROOT / 'tests/fixtures/vendor-native/issabel-change-language').read_bytes()
+        self.guarded = module('brand-native-dialogs').transform('language', self.original)
+
+    def run_helper(self, mode, guarded):
+        root = self.base / (mode + ('-guarded' if guarded else '-native'))
+        (root / 'etc').mkdir(parents=True)
+        (root / 'tmp').mkdir()
+        config = root / 'etc/issabel.conf'
+        if mode == 'valid':
+            config.write_text('mysqlrootpwd=FixtureDbOnly\n')
+        elif mode == 'malformed':
+            config.write_text("mysqlrootpwd='unclosed\n")
+        elif mode == 'directory':
+            config.mkdir()
+        elif mode == 'broken-link':
+            try:
+                config.symlink_to(root / 'nonexistent-config')
+            except OSError as error:
+                self.skipTest('Native symbolic links are unavailable: ' + str(error))
+        source = (self.guarded if guarded else self.original).decode('utf-8')
+        # Virtualize the fixed filesystem paths and terminal only. Fake clients
+        # select English; SQL and telephony execution cannot touch the host.
+        source = source.replace('/etc/issabel.conf', config.as_posix())
+        source = source.replace('/tmp/ipbx.lang', (root / 'tmp/ipbx.lang').as_posix())
+        source = source.replace('/var/www/db/settings.db', (root / 'settings.db').as_posix())
+        source = source.replace('> /dev/tty', '> /dev/null')
+        setup = 'AUTH_FILE=' + shlex.quote((root / 'auth').as_posix()) + '\n'
+        setup += '''dialog(){ if [ "${1:-}" = --backtitle ]; then printf 'en\\n' >&2; fi; return 0; }
+mysql(){ printf 'UNEXPECTED_DB_CALL\\n' >&2; return 99; }
+which(){ printf '%s' "$MYSQLAUTH" > "$AUTH_FILE"; return 1; }
+'''
+        script = root / 'helper.sh'
+        script.write_text('#!/bin/bash\n' + setup + source, encoding='utf-8')
+        env = dict(os.environ, LANG='C', LC_ALL='C')
+        env.pop('BASH_ENV', None)
+        env.pop('SHELLOPTS', None)
+        result = subprocess.run([BASH, '--noprofile', '--norc', str(script)],
+                                stdin=subprocess.DEVNULL, capture_output=True,
+                                encoding='utf-8', errors='replace', timeout=15, env=env)
+        selection = (root / 'tmp/ipbx.lang').read_text()
+        auth = (root / 'auth').read_bytes()
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertNotIn('UNEXPECTED_DB_CALL', result.stderr)
+        return result, selection, auth, config
+
+    def compare(self, mode):
+        native = self.run_helper(mode, False)
+        guarded = self.run_helper(mode, True)
+        self.assertEqual(native[1:3], guarded[1:3])
+        self.assertEqual(guarded[1], 'webLang=en\nfopLang=en\nipbxLang=en_US\nselLang=en\n')
+        return native, guarded
+
+    def test_absent_config_is_quiet_without_creating_credentials(self):
+        native, guarded = self.compare('absent')
+        self.assertIn('No such file or directory', native[0].stderr)
+        self.assertEqual(guarded[0].stderr, '')
+        self.assertEqual(guarded[2], b'')
+        self.assertFalse(guarded[3].exists())
+        self.assertFalse(guarded[3].is_symlink())
+
+    def test_valid_config_is_loaded_with_unchanged_native_auth_and_selection(self):
+        native, guarded = self.compare('valid')
+        self.assertEqual(native[0].stderr, '')
+        self.assertEqual(guarded[0].stderr, '')
+        self.assertEqual(guarded[2], b'-pFixtureDbOnly')
+
+    def test_malformed_existing_config_still_reports_source_error(self):
+        native, guarded = self.compare('malformed')
+        self.assertIn('unexpected EOF', native[0].stderr)
+        self.assertIn('unexpected EOF', guarded[0].stderr)
+
+    def test_existing_directory_still_reports_source_error(self):
+        native, guarded = self.compare('directory')
+        self.assertIn('directory', native[0].stderr)
+        self.assertIn('directory', guarded[0].stderr)
+
+    def test_broken_symlink_still_reports_source_error(self):
+        native, guarded = self.compare('broken-link')
+        self.assertIn('No such file or directory', native[0].stderr)
+        self.assertIn('No such file or directory', guarded[0].stderr)
+        self.assertTrue(guarded[3].is_symlink())
 
 
 @unittest.skipUnless(BASH and Path(BASH).is_file(), 'Bash is required')

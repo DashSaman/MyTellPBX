@@ -1,11 +1,13 @@
 #!/usr/bin/env python3
-"""Brand native dialogs and replace the optional donation/joke completion UX.
+"""Brand native dialogs, guard early absent config and replace optional joke UX.
 
-Language/password tools receive only declared display substitutions; their
-program logic stays intact. The optional completion helper is replaced only at
-its known source hash. Source revisions are recorded in provenance.json. No
-passwords are accepted, read or passed. Originals are backed up before any
-replacement. Python 3.6 compatible.
+The password tool receives display substitutions only. The language tool also
+guards its initial config load only when the file is genuinely absent before
+core installation; native selection, auth and later password flow stay intact.
+The optional completion helper is replaced only at its known source hash. Source
+revisions and the narrow startup guard are recorded in provenance.json. No
+passwords are accepted, read or passed. Originals are backed up before replacement.
+Python 3.6 compatible.
 """
 import argparse
 import hashlib
@@ -22,6 +24,9 @@ TOOLS = {
         (b'--backtitle "Issabel"', b'--backtitle "MytelPBX / Mytel.one"', 1),
         (br'\nIssabel"', br'\nMytelPBX\nMytel.one"', 1),
         (b'        7 11\n', b'        8 15\n', 1),
+        (b'source /etc/issabel.conf\n',
+         b'if [ -e /etc/issabel.conf ] || [ -L /etc/issabel.conf ]; then\n'
+         b'    source /etc/issabel.conf\nfi\n', 1),
     )),
     'passwords': ('issabel-admin-passwords',
                   'aa1a9bc962d5f34c57483d802b7f5e1e010133d2bf3245dc07b644387d9ef410', (
@@ -59,7 +64,7 @@ def transform(tool, source):
         if checksum != expected:
             raise ValueError('Unknown optional native completion helper')
         return COMPLETION_HELPER
-    # Reversing only the declared display changes makes repeat runs idempotent;
+    # Reversing only declared labels/startup guard makes repeat runs idempotent;
     # the resulting full source must still match the pinned original hash.
     if checksum != expected:
         original = source
@@ -73,7 +78,7 @@ def transform(tool, source):
     result = source
     for before, after, count in replacements:
         if result.count(before) != count:
-            raise ValueError('Native display boundary changed: ' + tool)
+            raise ValueError('Native source boundary changed: ' + tool)
         result = result.replace(before, after)
     return result
 
@@ -148,7 +153,7 @@ def main():
     if os.name != 'posix' or os.geteuid() != 0:
         parser.error('Root on the fresh installation target is required')
     changed = apply(args.tool, args.root, args.backup_root)
-    print('MytelPBX native dialog display: ' + ('updated' if changed else 'unchanged'))
+    print('MytelPBX native dialog preparation: ' + ('updated' if changed else 'unchanged'))
 
 
 if __name__ == '__main__':

@@ -18,8 +18,9 @@ pending entries with exact receipts from the final reviewed source and assets.
 | Native ISO build/readback and BIOS/UEFI offline installation | Pending; owner-lab artifact only |
 
 The online installer retains the native Asterisk 16/18/20 selector, default 18.
-The native ISO retains its original Asterisk 20 package profile. Availability is
-separate from acceptance of every version and telephony scenario.
+The native ISO exposes Asterisk 16/18/20 in its native Software Selection screen,
+retaining the original 20 default. Availability is separate from acceptance of
+every version and telephony scenario.
 
 Local deterministic checks, a successful bundle/ISO build, an open port, a web
 response or a running process do not establish a completed fresh install or call

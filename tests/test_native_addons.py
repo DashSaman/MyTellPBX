@@ -75,6 +75,32 @@ class NativeIdentityTests(unittest.TestCase):
 
 
 class NativeSnapshotTests(unittest.TestCase):
+    def test_theme_activation_preserves_native_language_and_rollback_preserves_later_choice(self):
+        for selected, later in (('en', 'fa'), ('fa', 'en')):
+            with self.subTest(native_language=selected), tempfile.TemporaryDirectory() as directory:
+                root = Path(directory)
+                database = root / 'settings.db'
+                with closing(sqlite3.connect(str(database))) as connection, connection:
+                    connection.execute('CREATE TABLE settings (key TEXT,value TEXT)')
+                    connection.executemany('INSERT INTO settings VALUES (?,?)', [('theme', 'native'), ('language', selected), ('owner', 'before')])
+                before = ADDONS.snapshot_settings(database, root)
+                self.assertEqual(before, [('theme', 'native')], 'Only the addon-owned theme is restorable')
+                ADDONS.activate_theme(database)
+                ADDONS.activate_theme(database)
+                with closing(sqlite3.connect(str(database))) as connection, connection:
+                    self.assertEqual(dict(connection.execute('SELECT key,value FROM settings')),
+                                     {'theme': 'mytel', 'language': selected, 'owner': 'before'})
+                    connection.execute('UPDATE settings SET value=? WHERE key=?', (later, 'language'))
+                    connection.execute("UPDATE settings SET value='concurrent-native-edit' WHERE key='owner'")
+                ADDONS.restore_settings(database, before)
+                with closing(sqlite3.connect(str(database))) as connection:
+                    self.assertEqual(dict(connection.execute('SELECT key,value FROM settings')),
+                                     {'theme': 'native', 'language': later, 'owner': 'concurrent-native-edit'})
+                with self.assertRaises(ValueError):
+                    ADDONS.restore_settings(database, [('theme', 'native'), ('language', selected)])
+                with closing(sqlite3.connect(str(database))) as connection:
+                    self.assertEqual(connection.execute('SELECT value FROM settings WHERE key=?', ('language',)).fetchone(), (later,))
+
     def test_settings_restore_preserves_unrelated_native_changes(self):
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)
@@ -175,8 +201,7 @@ class NativeSnapshotTests(unittest.TestCase):
             database.chmod(0o640)
             before = database.stat()
             rows = ADDONS.snapshot_settings(database, root)
-            with closing(sqlite3.connect(str(database))) as connection, connection:
-                connection.execute("UPDATE settings SET value='mytel' WHERE key='theme'")
+            ADDONS.activate_theme(database)
             ADDONS.restore_settings(database, rows)
             after = database.stat()
             self.assertEqual((after.st_ino, after.st_uid, after.st_gid, after.st_mode & 0o7777),

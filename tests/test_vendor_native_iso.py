@@ -43,6 +43,10 @@ class NativeIsoStructureTests(unittest.TestCase):
         self.assertNotIn('geoip_install.sh', result)
         self.assertIn('--verify-media', result)
         self.assertIn('--tool completion', result)
+        self.assertIn('chroot /mnt/sysimage dnf -y config-manager --set-enabled remi\n', result)
+        self.assertIn('chroot /mnt/sysimage dnf -y config-manager --set-enabled powertools\n', result)
+        self.assertNotIn('chroot /mnt/sysimage dnf -y module enable php:remi-7.4\n', result)
+        self.assertNotIn('chroot /mnt/sysimage dnf -y check-upgrade\n', result)
 
     def test_unknown_native_kickstart_drift_is_refused(self):
         with self.assertRaises(ValueError):

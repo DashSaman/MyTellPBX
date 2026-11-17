@@ -55,8 +55,9 @@ curl -fsSL -o install-mytellpbx.sh https://github.com/DashSaman/MyTellPBX/releas
 - [روش آزمون و محدودیت‌ها](docs/TESTING.md)
 - [شفافیت اجزای نرم‌افزاری](THIRD_PARTY_NOTICES.md)
 
-نسخهٔ بومی ISO از تصویر اصلی Issabel بازسازی می‌شود و گروه استریسک ۲۰ و
-فرایند بومی اولین راه‌اندازی آن را نگه می‌دارد. این ISO خروجی آزمایشگاه مالک
+نسخهٔ بومی ISO از تصویر اصلی Issabel بازسازی می‌شود. در صفحهٔ بومی
+**Software Selection**، استریسک **۱۶، ۱۸ یا ۲۰** را انتخاب کنید؛ پیش‌فرض
+این مسیر ۲۰ است. فرایند بومی اولین راه‌اندازی حفظ می‌شود. این ISO خروجی آزمایشگاه مالک
 است و در گیت‌هاب بارگذاری نمی‌شود. مسیر نصب، ساخت و محدودیت‌های آن در راهنما آمده است.
 
 نام‌های فنی بالادستی، مانند بسته‌ها، سرویس‌ها، مسیرهای `issabel` و شناسه‌های
@@ -91,7 +92,8 @@ credentials; the independent Desk administrator record is root-only at
 recording policy for the intended use.
 
 The separate owner-lab ISO remasters the original vendor ISO, retaining its
-Asterisk 20 package group and native firstboot/password flow. The ISO binary is
+native firstboot/password flow. Its native **Software Selection** screen offers
+**Asterisk 16/18/20**, with **20 as the default**. The ISO binary is
 not uploaded to GitHub. Upstream technical package/service/database identifiers
 remain intact. See the [English installation guide](docs/INSTALL.en.md) for both paths,
 network policy and current acceptance limits. Older release records cover their
