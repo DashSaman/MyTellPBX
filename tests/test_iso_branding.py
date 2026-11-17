@@ -27,7 +27,7 @@ class IsoBrandingTests(unittest.TestCase):
         self.assertEqual(stamp['Main']['Product'], 'MytelPBX')
         self.assertEqual(stamp['Main']['BugURL'], 'https://mytel.one')
         self.assertEqual(stamp['Main']['Version'], '@VERSION@')
-        self.assertFalse(stamp.getboolean('Main', 'IsFinal'))
+        self.assertTrue(stamp.getboolean('Main', 'IsFinal'))
         self.assertEqual(stamp['Main']['UUID'], '@BASE_UUID@')
         self.assertEqual(stamp['Compose']['Lorax'], '@BASE_LORAX@')
 

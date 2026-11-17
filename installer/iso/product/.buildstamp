@@ -2,7 +2,7 @@
 Product=MytelPBX
 Version=@VERSION@
 BugURL=https://mytel.one
-IsFinal=False
+IsFinal=True
 UUID=@BASE_UUID@
 
 [Compose]
