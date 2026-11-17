@@ -11,6 +11,14 @@
     "verify": "python3 installer/vendor-native/derive-native.py --check"
   },
   "dialog_sources": {
+    "generate_self_signed.sh": {
+      "origin": "Exact /usr/local/sbin/generate_self_signed.sh extracted from the supplied native issabel-firstboot-5.0.0-2.noarch.rpm and matched to actual fresh native20",
+      "sha256": "e526f5f2792830291858eb5e8c2cd3f3ab2218a2f60651951934d4c26f46502b",
+      "bytes": 810,
+      "installed_path": "/usr/local/sbin/generate_self_signed.sh",
+      "openssl_support": "Native Rocky8.10 OpenSSL1.1.1k req -help confirms -addext; https://docs.openssl.org/1.1.1/man1/req/#options",
+      "change": "Hash-bound template preparation only, before native firstboot/password initialization. New native default certificates use Organization MytelPBX - Mytel.one and SANs for the validated native FQDN plus at most sixteen distinct valid global-scope assigned IPv4 addresses, including private LAN addresses. No DNS/network lookup, certificate/key/service action during transformation, new dependency or TLS bypass. The original EKU generation guard, RSA2048, SHA256, 824-day lifetime, serial policy, certificate/key paths, native call order and httpd restart remain unchanged. Already configured/custom certificate behavior is preserved by the unchanged native guard."
+    },
     "issabel-patreon": {
       "origin": "Exact optional helper extracted from native issabel-firstboot-5.0.0-2.noarch.rpm",
       "sha256": "aa865928497e0c32f42a73e2e15b73cd0be201ca4157df07098d695fe7718af9",
@@ -42,6 +50,7 @@
     "Keep native temporary package lists and logs in the bootstrap-created private workspace",
     "Propagate package, repository, database preparation and native password-tool failures before later stages or reboot",
     "Apply hash-bound labels to the native language, password and post-package SIP tools, plus the language tool's narrowly scoped early missing-config guard; retain native dialogs, options, selection, validation and issabel-admin-passwords --init",
+    "Prepare only the exact native default certificate generator with product Organization and bounded validated FQDN/global-scope IPv4 SANs for future native generation; preserve its existing EKU guard and certificate/key policy",
     "Replace only the known optional Patreon helper with a truthful core-wizard-complete, add-ons-next dialog; preserve its original bytes in a private backup",
     "Run the shared Mytel add-on hook after successful native password setup and before native cleanup, completion dialog and reboot"
   ],

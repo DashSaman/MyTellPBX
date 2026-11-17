@@ -4,6 +4,7 @@ import importlib.util
 import io
 import json
 import os
+from datetime import datetime
 from pathlib import Path
 import shlex
 import shutil
@@ -16,6 +17,7 @@ from unittest.mock import patch
 ROOT = Path(__file__).resolve().parents[1]
 NATIVE = ROOT / 'installer/vendor-native'
 BASH = 'C:/Program Files/Git/bin/bash.exe' if os.name == 'nt' else shutil.which('bash')
+OPENSSL = 'C:/Program Files/Git/usr/bin/openssl.exe' if os.name == 'nt' else shutil.which('openssl')
 VENDOR_SHA = 'd0793041a422981293d74153f1aa56b29ff9803d18ee3319a53865b5b6132d46'
 FLOW = ['check_dialog', 'add_repos', 'settings', 'welcome', 'select_language',
         'sel_astver', 'additional_packages', 'generate_files', 'welcome',
@@ -99,11 +101,24 @@ class NativeSourceTests(unittest.TestCase):
         self.assertLess(post.index('--tool sip'), post.index('run-offline.sh --verify-media'))
         self.assertNotIn('issabel-admin-passwords --init', post)
 
+    def test_certificate_generator_is_prepared_only_after_packages_before_native_init(self):
+        source = (NATIVE / 'mytelpbx-netinstall.sh').read_text(encoding='utf-8')
+        language = source.split('function select_language()\n{\n', 1)[1].split('\n}', 1)[0]
+        passwords = source.split('function set_passwords()\n{\n', 1)[1].split('\n}', 1)[0]
+        self.assertNotIn('--tool certificate', language)
+        self.assertIn('--tool certificate || return 1', passwords)
+        self.assertLess(passwords.index('--tool certificate'), passwords.index('issabel-admin-passwords --init'))
+        spec = importlib.util.spec_from_file_location('certificate_iso_builder', ROOT / 'scripts/remaster-vendor-iso.py')
+        builder = importlib.util.module_from_spec(spec); spec.loader.exec_module(builder)
+        post = builder.kickstart((ROOT / 'tests/fixtures/vendor-iso/issabel.ks').read_text()).split('# MYTEL_NATIVE_ADDONS_BEGIN', 1)[1]
+        self.assertIn('--tool certificate', post)
+        self.assertLess(post.index('--tool certificate'), post.index('run-offline.sh --verify-media'))
+
 
 class NativeDialogTests(unittest.TestCase):
     def test_core_tools_have_only_declared_hash_bound_changes(self):
         branding = module('brand-native-dialogs')
-        for tool in ['language', 'passwords', 'sip']:
+        for tool in ['language', 'passwords', 'sip', 'certificate']:
             filename, checksum, replacements = branding.TOOLS[tool]
             with self.subTest(tool=tool):
                 source = (ROOT / 'tests/fixtures/vendor-native' / filename).read_bytes()
@@ -118,6 +133,51 @@ class NativeDialogTests(unittest.TestCase):
                 self.assertEqual(recovered, source)
                 self.assertIn(b'MytelPBX', result)
                 self.assertIn(b'Mytel.one', result)
+
+    @unittest.skipUnless(os.name == 'posix', 'Native POSIX installed path, ownership and atomic replacement')
+    def test_certificate_apply_uses_explicit_sbin_path_preserves_original_and_failure_recovery(self):
+        branding = module('brand-native-dialogs')
+        original = (ROOT / 'tests/fixtures/vendor-native/generate_self_signed.sh').read_bytes()
+        for fail in (False, True):
+            with self.subTest(fail=fail), tempfile.TemporaryDirectory() as directory:
+                root = Path(directory); path = root / 'usr/local/sbin/generate_self_signed.sh'
+                path.parent.mkdir(parents=True); path.write_bytes(original); path.chmod(0o750)
+                decoy = root / 'usr/bin/generate_self_signed.sh'
+                decoy.parent.mkdir(parents=True); decoy.write_bytes(b'untouched decoy\n')
+                before = path.stat(); backups = root / 'backups'
+                if fail:
+                    with patch.object(branding.os, 'replace', side_effect=OSError('fixture replace failure')):
+                        with self.assertRaises(OSError): branding.apply('certificate', root, backups)
+                    self.assertEqual(path.read_bytes(), original)
+                else:
+                    self.assertTrue(branding.apply('certificate', root, backups))
+                    self.assertFalse(branding.apply('certificate', root, backups))
+                    self.assertEqual(path.read_bytes(), branding.transform('certificate', original))
+                self.assertEqual((path.stat().st_uid, path.stat().st_gid, path.stat().st_mode & 0o777),
+                                 (before.st_uid, before.st_gid, 0o750))
+                saved = list(backups.iterdir()); self.assertEqual(len(saved), 1)
+                self.assertEqual(saved[0].read_bytes(), original)
+                self.assertEqual(saved[0].stat().st_mode & 0o777, 0o600)
+                self.assertEqual(decoy.read_bytes(), b'untouched decoy\n')
+                self.assertFalse(list(path.parent.glob('.mytel-native-display-*')))
+
+    def test_certificate_source_and_provenance_are_exact_without_traversal(self):
+        branding = module('brand-native-dialogs')
+        self.assertIn('certificate', branding.TOOLS)
+        filename, checksum, _replacements = branding.TOOLS['certificate']
+        self.assertEqual(filename, 'generate_self_signed.sh')
+        original = (ROOT / 'tests/fixtures/vendor-native' / filename).read_bytes()
+        self.assertEqual(hashlib.sha256(original).hexdigest(), 'e526f5f2792830291858eb5e8c2cd3f3ab2218a2f60651951934d4c26f46502b')
+        self.assertEqual(checksum, hashlib.sha256(original).hexdigest())
+        provenance = json.loads((NATIVE / 'provenance.json').read_text())
+        self.assertEqual(provenance['dialog_sources'][filename]['sha256'], checksum)
+        result = branding.transform('certificate', original)
+        self.assertIn(b'grep "^extendedKeyUsage = serverAuth" /etc/pki/tls/openssl.cnf', result)
+        self.assertIn(b'if [ $? -ne 0 ]; then', result)
+        self.assertIn(b'/usr/bin/openssl genrsa 2048', result)
+        self.assertIn(b'-x509 -sha256 -days 824 -set_serial $RANDOM -extensions v3_req', result)
+        self.assertEqual(result.count(b'/usr/bin/systemctl restart httpd'), 1)
+        self.assertNotIn(b'../', filename.encode())
 
     def test_sip_title_and_logo_use_product_brand_without_accepting_changed_ports(self):
         branding = module('brand-native-dialogs')
@@ -210,6 +270,122 @@ class NativeDialogTests(unittest.TestCase):
             self.assertEqual(len(recorded), 1)
             self.assertEqual(recorded[0].read_bytes(), original)
             self.assertEqual(recorded[0].stat().st_mode & 0o777, 0o600)
+
+
+@unittest.skipUnless(BASH and OPENSSL and Path(BASH).is_file() and Path(OPENSSL).is_file(), 'Bash and OpenSSL are required')
+class NativeCertificateTests(unittest.TestCase):
+    def setUp(self):
+        self.temp = tempfile.TemporaryDirectory(); self.addCleanup(self.temp.cleanup)
+        self.base = Path(self.temp.name); self.counter = 0
+        self.original = (ROOT / 'tests/fixtures/vendor-native/generate_self_signed.sh').read_bytes()
+
+    def openssl(self, *args):
+        env = dict(os.environ); env.pop('OPENSSL_CONF', None)
+        return subprocess.run([OPENSSL] + list(args), capture_output=True, timeout=30, env=env)
+
+    def run_generator(self, source, hostname='mytelpbx.local', addresses=None, existing=False):
+        self.counter += 1; root = self.base / str(self.counter); root.mkdir()
+        config = root / 'openssl.cnf'; key = root / 'localhost.key'; cert = root / 'localhost.crt'
+        config.write_text('[req]\ndistinguished_name=dn\n[dn]\nC=Country\nST=State\nL=City\nO=Organization\nOU=Unit\nCN=Common Name\nemailAddress=Email\n[v3_req]\nkeyUsage = digitalSignature, keyEncipherment\n', encoding='ascii')
+        if existing:
+            with config.open('a') as stream: stream.write('extendedKeyUsage = serverAuth,clientAuth\n')
+            key.write_bytes(b'CUSTOM PRIVATE KEY FIXTURE SENTINEL\n'); key.chmod(0o600)
+            cert.write_bytes(b'CUSTOM CERTIFICATE FIXTURE SENTINEL\n')
+        trace = root / 'services'
+        if addresses is None:
+            addresses = '2: eth0 inet 192.168.122.150/24 brd 192.168.122.255 scope global eth0\n3: eth1 inet 10.23.4.5/24 scope global eth1\n'
+        setup = 'hostname(){ printf %s ' + shlex.quote(hostname) + '; }\n'
+        setup += 'ip(){ [ "$*" = "-o -4 addr show scope global" ] || return 97; printf %s ' + shlex.quote(addresses) + '; }\n'
+        setup += 'fixture_systemctl(){ printf "%s\\n" "$*" >> ' + shlex.quote(trace.as_posix()) + '; }\n'
+        text = source.decode('utf-8')
+        for old, new in [('/etc/pki/tls/openssl.cnf', config), ('/etc/pki/tls/private/localhost.key', key),
+                         ('/etc/pki/tls/certs/localhost.crt', cert)]:
+            text = text.replace(old, shlex.quote(new.as_posix()))
+        text = text.replace('/usr/bin/openssl', shlex.quote(Path(OPENSSL).as_posix()))
+        text = text.replace('/usr/bin/systemctl', 'fixture_systemctl')
+        script = root / 'generator.sh'; script.write_text('#!/bin/bash\n' + setup + text, encoding='utf-8')
+        env = dict(os.environ, LANG='C', LC_ALL='C', OPENSSL_CONF=config.as_posix())
+        env.pop('BASH_ENV', None); env.pop('SHELLOPTS', None)
+        def run():
+            return subprocess.run([BASH, '--noprofile', '--norc', str(script)], stdin=subprocess.DEVNULL,
+                                  capture_output=True, timeout=30, env=env)
+        result = run()
+        self.assertEqual(result.returncode, 0, result.stderr.decode('utf-8', 'replace'))
+        self.assertTrue(cert.is_file(), 'Native generator must actually produce a temporary certificate')
+        return root, config, key, cert, trace, run
+
+    def certificate_text(self, cert):
+        result = self.openssl('x509', '-in', str(cert), '-noout', '-text', '-subject', '-issuer', '-dates')
+        self.assertEqual(result.returncode, 0, result.stderr)
+        return result.stdout.decode('utf-8')
+
+    def check_ip(self, cert, address):
+        return self.openssl('verify', '-CAfile', str(cert), '-verify_ip', address, str(cert)).returncode
+
+    def test_original_real_certificate_reproduces_brand_and_ip_identity_gap(self):
+        _root, _config, _key, cert, trace, _run = self.run_generator(self.original)
+        text = self.certificate_text(cert)
+        self.assertRegex(text, r'\bO\s*=\s*Issabel')
+        self.assertNotIn('MytelPBX', text)
+        self.assertNotEqual(self.check_ip(cert, '192.168.122.150'), 0)
+        self.assertEqual(trace.read_text(), 'restart httpd\n')
+
+    def test_derived_real_certificate_has_product_identity_ip_sans_and_native_crypto_policy(self):
+        candidate = module('brand-native-dialogs').transform('certificate', self.original)
+        _root, _config, _key, cert, trace, _run = self.run_generator(candidate)
+        text = self.certificate_text(cert)
+        self.assertRegex(text, r'\bO\s*=\s*MytelPBX - Mytel.one')
+        self.assertNotRegex(text, r'\bO\s*=\s*Issabel')
+        self.assertIn('DNS:mytelpbx.local', text)
+        for address in ('192.168.122.150', '10.23.4.5'):
+            self.assertEqual(self.check_ip(cert, address), 0)
+        self.assertIn('Public-Key: (2048 bit)', text)
+        self.assertIn('sha256WithRSAEncryption', text)
+        self.assertIn('TLS Web Server Authentication, TLS Web Client Authentication', text)
+        dates = dict(line.split('=', 1) for line in text.splitlines() if line.startswith(('notBefore=', 'notAfter=')))
+        ttl = datetime.strptime(dates['notAfter'], '%b %d %H:%M:%S %Y %Z') - datetime.strptime(dates['notBefore'], '%b %d %H:%M:%S %Y %Z')
+        self.assertEqual(ttl.days, 824)
+        self.assertEqual(ttl.seconds, 0)
+        self.assertEqual(trace.read_text(), 'restart httpd\n')
+
+    def test_existing_native_eku_guard_preserves_config_key_certificate_and_no_restart(self):
+        candidate = module('brand-native-dialogs').transform('certificate', self.original)
+        _root, config, key, cert, trace, run = self.run_generator(candidate)
+        before = [path.read_bytes() for path in (config, key, cert, trace)]
+        self.assertEqual(run().returncode, 0)
+        self.assertEqual([path.read_bytes() for path in (config, key, cert, trace)], before)
+
+    def test_preexisting_custom_certificate_and_key_are_not_opened_or_replaced(self):
+        candidate = module('brand-native-dialogs').transform('certificate', self.original)
+        _root, config, key, cert, trace, run = self.run_generator(candidate, existing=True)
+        self.assertEqual(key.read_bytes(), b'CUSTOM PRIVATE KEY FIXTURE SENTINEL\n')
+        self.assertEqual(cert.read_bytes(), b'CUSTOM CERTIFICATE FIXTURE SENTINEL\n')
+        self.assertFalse(trace.exists())
+        before = [(path.read_bytes(), path.stat().st_mtime_ns) for path in (config, key, cert)]
+        self.assertEqual(run().returncode, 0)
+        self.assertEqual([(path.read_bytes(), path.stat().st_mtime_ns) for path in (config, key, cert)], before)
+
+    def test_invalid_names_addresses_and_duplicates_cannot_inject_extensions(self):
+        candidate = module('brand-native-dialogs').transform('certificate', self.original)
+        bad = ['256.1.2.3', '01.2.3.4', '127.0.0.1', '0.0.0.0', '224.1.2.3', '169.254.1.2', '1.2.3.4,DNS:evil.example', '1.2.3.4;critical']
+        addresses = ''.join('2: eth0 inet ' + address + '/24 scope global eth0\n' for address in bad)
+        addresses += '2: eth0 inet 192.168.122.150/24 scope global eth0\n' * 2
+        for hostname in ('bad,name', '-bad.local', 'bad-.local', 'bad..local', 'bad_name.local'):
+            with self.subTest(hostname=hostname):
+                _root, _config, _key, cert, _trace, _run = self.run_generator(candidate, hostname, addresses)
+                text = self.certificate_text(cert)
+                self.assertNotIn('DNS:', text)
+                self.assertEqual(text.count('IP Address:192.168.122.150'), 1)
+                self.assertNotIn('evil.example', text)
+                self.assertEqual(self.check_ip(cert, '192.168.122.150'), 0)
+
+    def test_ip_san_inventory_is_bounded_and_no_valid_san_keeps_native_generation(self):
+        candidate = module('brand-native-dialogs').transform('certificate', self.original)
+        addresses = ''.join('2: eth0 inet 10.20.0.' + str(n) + '/24 scope global eth0\n' for n in range(1, 41))
+        _root, _config, _key, cert, _trace, _run = self.run_generator(candidate, addresses=addresses)
+        self.assertEqual(self.certificate_text(cert).count('IP Address:'), 16)
+        _root, _config, _key, cert, _trace, _run = self.run_generator(candidate, hostname='bad_name.local', addresses='')
+        self.assertNotIn('Subject Alternative Name', self.certificate_text(cert))
 
 
 @unittest.skipUnless(BASH and Path(BASH).is_file(), 'Bash is required')

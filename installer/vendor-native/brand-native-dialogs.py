@@ -1,12 +1,15 @@
 #!/usr/bin/env python3
-"""Brand native dialogs, guard early absent config and replace optional joke UX.
+"""Brand native dialogs and future default certificates at known source hashes.
 
 The password and SIP tools receive display substitutions only. The language tool also
 guards its initial config load only when the file is genuinely absent before
 core installation; native selection, auth and later password flow stay intact.
-The optional completion helper is replaced only at its known source hash. Source
-revisions and the narrow startup guard are recorded in provenance.json. No
-passwords are accepted, read or passed. Originals are backed up before replacement.
+The default certificate generator keeps its native generation guard and crypto
+policy; only new native certificates gain product identity and validated SANs.
+Transformation never generates a certificate or restarts a service. The optional
+completion helper is replaced only at its known source hash. Revisions and narrow
+changes are recorded in provenance.json. No passwords are accepted, read or passed.
+Originals are backed up before replacement.
 Python 3.6 compatible.
 """
 import argparse
@@ -15,6 +18,39 @@ import os
 from pathlib import Path
 import stat
 import tempfile
+
+CERTIFICATE_SANS = br'''
+# Native fresh generation only: one valid FQDN and at most 16 assigned global-scope
+# IPv4 addresses (including private LAN addresses). No DNS/network lookup is used.
+MYTEL_SAN=''
+MYTEL_DNS_LABEL='[A-Za-z0-9]([A-Za-z0-9-]{0,61}[A-Za-z0-9])?'
+if [[ "$FQDN" =~ ^${MYTEL_DNS_LABEL}(\.${MYTEL_DNS_LABEL})+$ ]]; then
+    MYTEL_SAN="DNS:$FQDN"
+fi
+MYTEL_SAN_COUNT=0
+while read -r MYTEL_INDEX MYTEL_INTERFACE MYTEL_FAMILY MYTEL_CIDR MYTEL_REST; do
+    [ "$MYTEL_FAMILY" = inet ] || continue
+    [[ "$MYTEL_CIDR" =~ ^([0-9]{1,3}\.){3}[0-9]{1,3}/([0-9]|[12][0-9]|3[0-2])$ ]] || continue
+    MYTEL_ADDRESS="${MYTEL_CIDR%/*}"
+    IFS=. read -r -a MYTEL_OCTETS <<< "$MYTEL_ADDRESS"
+    MYTEL_VALID=1
+    for MYTEL_OCTET in "${MYTEL_OCTETS[@]}"; do
+        if [[ "$MYTEL_OCTET" != 0 && "$MYTEL_OCTET" == 0* ]] || (( 10#$MYTEL_OCTET > 255 )); then
+            MYTEL_VALID=0
+            break
+        fi
+    done
+    [ "$MYTEL_VALID" = 1 ] || continue
+    (( MYTEL_OCTETS[0] > 0 && MYTEL_OCTETS[0] < 224 && MYTEL_OCTETS[0] != 127 )) || continue
+    (( MYTEL_OCTETS[0] != 169 || MYTEL_OCTETS[1] != 254 )) || continue
+    [[ ",$MYTEL_SAN," == *",IP:$MYTEL_ADDRESS,"* ]] && continue
+    MYTEL_SAN="${MYTEL_SAN:+$MYTEL_SAN,}IP:$MYTEL_ADDRESS"
+    MYTEL_SAN_COUNT=$((MYTEL_SAN_COUNT + 1))
+    [ "$MYTEL_SAN_COUNT" -lt 16 ] || break
+done < <(ip -o -4 addr show scope global 2>/dev/null)
+MYTEL_SAN_ARGS=()
+[ -z "$MYTEL_SAN" ] || MYTEL_SAN_ARGS=(-addext "subjectAltName=$MYTEL_SAN")
+'''
 
 TOOLS = {
     'completion': ('issabel-patreon',
@@ -34,6 +70,13 @@ TOOLS = {
         (b'--backtitle "Issabel"', b'--backtitle "MytelPBX / Mytel.one"', 1),
         (br'\nIssabel"', br'\nMytelPBX\nMytel.one"', 1),
         (b'        7 11\n', b'        8 15\n', 1),
+    )),
+    'certificate': ('generate_self_signed.sh',
+                    'e526f5f2792830291858eb5e8c2cd3f3ab2218a2f60651951934d4c26f46502b', (
+        (b'\nIssabel\nPBX\n', b'\nMytelPBX - Mytel.one\nPBX\n', 1),
+        (b'\ncat << EOF | /usr/bin/openssl req',
+         CERTIFICATE_SANS + b'\ncat << EOF | /usr/bin/openssl req', 1),
+        (b'-extensions v3_req \\\n', b'-extensions v3_req "${MYTEL_SAN_ARGS[@]}" \\\n', 1),
     )),
     'passwords': ('issabel-admin-passwords',
                   'aa1a9bc962d5f34c57483d802b7f5e1e010133d2bf3245dc07b644387d9ef410', (
@@ -105,7 +148,12 @@ def identity(info):
 
 
 def apply(tool, root, backup_root):
-    path = root.absolute() / 'usr/bin' / TOOLS[tool][0]
+    # Explicit trusted location: the certificate helper is not a /usr/bin tool.
+    # Keep its filename plain rather than allowing ../ traversal in TOOLS.
+    if tool == 'certificate':
+        path = root.absolute() / 'usr/local/sbin/generate_self_signed.sh'
+    else:
+        path = root.absolute() / 'usr/bin' / TOOLS[tool][0]
     previous = regular(path)
     before = path.read_bytes()
     after = transform(tool, before)

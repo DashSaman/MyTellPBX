@@ -101,6 +101,7 @@ chroot "$target" /usr/libexec/platform-python -I -S -B /usr/local/libexec/mytelp
 chroot "$target" /usr/libexec/platform-python -I -S -B /usr/local/libexec/mytelpbx/brand-native-dialogs.py --tool completion
 chroot "$target" /usr/libexec/platform-python -I -S -B /usr/local/libexec/mytelpbx/brand-native-dialogs.py --tool language
 chroot "$target" /usr/libexec/platform-python -I -S -B /usr/local/libexec/mytelpbx/brand-native-dialogs.py --tool sip
+chroot "$target" /usr/libexec/platform-python -I -S -B /usr/local/libexec/mytelpbx/brand-native-dialogs.py --tool certificate
 # Validate sealed bytes before allowing installation to complete; no PBX action.
 chroot "$target" /bin/bash /usr/local/libexec/mytelpbx/run-offline.sh --verify-media
 %end
