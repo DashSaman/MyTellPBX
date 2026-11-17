@@ -24,7 +24,7 @@ if($('#myframe').length>0) {
 
     iframeURLChange(document.getElementById("myframe"), function (newURL) {
         $('#neo-contentbox').LoadingOverlay('show', {
-            image: "/themes/tenant/images/issabel_logo_pattern.png",
+            image: "/themes/mytel/images/mt-spinner.svg",
         });
     });
 

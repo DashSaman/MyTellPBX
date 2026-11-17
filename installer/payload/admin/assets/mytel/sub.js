@@ -2345,7 +2345,19 @@ var HELP_KEYS = Object.keys(HELP);
             var t2 = clean(cl2.textContent);
             if (!t2) continue;
             var fa2 = LABELS[t2];
-            if (fa2) addSub(col, fa2, fullTip(col) || TIPS[t2]);
+            if (fa2) {
+                addSub(col, fa2, fullTip(col) || TIPS[t2]);
+                /* Known native human labels only, after the subtitle lookup.
+                   Submitted values, technical keys and attribution stay exact. */
+                if (col.closest('form') && !col.closest('table,[role="grid"],[contenteditable],[data-mt-preserve],.legal,.license,.copyright') &&
+                    /^(?:Disable IssabelPBX (?:dbug Logging|Log)|IssabelPBX (?:Log File|Log Routing|Web Address))$/.test(t2)) {
+                    for (var n = 0; n < col.childNodes.length; n++) {
+                        var text = col.childNodes[n];
+                        if (text.nodeType === 3 && clean(text.nodeValue) === t2)
+                            text.nodeValue = text.nodeValue.replace('IssabelPBX', 'MytelPBX');
+                    }
+                }
+            }
         }
         /* page title band: the h2 carries its own subtitle + pill */
         var h2 = document.querySelector("h2#title");

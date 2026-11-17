@@ -2,7 +2,7 @@
 /* Execute the real presentation blocks against synthetic UI/customer content.
    The browser never forwards a request or contacts a PBX. */
 const fs=require('node:fs'),path=require('node:path'),cp=require('node:child_process'),assert=require('node:assert/strict');
-const {chromium}=require('playwright');
+const {chromium}=require('playwright'),vm=require('node:vm');
 const ROOT=path.resolve(__dirname,'../..');
 const python=process.env.PYTHON||(process.platform==='win32'?'python':'python3');
 const admin=cp.execFileSync(python,['-B','-c',"import ast,pathlib,sys; p=pathlib.Path('admin-theme/patch-debrand.py'); t=ast.parse(p.read_text(encoding='utf-8')); sys.stdout.buffer.write(ast.literal_eval(next(n.value for n in t.body if isinstance(n,ast.Assign) and any(isinstance(x,ast.Name) and x.id=='DEBRAND_JS' for x in n.targets))).encode('utf-8'))"],{cwd:ROOT,encoding:'utf8'});
@@ -10,6 +10,8 @@ const theme=fs.readFileSync(path.join(ROOT,'theme/js/theme.js'),'utf8');
 const start=theme.indexOf('(function panelDebrand() {'),end=theme.indexOf('\n        })();',start);
 assert(start>=0&&end>start,'Actual panel branding block must be available');
 const panel=theme.slice(start,end+'\n        })();'.length);
+const subtitles=fs.readFileSync(path.join(ROOT,'installer/payload/admin/assets/mytel/sub.js'),'utf8');
+const settingsLabels=['Disable IssabelPBX dbug Logging','Disable IssabelPBX Log','IssabelPBX Log File','IssabelPBX Log Routing','IssabelPBX Web Address'];
 const fixture=`<!doctype html><html lang="en" dir="ltr"><head><title>IssabelPBX Advanced Settings</title></head><body>
 <header><a class="navbar-brand" id="brand" href="https://www.issabel.org/" title="IssabelPBX" aria-label="IssabelPBX"><img alt="IssabelPBX">IssabelPBX</a></header>
 <h2 id="heading">IssabelPBX Advanced Settings</h2>
@@ -50,8 +52,30 @@ const fixture=`<!doctype html><html lang="en" dir="ltr"><head><title>IssabelPBX 
   }
   await check('no network requests',async()=>assert.deepEqual(blocked,[]));
   await context.close();
- }}finally{await browser.close();}
- report.pass=report.cases.length===24&&report.cases.every(c=>c.pass);
+ }
+ const context=await browser.newContext({serviceWorkers:'block'}),page=await context.newPage(),requests=[];
+ await context.route('**/*',route=>{requests.push(route.request().url());return route.abort();});
+ await page.setContent('<html dir="ltr"><body><form id="settings">'+settingsLabels.map((label,i)=>'<div class="column tdsearch" id="setting-'+i+'">'+label+'</div><input name="native_'+i+'" value="retained-'+i+'">').join('')+'<select name="PHP_ERROR_HANDLER_OUTPUT"><option selected>issabelpbxlog</option></select><input name="USE_ISSABELPBX_MENU_CONF" value="issabelpbx_menu.conf"></form><div id="customer-label">IssabelPBX Web Address</div><table><tr><td class="column tdsearch" id="customer-table-label">IssabelPBX Log File</td></tr></table><pre id="technical">issabelpbxlog issabelpbx_menu.conf</pre></body></html>');
+ const before=await page.locator('#settings').evaluate(f=>[...new FormData(f)]);
+ await page.addScriptTag({content:subtitles});
+ const check=async(label,fn)=>{let error;try{await fn();}catch(e){error=e.message;}report.cases.push({block:'native-labels',check:label,pass:!error,...(error?{error}: {})});};
+ await check('five known native human labels use MytelPBX',async()=>{for(let i=0;i<settingsLabels.length;i++)assert.equal(await page.locator('#setting-'+i).evaluate(el=>[...el.childNodes].filter(n=>n.nodeType===3).map(n=>n.nodeValue).join('').trim()),settingsLabels[i].replace('IssabelPBX','MytelPBX'));});
+ await check('Persian subtitles survive the label branding',async()=>{for(let i=0;i<settingsLabels.length;i++)assert(await page.locator('#setting-'+i+' > .mt-sub').count());});
+ await check('all technical keys and submitted values remain exact',async()=>{assert.deepEqual(await page.locator('#settings').evaluate(f=>[...new FormData(f)]),before);assert.equal(await page.locator('#technical').textContent(),'issabelpbxlog issabelpbx_menu.conf');assert.equal(await page.locator('html').getAttribute('dir'),'ltr');});
+ await check('customer labels outside native settings remain exact',async()=>{assert.equal(await page.locator('#customer-label').textContent(),'IssabelPBX Web Address');assert.equal(await page.locator('#customer-table-label').textContent(),'IssabelPBX Log File');});
+ await page.evaluate(()=>{const row=document.createElement('div');row.id='late-setting';row.className='column tdsearch';row.textContent='IssabelPBX Web Address';document.querySelector('#settings').append(row);});
+ await page.waitForTimeout(500);
+ await check('late native label retains subtitle and exact values',async()=>{assert.equal(await page.locator('#late-setting').evaluate(el=>el.firstChild.nodeValue),'MytelPBX Web Address');assert.equal(await page.locator('#late-setting > .mt-sub').count(),1);assert.deepEqual(await page.locator('#settings').evaluate(f=>[...new FormData(f)]),before);});
+ await check('native label fixture forwards no requests',async()=>assert.deepEqual(requests,[]));
+ await context.close();
+ const callbacks={},overlays=[],frameWindow={location:{href:'about:blank'},addEventListener(name,cb){callbacks[name]=cb;},removeEventListener(){}},frame={contentWindow:frameWindow,addEventListener(name,cb){callbacks['frame-'+name]=cb;}};
+ const jq=selector=>selector==='#myframe'?{length:1,get:()=>frame}:{LoadingOverlay:(action,options)=>overlays.push({action,options})};
+ vm.runInNewContext(fs.readFileSync(path.join(ROOT,'theme/js/iframe-show-loader.js'),'utf8'),{window:{},document:{getElementById:()=>frame},$:jq,setTimeout:cb=>cb(),calcHeight(){}});
+ callbacks.unload();
+ let loaderError;try{assert.equal(overlays[0].action,'show');assert.equal(overlays[0].options.image,'/themes/mytel/images/mt-spinner.svg');assert(fs.existsSync(path.join(ROOT,'theme/images/mt-spinner.svg')));}catch(e){loaderError=e.message;}
+ report.cases.push({block:'loader',check:'real loader callback uses existing Mytel spinner',pass:!loaderError,...(loaderError?{error:loaderError}:{})});
+ }finally{await browser.close();}
+ report.pass=report.cases.length===31&&report.cases.every(c=>c.pass);
  if(process.env.MT_TEST_OUTPUT){fs.mkdirSync(process.env.MT_TEST_OUTPUT,{recursive:true});fs.writeFileSync(path.join(process.env.MT_TEST_OUTPUT,'branding-context.json'),JSON.stringify(report,null,2)+'\n');}
  console.log(JSON.stringify(report,null,2));if(!report.pass)process.exitCode=1;
 })().catch(error=>{console.error(error.message);process.exitCode=2;});
