@@ -148,7 +148,7 @@ mark_stage(){ event COMPLETE "$@"; }
     def dtls_main_action(self):
         return '''preflight(){ :; }; acquire_lock(){ :; }; write_install_source(){ :; }
 initialize_workspace(){ :; }; verify_bundle(){ :; }; ensure_credentials(){ :; }
-repair_platform_catalog(){ :; }; stage_repos(){ :; }; stage_native_platform(){ :; }; stage_update(){ :; }
+repair_platform_catalog(){ :; }; stage_repos(){ :; }; stage_native_platform(){ :; }; native_geoip(){ :; }; stage_update(){ :; }
 stage_packages1(){ :; }; stage_tls(){ :; }; stage_packages2(){ :; }
 stage_cli_status(){ :; }; stage_post_base(){ :; }
 stage_framework_init(){ event FRAMEWORK; }; stage_mytel_layer(){ event MYTEL_LAYER; }

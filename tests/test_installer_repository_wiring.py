@@ -59,7 +59,7 @@ run_dnf_logged(){ printf 'DNF %s\\n' "$*" >> "$EVENTS"; }
     def main_stubs(self, packages2='printf "PACKAGES2\\n" >> "$EVENTS"'):
         return '''preflight(){ :; }; acquire_lock(){ :; }; write_install_source(){ :; }
 initialize_workspace(){ :; }; verify_bundle(){ :; }; ensure_credentials(){ :; }
-stage_native_platform(){ :; }
+stage_native_platform(){ :; }; native_geoip(){ :; }
 stage_update(){ printf 'UPDATE\\n' >> "$EVENTS"; }
 stage_packages1(){ :; }; stage_tls(){ :; }
 stage_cli_status(){ :; }

@@ -17,7 +17,7 @@ class OfflineGeoipWiringTests(unittest.TestCase):
         self.temp = tempfile.TemporaryDirectory(); self.addCleanup(self.temp.cleanup)
         self.base = Path(self.temp.name); self.events = self.base / 'events'
         self.bundle = self.base / 'bundle'
-        for name in ['offline-vendor-geoip.py', 'geoip-update.py', 'prepare-geoip-module.py']:
+        for name in ['offline-vendor-geoip.py', 'prepare-native-geoip.py', 'geoip-update.py', 'prepare-geoip-module.py']:
             path = self.bundle / 'installer' / name
             path.parent.mkdir(parents=True, exist_ok=True); path.write_bytes(b'# inert fixture\n')
         packages = self.bundle / 'installer/packages'; packages.mkdir()
@@ -51,6 +51,7 @@ run_logged(){ "$@"; }
 PY_BIN=fixture_python
 fixture_python(){
  case "$*" in
+  *prepare-native-geoip.py*) event NATIVE "$@"; [ "$FAIL_PHASE" != "$3" ];;
   *offline-vendor-geoip.py*) event BRIDGE "$@"; [ "$FAIL_PHASE" != "$3" ];;
   *geoip-update.py*) event UPDATER "$@"; [ "$FAIL_PHASE" != managed ];;
   *prepare-geoip-module.py*) event CONSUMER "$@"; [ "$FAIL_PHASE" != consumer ];;

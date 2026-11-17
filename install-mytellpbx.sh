@@ -1483,6 +1483,15 @@ offline_vendor_geoip() {
         || die "offline vendor GeoIP bridge failed; owned data retained"
 }
 
+native_geoip() {
+    [ -z "${MEDIA_ROOT:-}" ] || return 0
+    [ -f "${BUNDLE_DIR}/installer/prepare-native-geoip.py" ] \
+        || die "native GeoIP preservation helper missing from bundle"
+    run_logged "${PY_BIN}" -B "${BUNDLE_DIR}/installer/prepare-native-geoip.py" "$1" \
+        --version "${MYTELLPBX_VERSION}" --bundle-sha256 "${MYTELLPBX_BUNDLE_SHA256}" \
+        || die "native GeoIP preservation failed; factory data retained"
+}
+
 stage_geoip() {
     step "نصب و اعتبارسنجی خودکار پایگاه دادهٔ کشورها (بدون نیاز به کلید)"
     [ -f "${BUNDLE_DIR}/installer/geoip-update.py" ] || die "GeoIP updater missing from bundle"
@@ -1641,8 +1650,10 @@ main() {
     stage_packages1
     stage_tls
     [ -z "${MEDIA_ROOT:-}" ] || offline_vendor_geoip --prepare
+    [ -n "${MEDIA_ROOT:-}" ] || native_geoip --hold
     stage_packages2
     [ -z "${MEDIA_ROOT:-}" ] || offline_vendor_geoip --handoff
+    [ -n "${MEDIA_ROOT:-}" ] || native_geoip --handoff
     [ -n "${MEDIA_ROOT:-}" ] || repair_platform_catalog mandatory
     stage_cli_status
     stage_post_base
