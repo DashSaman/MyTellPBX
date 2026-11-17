@@ -100,6 +100,7 @@ install -m 0644 "$source/20-mytel-addons.conf" "$target/etc/systemd/system/issab
 chroot "$target" /usr/libexec/platform-python -I -S -B /usr/local/libexec/mytelpbx/brand-native-dialogs.py --tool passwords
 chroot "$target" /usr/libexec/platform-python -I -S -B /usr/local/libexec/mytelpbx/brand-native-dialogs.py --tool completion
 chroot "$target" /usr/libexec/platform-python -I -S -B /usr/local/libexec/mytelpbx/brand-native-dialogs.py --tool language
+chroot "$target" /usr/libexec/platform-python -I -S -B /usr/local/libexec/mytelpbx/brand-native-dialogs.py --tool sip
 # Validate sealed bytes before allowing installation to complete; no PBX action.
 chroot "$target" /bin/bash /usr/local/libexec/mytelpbx/run-offline.sh --verify-media
 %end

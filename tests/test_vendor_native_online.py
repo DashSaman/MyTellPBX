@@ -2,6 +2,7 @@
 import hashlib
 import importlib.util
 import io
+import json
 import os
 from pathlib import Path
 import shlex
@@ -10,6 +11,7 @@ import subprocess
 import tempfile
 import tarfile
 import unittest
+from unittest.mock import patch
 
 ROOT = Path(__file__).resolve().parents[1]
 NATIVE = ROOT / 'installer/vendor-native'
@@ -80,11 +82,28 @@ class NativeSourceTests(unittest.TestCase):
         with self.assertRaises(ValueError):
             module('derive-native').derive(b'#!/bin/bash\necho unexpected\n')
 
+    def test_sip_branding_occurs_after_packages_not_in_early_language_bootstrap(self):
+        source = (NATIVE / 'mytelpbx-netinstall.sh').read_text(encoding='utf-8')
+        language = source.split('function select_language()\n{\n', 1)[1].split('\n}', 1)[0]
+        passwords = source.split('function set_passwords()\n{\n', 1)[1].split('\n}', 1)[0]
+        self.assertNotIn('--tool sip', language)
+        self.assertIn('--tool sip || return 1', passwords)
+        self.assertLess(passwords.index('--tool sip'), passwords.index('issabel-admin-passwords --init'))
+
+    def test_offline_post_brands_sip_before_native_firstboot(self):
+        spec = importlib.util.spec_from_file_location('sip_iso_builder', ROOT / 'scripts/remaster-vendor-iso.py')
+        builder = importlib.util.module_from_spec(spec); spec.loader.exec_module(builder)
+        result = builder.kickstart((ROOT / 'tests/fixtures/vendor-iso/issabel.ks').read_text())
+        post = result.split('# MYTEL_NATIVE_ADDONS_BEGIN', 1)[1]
+        self.assertIn('--tool sip', post)
+        self.assertLess(post.index('--tool sip'), post.index('run-offline.sh --verify-media'))
+        self.assertNotIn('issabel-admin-passwords --init', post)
+
 
 class NativeDialogTests(unittest.TestCase):
     def test_core_tools_have_only_declared_hash_bound_changes(self):
         branding = module('brand-native-dialogs')
-        for tool in ['language', 'passwords']:
+        for tool in ['language', 'passwords', 'sip']:
             filename, checksum, replacements = branding.TOOLS[tool]
             with self.subTest(tool=tool):
                 source = (ROOT / 'tests/fixtures/vendor-native' / filename).read_bytes()
@@ -99,6 +118,55 @@ class NativeDialogTests(unittest.TestCase):
                 self.assertEqual(recovered, source)
                 self.assertIn(b'MytelPBX', result)
                 self.assertIn(b'Mytel.one', result)
+
+    def test_sip_title_and_logo_use_product_brand_without_accepting_changed_ports(self):
+        branding = module('brand-native-dialogs')
+        self.assertIn('sip', branding.TOOLS, 'Native firstboot SIP title/logo must be hash-bound and branded')
+        source = (ROOT / 'tests/fixtures/vendor-native/issabel-change-sip').read_bytes()
+        self.assertEqual(hashlib.sha256(source).hexdigest(),
+                         'ded8e15e75280e36b9ed00c7f9cd8d27530c1099281e7aeaa0039c14a47a7234')
+        result = branding.transform('sip', source)
+        self.assertIn(b'BACKTITLE="MytelPBX / Mytel.one"', result)
+        self.assertIn(b'--backtitle "MytelPBX / Mytel.one" --no-tags', result)
+        self.assertIn(br'\nMytelPBX\nMytel.one"', result)
+        self.assertNotIn(br'\nIssabel"', result)
+        self.assertIn(b'        8 15\n', result)
+        with self.assertRaises(ValueError):
+            branding.transform('sip', source.replace(b'sipPort="5060"', b'sipPort="5999"', 1))
+        provenance = json.loads((NATIVE / 'provenance.json').read_text())
+        self.assertEqual(provenance['dialog_sources']['issabel-change-sip']['sha256'], hashlib.sha256(source).hexdigest())
+
+    @unittest.skipUnless(os.name == 'posix', 'Native POSIX ownership and permissions')
+    def test_sip_apply_preserves_owner_mode_original_backup_and_repeat_noop(self):
+        branding = module('brand-native-dialogs')
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory); path = root / 'usr/bin/issabel-change-sip'
+            path.parent.mkdir(parents=True)
+            original = (ROOT / 'tests/fixtures/vendor-native/issabel-change-sip').read_bytes()
+            path.write_bytes(original); path.chmod(0o755); before = path.stat()
+            backups = root / 'backups'
+            self.assertTrue(branding.apply('sip', root, backups))
+            self.assertEqual((path.stat().st_uid, path.stat().st_gid, path.stat().st_mode & 0o777),
+                             (before.st_uid, before.st_gid, 0o755))
+            self.assertFalse(branding.apply('sip', root, backups))
+            recorded = list(backups.iterdir()); self.assertEqual(len(recorded), 1)
+            self.assertEqual(recorded[0].read_bytes(), original)
+            self.assertEqual(recorded[0].stat().st_mode & 0o777, 0o600)
+
+    @unittest.skipUnless(os.name == 'posix', 'Native POSIX atomic replacement')
+    def test_sip_failed_atomic_replace_keeps_original_and_recovery_copy(self):
+        branding = module('brand-native-dialogs')
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory); path = root / 'usr/bin/issabel-change-sip'
+            path.parent.mkdir(parents=True)
+            original = (ROOT / 'tests/fixtures/vendor-native/issabel-change-sip').read_bytes()
+            path.write_bytes(original); path.chmod(0o755)
+            backups = root / 'backups'
+            with patch.object(branding.os, 'replace', side_effect=OSError('fixture replace failure')):
+                with self.assertRaises(OSError): branding.apply('sip', root, backups)
+            self.assertEqual(path.read_bytes(), original)
+            self.assertEqual([item.read_bytes() for item in backups.iterdir()], [original])
+            self.assertFalse(list(path.parent.glob('.mytel-native-display-*')))
 
     def test_unknown_or_partly_branded_program_is_refused(self):
         branding = module('brand-native-dialogs')
@@ -142,6 +210,65 @@ class NativeDialogTests(unittest.TestCase):
             self.assertEqual(len(recorded), 1)
             self.assertEqual(recorded[0].read_bytes(), original)
             self.assertEqual(recorded[0].stat().st_mode & 0o777, 0o600)
+
+
+@unittest.skipUnless(BASH and Path(BASH).is_file(), 'Bash is required')
+class NativeSipFlowTests(unittest.TestCase):
+    def setUp(self):
+        self.temp = tempfile.TemporaryDirectory(); self.addCleanup(self.temp.cleanup)
+        self.base = Path(self.temp.name)
+        self.original = (ROOT / 'tests/fixtures/vendor-native/issabel-change-sip').read_bytes()
+        self.branded = module('brand-native-dialogs').transform('sip', self.original)
+
+    def run_helper(self, major, selection, branded):
+        root = self.base / (str(major) + '-' + (selection or 'cancel') + ('-branded' if branded else '-native'))
+        (root / 'etc').mkdir(parents=True)
+        config = root / 'etc/issabel.conf'; config.write_text('mysqlrootpwd=FixtureDbOnly\n')
+        variables = ''.join(name + '=' + shlex.quote((root / filename).as_posix()) + '\n'
+                            for name, filename in [('SQLTRACE', 'sql'), ('SVCTRACE', 'service'), ('DISPLAYTRACE', 'display')])
+        setup = variables + 'asterisk(){ printf "Asterisk ' + str(major) + '.99.0\\n"; }\n'
+        setup += 'SIP_SELECTION=' + shlex.quote(selection) + '\n'
+        setup += '''dialog(){
+  printf '%s\\n' "$*" >> "$DISPLAYTRACE"
+  if [ "${1:-}" = --backtitle ]; then printf '%s' "$SIP_SELECTION" >&2; fi
+  return 0
+}
+mysql(){ printf '%s\\n' "$*" >> "$SQLTRACE"; return 0; }
+amportal(){ printf '%s\\n' "$*" >> "$SVCTRACE"; return 0; }
+clear(){ :; }
+'''
+        source = (self.branded if branded else self.original).decode('utf-8')
+        source = source.replace('/etc/issabel.conf', config.as_posix()).replace('> /dev/tty', '> /dev/null')
+        script = root / 'helper.sh'; script.write_text('#!/bin/bash\n' + setup + source, encoding='utf-8')
+        env = dict(os.environ, LANG='C', LC_ALL='C'); env.pop('BASH_ENV', None); env.pop('SHELLOPTS', None)
+        result = subprocess.run([BASH, '--noprofile', '--norc', str(script)], stdin=subprocess.DEVNULL,
+                                capture_output=True, timeout=15, env=env)
+        read = lambda name: (root / name).read_text() if (root / name).exists() else ''
+        return result, read('sql'), read('service'), read('display')
+
+    def test_native_choices_defaults_sql_ports_and_reload_are_unchanged(self):
+        for major in (16, 18, 20):
+            for selection in ('sip', 'pjsip'):
+                with self.subTest(major=major, selection=selection):
+                    native = self.run_helper(major, selection, False)
+                    branded = self.run_helper(major, selection, True)
+                    self.assertEqual((native[0].returncode, native[1:3]), (branded[0].returncode, branded[1:3]))
+                    self.assertEqual(branded[0].returncode, 0, branded[0].stderr)
+                    self.assertEqual(branded[2], 'a r\n')
+                    self.assertIn('sip chan_sip off pjsip chan_pjsip on', branded[3])
+                    self.assertIn('Select default SIP channel driver(default port 5060, secondary 5066):', branded[3])
+                    self.assertIn('MytelPBX / Mytel.one', branded[3]); self.assertNotIn('Issabel', branded[3])
+                    self.assertIn("VALUES('bindport','5060',1)", branded[1])
+                    self.assertIn("VALUES('bindport','5066',1)", branded[1])
+                    self.assertIn("VALUES('tlsbindport','5061',1)", branded[1])
+                    self.assertIn("VALUES('tlsbindport','5067',1)", branded[1])
+
+    def test_native_cancel_and_unknown_choice_do_not_mutate_ports_or_reload(self):
+        for selection, code in [('', 2), ('unknown', 1)]:
+            native = self.run_helper(20, selection, False); branded = self.run_helper(20, selection, True)
+            self.assertEqual((native[0].returncode, native[1:3]), (branded[0].returncode, branded[1:3]))
+            self.assertEqual(branded[0].returncode, code)
+            self.assertNotIn('REPLACE INTO', branded[1]); self.assertEqual(branded[2], '')
 
 
 @unittest.skipUnless(BASH and Path(BASH).is_file(), 'Bash is required')

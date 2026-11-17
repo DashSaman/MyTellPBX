@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Brand native dialogs, guard early absent config and replace optional joke UX.
 
-The password tool receives display substitutions only. The language tool also
+The password and SIP tools receive display substitutions only. The language tool also
 guards its initial config load only when the file is genuinely absent before
 core installation; native selection, auth and later password flow stay intact.
 The optional completion helper is replaced only at its known source hash. Source
@@ -27,6 +27,13 @@ TOOLS = {
         (b'source /etc/issabel.conf\n',
          b'if [ -e /etc/issabel.conf ] || [ -L /etc/issabel.conf ]; then\n'
          b'    source /etc/issabel.conf\nfi\n', 1),
+    )),
+    'sip': ('issabel-change-sip',
+            'ded8e15e75280e36b9ed00c7f9cd8d27530c1099281e7aeaa0039c14a47a7234', (
+        (b'BACKTITLE=Issabel\n', b'BACKTITLE="MytelPBX / Mytel.one"\n', 1),
+        (b'--backtitle "Issabel"', b'--backtitle "MytelPBX / Mytel.one"', 1),
+        (br'\nIssabel"', br'\nMytelPBX\nMytel.one"', 1),
+        (b'        7 11\n', b'        8 15\n', 1),
     )),
     'passwords': ('issabel-admin-passwords',
                   'aa1a9bc962d5f34c57483d802b7f5e1e010133d2bf3245dc07b644387d9ef410', (

@@ -21,6 +21,13 @@
       "sha256": "aa1a9bc962d5f34c57483d802b7f5e1e010133d2bf3245dc07b644387d9ef410",
       "license": "GPL-2.0-only; original source notices preserved in test fixture and installed executable"
     },
+    "issabel-change-sip": {
+      "url": "https://github.com/IssabelFoundation/config_helpers/blob/94d6b7cfe1b60b0fe5f364d97d5b285d6a2319dd/issabel-change-sip",
+      "sha256": "ded8e15e75280e36b9ed00c7f9cd8d27530c1099281e7aeaa0039c14a47a7234",
+      "bytes": 2396,
+      "observed_package": "issabel-config_helpers-5.0.0-1.noarch; actual native online helper matched this exact source",
+      "change": "Hash-bound display-only backtitles and ASCII logo labels, with logo dimensions adjusted to fit MytelPBX / Mytel.one. Original fixture bytes and private executable backup are retained. Native chan_sip/chan_pjsip choices, defaults, cancellation, ports, SQL, paths and service commands remain byte-for-byte unchanged. Branding runs after package installation, before the native firstboot/password initializer."
+    },
     "issabel-change-language": {
       "url": "https://github.com/IssabelFoundation/config_helpers/blob/94d6b7cfe1b60b0fe5f364d97d5b285d6a2319dd/issabel-change-language",
       "sha256": "c92b4c14ea2d37c1728a08da4741839b111e65f32ce8fdf897ed3b03777b13b6",
@@ -34,7 +41,7 @@
     "Use the existing narrow Remi HTTPS repository helper after the native Remi release installation",
     "Keep native temporary package lists and logs in the bootstrap-created private workspace",
     "Propagate package, repository, database preparation and native password-tool failures before later stages or reboot",
-    "Apply hash-bound labels to the native language and password tools, plus the language tool's narrowly scoped early missing-config guard; retain native dialogs, options, selection, validation and issabel-admin-passwords --init",
+    "Apply hash-bound labels to the native language, password and post-package SIP tools, plus the language tool's narrowly scoped early missing-config guard; retain native dialogs, options, selection, validation and issabel-admin-passwords --init",
     "Replace only the known optional Patreon helper with a truthful core-wizard-complete, add-ons-next dialog; preserve its original bytes in a private backup",
     "Run the shared Mytel add-on hook after successful native password setup and before native cleanup, completion dialog and reboot"
   ],
