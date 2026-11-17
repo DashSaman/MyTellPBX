@@ -1474,6 +1474,15 @@ PHP
 
 # The separate product owns its runtime, database, accounts and reversible
 # service activation. Do not run old /opt/opdesk patchers over its release.
+offline_vendor_geoip() {
+    [ -n "${MEDIA_ROOT:-}" ] || return 0
+    [ -f "${BUNDLE_DIR}/installer/offline-vendor-geoip.py" ] \
+        || die "offline vendor GeoIP bridge missing from bundle"
+    run_logged "${PY_BIN}" -B "${BUNDLE_DIR}/installer/offline-vendor-geoip.py" "$1" \
+        --media-root "${MEDIA_ROOT}" --manifest-sha256 "${MEDIA_MANIFEST_SHA256}" \
+        || die "offline vendor GeoIP bridge failed; owned data retained"
+}
+
 stage_geoip() {
     step "نصب و اعتبارسنجی خودکار پایگاه دادهٔ کشورها (بدون نیاز به کلید)"
     [ -f "${BUNDLE_DIR}/installer/geoip-update.py" ] || die "GeoIP updater missing from bundle"
@@ -1631,7 +1640,9 @@ main() {
     stage_update
     stage_packages1
     stage_tls
+    [ -z "${MEDIA_ROOT:-}" ] || offline_vendor_geoip --prepare
     stage_packages2
+    [ -z "${MEDIA_ROOT:-}" ] || offline_vendor_geoip --handoff
     [ -n "${MEDIA_ROOT:-}" ] || repair_platform_catalog mandatory
     stage_cli_status
     stage_post_base
@@ -1639,6 +1650,7 @@ main() {
     stage_mytel_layer
     stage_webrtc_dtls
     stage_geoip
+    [ -z "${MEDIA_ROOT:-}" ] || offline_vendor_geoip --finish
     stage_myteldesk
     stage_selfcheck
     finish

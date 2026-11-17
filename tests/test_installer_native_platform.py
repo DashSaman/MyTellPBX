@@ -34,6 +34,7 @@ step(){ :; }; say(){ :; }; warn(){ :; }; sleep(){ :; }
 stage_done(){ [ -f "$STAGES/$1" ]; }
 mark_stage(){ mkdir -p "$STAGES"; touch "$STAGES/$1"; event MARK "$1"; }
 native_start(){ :; } # Interlock is exercised by focused native-start tests.
+offline_vendor_geoip(){ :; } # Bridge phases have separate real-main wiring tests.
 ensure_asterisk_identity(){ event IDENTITY; }
 getenforce(){ event GETENFORCE; [ "$FAILURE" != read ] || return 31; printf '%s\\n' "$MODE"; }
 setenforce(){ event SETENFORCE "$@"; [ "$FAILURE" != runtime ]; }

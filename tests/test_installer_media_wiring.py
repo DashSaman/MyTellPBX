@@ -122,6 +122,7 @@ preflight(){ :; }; acquire_lock(){ :; }; write_install_source(){ :; }; initializ
 verify_bundle(){ event VERIFIED; }
 initialize_media(){ event MEDIA; SKIP_UPDATE=1; }
 ensure_credentials(){ event CREDENTIALS; }
+offline_vendor_geoip(){ :; } # Bridge phases have separate real-main wiring tests.
 stage_repos(){ event REPOS; }
 stage_native_platform(){ :; }
 stage_packages1(){ :; }; stage_tls(){ :; }; stage_packages2(){ :; }; stage_cli_status(){ :; }
