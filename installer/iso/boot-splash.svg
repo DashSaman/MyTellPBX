@@ -1,9 +1,26 @@
 <svg xmlns="http://www.w3.org/2000/svg" width="640" height="480" viewBox="0 0 640 480">
   <title>MytelPBX installation</title>
   <rect width="640" height="480" fill="#0f192a"/>
-  <rect x="40" y="96" width="560" height="3" rx="1.5" fill="#f7941d"/>
+  <defs>
+    <linearGradient id="blue" x1="0" y1="0" x2="0.7" y2="1">
+      <stop stop-color="#20deef"/>
+      <stop offset="1" stop-color="#0862ff"/>
+    </linearGradient>
+    <linearGradient id="orange" x1="0" y1="0" x2="0.4" y2="1">
+      <stop stop-color="#ffd04b"/>
+      <stop offset="1" stop-color="#ff8100"/>
+    </linearGradient>
+  </defs>
+  <g transform="translate(160 20) scale(.8)" fill="none" stroke-linecap="round">
+    <circle cx="58" cy="44" r="35" stroke="url(#blue)" stroke-width="6"/>
+    <path d="M78 15 A35 35 0 0 1 78 73" stroke="url(#orange)" stroke-width="6"/>
+    <path d="M3 39v10 M10 30v28 M17 23v42" stroke="url(#blue)" stroke-width="5"/>
+    <path d="M99 30v28 M106 23v42 M113 39v10" stroke="url(#orange)" stroke-width="5"/>
+    <path d="M39 25c-2 0-3 2-3 5 0 22 16 39 38 39 3 0 5-1 5-4v-9c0-2-1-3-3-3l-9-1c-2 0-3 1-4 3l-3 4c-8-4-14-10-18-18l4-3c2-1 3-2 3-4l-1-7c0-2-1-3-3-3z" fill="#ffffff"/>
+  </g>
+  <text x="267" y="68" font-family="DejaVu Sans,sans-serif" font-size="42" font-weight="700" letter-spacing="-1.8" fill="#ffffff">Mytel<tspan fill="#ffb441">PBX</tspan></text>
+  <rect x="147" y="106" width="346" height="2" rx="1" fill="#36516e"/>
   <g font-family="DejaVu Sans,sans-serif" text-anchor="middle">
-    <text x="320" y="70" font-size="44" font-weight="700" fill="#ffffff">Mytel<tspan fill="#f7941d">PBX</tspan></text>
-    <text x="320" y="395" font-size="19" fill="#ffffff">https://mytel.one</text>
+    <text x="320" y="395" font-size="19" letter-spacing="1.2" fill="#e0eaf7">Mytel.one</text>
   </g>
 </svg>

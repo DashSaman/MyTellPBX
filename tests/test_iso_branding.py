@@ -61,7 +61,10 @@ class IsoBrandingTests(unittest.TestCase):
         self.assertFalse(any(key.endswith('href') for node in svg.iter() for key in node.attrib))
         text = ''.join(svg.itertext())
         self.assertIn('MytelPBX', text)
-        self.assertIn('https://mytel.one', text)
+        self.assertIn('Mytel.one', text)
+        self.assertNotIn('https://', text)
+        self.assertEqual(svg.attrib['viewBox'], '0 0 176 112')
+        self.assertIn('background-size: 176px 112px;', self.read('usr/share/anaconda/pixmaps/mytelpbx.css'))
         css = self.read('usr/share/anaconda/pixmaps/mytelpbx.css')
         background = re.search(r'@define-color mytelpbx_background (#[0-9a-fA-F]{6});', css).group(1)
         def luminance(color):

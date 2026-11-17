@@ -9,7 +9,8 @@
 .logo {
     background-color: @mytelpbx_background;
     background-image: url('/usr/share/anaconda/pixmaps/mytelpbx-wordmark.svg');
-    background-position: 50% 20px;
+    background-position: 50% 32px;
+    background-size: 176px 112px;
     background-repeat: no-repeat;
 }
 

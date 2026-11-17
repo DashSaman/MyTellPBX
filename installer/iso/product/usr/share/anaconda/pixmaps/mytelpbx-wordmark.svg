@@ -1,7 +1,26 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 210 80" width="210" height="80">
-  <!-- Derived from theme/images/logo-wordmark.svg; MytelPBX theme, GPL-2.0. -->
-  <rect x="2" y="6" width="44" height="44" rx="11" fill="#206bc4"/>
-  <path d="M17.1 17.1c.8-.8 2.1-.77 2.87.07l2.98 3.3c.69.76.65 1.92-.07 2.65l-1.6 1.6c.55 1.27 1.42 2.54 2.54 3.66 1.12 1.12 2.39 1.99 3.66 2.54l1.6-1.6c.73-.72 1.89-.76 2.65-.07l3.3 2.98c.84.77.87 2.07.07 2.87l-1.85 1.85c-.98.98-2.43 1.34-3.74.87-3.12-1.13-6.32-3.34-9-6.02-2.68-2.68-4.89-5.88-6.02-9-.47-1.31-.11-2.76.87-3.74l1.74-1.86z" fill="#ffffff"/>
-  <text x="56" y="37" font-family="'DejaVu Sans', sans-serif" font-size="22" font-weight="700" fill="#ffffff">Mytel<tspan fill="#ff9f1c">PBX</tspan></text>
-  <text x="105" y="73" text-anchor="middle" font-family="'DejaVu Sans', sans-serif" font-size="13" fill="#dbe7f5">https://mytel.one</text>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 176 112" width="176" height="112">
+  <title>MytelPBX</title>
+  <desc>Mytel phone, blue and orange signal rings, with the brand and website.</desc>
+  <defs>
+    <linearGradient id="blue" x1="0" y1="0" x2="0.7" y2="1">
+      <stop stop-color="#20deef"/>
+      <stop offset="1" stop-color="#0862ff"/>
+    </linearGradient>
+    <linearGradient id="orange" x1="0" y1="0" x2="0.4" y2="1">
+      <stop stop-color="#ffd04b"/>
+      <stop offset="1" stop-color="#ff8100"/>
+    </linearGradient>
+  </defs>
+  <g transform="translate(10 11) scale(.62)" fill="none" stroke-linecap="round">
+    <circle cx="58" cy="44" r="35" stroke="url(#blue)" stroke-width="6"/>
+    <path d="M78 15 A35 35 0 0 1 78 73" stroke="url(#orange)" stroke-width="6"/>
+    <path d="M3 39v10 M10 30v28 M17 23v42" stroke="url(#blue)" stroke-width="5"/>
+    <path d="M99 30v28 M106 23v42 M113 39v10" stroke="url(#orange)" stroke-width="5"/>
+    <path d="M39 25c-2 0-3 2-3 5 0 22 16 39 38 39 3 0 5-1 5-4v-9c0-2-1-3-3-3l-9-1c-2 0-3 1-4 3l-3 4c-8-4-14-10-18-18l4-3c2-1 3-2 3-4l-1-7c0-2-1-3-3-3z" fill="#ffffff"/>
+  </g>
+  <g font-family="'DejaVu Sans', sans-serif">
+    <text x="93" y="36" font-size="25" font-weight="700" letter-spacing="-.9" fill="#ffffff">Mytel</text>
+    <text x="95" y="57" font-size="13" font-weight="700" letter-spacing="5" fill="#ffb441">PBX</text>
+    <text x="88" y="96" text-anchor="middle" font-size="15" font-weight="500" letter-spacing=".8" fill="#e0eaf7">Mytel.one</text>
+  </g>
 </svg>

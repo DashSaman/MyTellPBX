@@ -1,151 +1,111 @@
-# MyTellPBX Installation Guide (English)
+# MytelPBX 7.6.2 installation
 
 ## One-line install
 
-On a **fresh Rocky Linux 8.10 (x86_64)** server with root access and
-internet, run this single command:
+Use a **fresh Rocky Linux 8.10 x86_64 server**, root access, an interactive terminal
+and working Internet access to the official package repositories and release assets:
 
 ```bash
 curl -fsSL -o install-mytellpbx.sh https://github.com/DashSaman/MyTellPBX/releases/download/v7.6.2/install-mytellpbx.sh && bash install-mytellpbx.sh
 ```
 
-On success the panel URL and the credentials-file path are printed.
-An interactive terminal asks only for the panel administrator and MariaDB root
-passwords near the start. Input is hidden; Enter generates that password.
-An exact-release resume reuses the saved values without prompting or rotation.
+The download URL is pinned to `v7.6.2`. The installer verifies its payload checksum
+before using it. Read [the current verification limits](releases/7.6.2/verification.md)
+before deployment; a complete final cold-install or real call-media pass is not claimed.
 
-## Web certificate and country data
+## Requirements and scope
 
-Before web-module setup, the installer creates a MyTellPBX self-signed
-certificate with this server's hostname and interface addresses. Browsers do
-not automatically trust it; configure a trusted domain certificate for public
-use. An existing valid matching certificate/key pair is preserved. Partial or
-invalid pairs stop installation without replacement.
+- Rocky Linux 8.10 exactly, x86_64; Minimal is suitable.
+- A fresh server with no existing PBX installation.
+- Root access and HTTPS access to package repositories, GitHub, nodejs.org,
+  files.pythonhosted.org and the country-data providers.
+- The preflight floors are 8 GB free disk and approximately 1.5 GB RAM. These floors
+  are not a capacity guarantee for Desk/VAD or production call load.
+- The full installer supplies **Asterisk 20 only**. Current Asterisk 16/18 runtime
+  and media acceptance are not verified by this release.
 
-DB-IP Country Lite data downloads and updates automatically, without a MaxMind
-account or license key. The GeoIP status page shows the provider, dataset version
-and country coverage. IP geolocation is approximate. Data updates do not change
-firewall rules, and download/conversion failures retain the previous valid data.
+The installed components include MariaDB, Apache, PHP 7.4, the native PBX modules,
+the Mytel panel/admin theme and pinned MytelDesk 1.1.2. The panel/desk navigation
+is Persian RTL; technical PBX forms remain LTR. Included modules are not a claim
+that every queue, fax, trunk or external integration has been exercised.
 
-## Prerequisites
+## Passwords
 
-- Rocky Linux 8.10 exactly (Minimal install recommended), x86_64
-- root access
-- Internet access to package repositories and GitHub
-- At least 8 GB free disk and 1.5 GB RAM
-  (tested hardware: a VM with 36 GB disk and 3.6 GB RAM)
-- **A fresh server**: the installer refuses to run over an existing PBX
+Near the start, enter the panel `admin` password and MariaDB root password in
+**two hidden terminal inputs**. Press Enter to generate either value. Allowed
+characters are ASCII `A-Z`, `a-z`, `0-9`, space and `. @ = _ ! -`; Persian letters
+are not accepted by the native password adapter.
 
-## What gets installed
+Successful selection is saved root-only, mode 0600, in:
 
-1. **Telephony base**: Asterisk 20, MariaDB, Apache, PHP 7.4 and the
-   framework modules (extensions, queues, call recording, CDR reports,
-   fax, ...) from the upstream open-source telephony distribution.
-2. **The MyTel layer**:
-   - Persian RTL panel theme with the Vazirmatn font (light/dark modes)
-   - Full admin-console skin and branding, plus the advanced-report
-     subtitle
-   - Persian panel language and complete debranding (no upstream brand
-     name is visible anywhere in the UI)
-   - The Apply Config fix
-   - Two chosen or uniquely generated passwords in a root-only credentials file
-3. **MytelDesk with CPU VAD**: the exact pinned public release, private Node and
-   Python3.11 runtimes, hash-locked dependencies and bundled verified model.
-   The product's installer and doctor run real CPU inference before success.
-   Existing recording/retention policy stays unchanged.
-
-The install is staged and resumable: if interrupted, re-running the same
-command with the same release/bundle hash continues from the completed stage and
-**never rotates existing credentials**. Unknown legacy or cross-version installer
-state is refused. Do not delete the ownership receipt or credentials to force an
-OS reinstall over an existing PBX; use separately reviewed scoped maintenance.
-
-For a domain instead of the server's detected HTTPS address, set
-`MYTELL_DESK_PUBLIC_URL=https://pbx.example.com`. Configure trusted TLS and valid
-SIP/WebRTC extensions on the PBX for browser calling; setting this URL does not
-issue a certificate or configure trunks. HTTPS access to GitHub, nodejs.org,
-files.pythonhosted.org and official Rocky repositories is required for Desk/VAD.
-
-Open `/MytellDesk/` and choose **Panel account**. The native launcher requires an
-administrator panel session and redirects there; a first Desk visit still signs
-in using panel credentials. Existing Desk tokens remain usable. A separate local
-Desk admin has a unique password in `/etc/myteldesk/initial-admin.txt`. Maintenance
-uses `myteldesk doctor` and the standalone product's documented rollback. Legacy
-Desk deployments require reviewed migration; the base installer never resets
-their accounts or patches immutable release code.
-
-## Credentials
-
-- Choose the panel password (user `admin`) and MariaDB root password in two
-  hidden terminal inputs. Enter, or a headless run without preset values,
-  generates a unique random value. Both are validated before saving:
-
-```
+```text
 /root/mytelpbx-credentials.txt
 ```
 
-- The file is mode 0600, root only.
-- Passwords are never printed at the end or in installer output; only the file
-  path is shown. Invalid or interrupted input stops before creating the final file.
-- You may pre-set them:
+Use unique passwords. Keep this file and installation logs private. An accepted
+same-release resume reuses saved values without rotation. For unattended use,
+missing values are generated; optional preset values use ASCII placeholders:
 
+```bash
+MYTELL_ADMIN_PASS='REPLACE_WITH_UNIQUE_ADMIN_PASSWORD' MYTELL_MYSQL_ROOT_PASS='REPLACE_WITH_UNIQUE_DATABASE_PASSWORD' bash install-mytellpbx.sh
 ```
-MYTELL_ADMIN_PASS='your-pass' MYTELL_MYSQL_ROOT_PASS='your-pass' bash install-mytellpbx.sh
-```
 
-Allowed characters: letters, digits, space and `.` `@` `=` `_` `!` `-`.
-- Re-runs never change existing credentials.
+## Panel, Desk and recording
 
-## After installation
+After success, open the printed `https://<server-ip>/` address and sign in as
+`admin`. The fresh certificate contains the detected hostname/interface addresses
+and is self-signed; browsers do not trust it automatically. A valid existing
+certificate/key pair is preserved. Configure trusted domain TLS for public use.
 
-- Panel: `https://<server-ip>/`, sign in as `admin`
-- A one-time reboot is recommended (`reboot`)
-- Or automate it: `MYTELL_REBOOT=1 bash install-mytellpbx.sh`
-  (reboots only after every check passes and credentials are persisted)
+MytelDesk is available at `/MytellDesk/`. Choose **Panel account** for authorized
+native panel credentials. A separate local Desk administrator has its own password
+at `/etc/myteldesk/initial-admin.txt`, readable only by root.
 
-## Network ports
+`myteldesk doctor` checks the Desk service and real CPU model inference. It does
+not prove SIP registration, two-way audio, or automatic VAD on a recorded call.
+Provision valid SIP/WebRTC extensions separately. Recording and retention policy
+are not enabled or changed automatically by installing the VAD runtime.
+
+An optional `MYTELL_DESK_PUBLIC_URL=https://pbx.example.com` selects the Desk public
+origin. It does not issue a certificate or configure SIP trunks. Country data uses
+DB-IP Country Lite and GeoNames attribution; source availability is required.
+Updates retain the previous valid data if download/conversion fails and do not
+change firewall rules.
+
+## Resume and diagnosis
+
+Wait until the previous installer has ended before using the same pinned command
+again. Recognized completed stages can be reused with the **same release and
+payload hash**. A partly initialized native framework or unknown/cross-version
+state can be refused. Preserve the existing state, credentials and log; do not
+remove markers or force a reset to bypass that refusal.
+
+- Installer log: `/var/log/mytelpbx-install.log`
+- Service status: `systemctl status httpd mariadb asterisk myteldesk`
+- `bundle checksum mismatch`: check the official release asset/checksum and
+  network; do not bypass integrity checks.
+- Existing PBX/source-ownership refusal: stop the base installer and investigate
+  scoped maintenance. Reimaging or a known backup is the recovery path when a
+  genuinely fresh server is needed.
+
+After a successful installation, a planned reboot is recommended. Optional
+`MYTELL_REBOOT=1` requests it only after successful checks and saved credentials.
+A service-health result alone is not full call-center acceptance.
+
+## Network and security
 
 | Port | Purpose |
 |------|---------|
-| 22 | Server management (SSH) — untouched |
-| 80 / 443 | Web panel |
-| 5060 (TCP/UDP), 5061 | SIP signaling |
-| 10000–20000 (UDP) | Voice (RTP) |
+| 22 | Existing SSH management; unchanged |
+| 80/443 TCP | Web panel |
+| 5060 TCP/UDP, 5061 TCP | SIP signaling |
+| 10000–20000 UDP | RTP media |
 
-firewalld **stays enabled**; only these ports are opened.
+firewalld remains enabled. The installer **disables SELinux** and uses PHP 7.4,
+which is upstream end-of-life. Restrict panel access appropriately and keep
+supported system components updated. Package/repository identities and required
+third-party notices are preserved; see [THIRD_PARTY_NOTICES.md](../THIRD_PARTY_NOTICES.md).
 
-## Security notes
-
-- **SELinux is set to disabled** — the telephony framework is not
-  compatible with it. This change is permanent in the server config.
-- **PHP 7.4** reached upstream end-of-life (November 2022); the telephony
-  framework requires it. Keep the panel on an internal network or behind
-  a firewall/reverse proxy and keep the OS updated.
-- There are no default passwords; choose your own values or generate unique ones.
-- The base telephony packages come from the upstream open-source
-  distribution's repositories; functional package and repository
-  identities are preserved unchanged for dependency resolution and
-  updates (see THIRD_PARTY_NOTICES.md).
-
-## Troubleshooting
-
-- **Full install log**: `/var/log/mytelpbx-install.log`
-- **Resume an interrupted install**: run the same command again; finished
-  stages are skipped.
-- **"existing PBX packages detected"**: the server is not fresh; stop the base
-  installer and use reviewed maintenance. Removing installer state is not a fix.
-- **"different or invalid installer source"**: preserve the state/credentials;
-  resume with the original exact release or review a scoped migration.
-- **"bundle checksum mismatch"**: the per-run private download workspace is
-  discarded; check the official release checksum/network and rerun the same
-  installer. Do not bypass integrity checks or delete credential files.
-- **Panel not loading**: check `systemctl status httpd mariadb asterisk`.
-- **Login fails**: `cat /root/mytelpbx-credentials.txt`.
-
-## Removal
-
-The reliable removal path is **reimaging the server** (or restoring a
-snapshot). Package removal does not return the system to factory state;
-for lab servers a cleanup helper exists at
-`scripts/mytelpbx-teardown.sh` (it does not guarantee a perfectly fresh
-system).
+The custom ISO is a separate local deliverable and is not uploaded with the
+GitHub release. Older reports do not certify the current installer; use the
+[7.6.2 record](releases/7.6.2/verification.md).

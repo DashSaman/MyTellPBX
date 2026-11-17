@@ -102,7 +102,7 @@ class IsoTests(unittest.TestCase):
     def test_boot_configs_brand_and_synchronise_labels_but_leave_rescue(self):
         raw="menu title Rocky Linux 8.10\nappend initrd=initrd.img inst.stage2=hd:LABEL=Rocky-8-10-x86_64-dvd quiet\nappend inst.stage2=hd:LABEL=Rocky-8-10-x86_64-dvd inst.rescue quiet\n"
         out=self.b.boot_config(raw,'Rocky-8-10-x86_64-dvd','MytelPBX-7.6.2','7.6.2')
-        self.assertIn('MytelPBX',out);self.assertIn('https://mytel.one',out);self.assertNotIn('Rocky-8-10-x86_64-dvd',out)
+        self.assertIn('MytelPBX',out);self.assertIn('Mytel.one',out);self.assertNotIn('https://',out);self.assertNotIn('Rocky-8-10-x86_64-dvd',out)
         lines=out.splitlines();self.assertIn('inst.ks=hd:LABEL=MytelPBX-7.6.2:/ks/mytelpbx.ks',lines[1])
         self.assertNotIn('inst.ks=',lines[2]);self.assertIn('inst.rescue',lines[2])
 
@@ -117,7 +117,7 @@ class IsoTests(unittest.TestCase):
              'menu begin Advanced\n  menu title Advanced diagnostics\nmenu end\nmenu end\n')
         out=self.b.boot_config(raw,'Rocky-8-10-x86_64-dvd','MytelPBX-7.6.2','7.6.2')
         self.assertEqual([line.strip()for line in out.splitlines()if line.strip().startswith('menu title ')],
-                         ['menu title MytelPBX 7.6.2 - https://mytel.one',
+                         ['menu title MytelPBX 7.6.2 - Mytel.one',
                           'menu title Troubleshooting','menu title Advanced diagnostics'])
         self.assertIn('menu begin ^Troubleshooting\n',out);self.assertIn('menu begin Advanced\n',out)
         actual=[line.strip()for line in out.splitlines()if line.strip().startswith('append ')]
@@ -151,7 +151,7 @@ class IsoTests(unittest.TestCase):
         source=REPO/'installer/iso/boot-splash.svg'
         svg=ET.fromstring(source.read_text(encoding='utf-8'))
         self.assertEqual((svg.get('width'),svg.get('height'),svg.get('viewBox')),('640','480','0 0 640 480'))
-        self.assertIn('MytelPBX',''.join(svg.itertext()));self.assertIn('https://mytel.one',''.join(svg.itertext()))
+        self.assertIn('MytelPBX',''.join(svg.itertext()));self.assertIn('Mytel.one',''.join(svg.itertext()));self.assertNotIn('https://',''.join(svg.itertext()))
         self.assertNotIn('Rocky',source.read_text(encoding='utf-8'))
         with tempfile.TemporaryDirectory()as d:
             stage=Path(d);calls=[]

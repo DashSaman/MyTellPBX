@@ -66,10 +66,10 @@ def boot_config(text,old_label,new_label,version):
     result=[];root_title_changed=False
     for line in text.splitlines():
         if line.lstrip().startswith('menu title ')and not root_title_changed:
-            line='menu title MytelPBX '+version+' - https://mytel.one'
+            line='menu title MytelPBX '+version+' - Mytel.one'
             root_title_changed=True
         if line.lstrip().startswith('menuentry ')and'MytelPBX'in line:
-            line=line.replace("' --class"," - https://mytel.one' --class",1)
+            line=line.replace("' --class"," - Mytel.one' --class",1)
         if 'inst.stage2='in line and not re.search(r'(?:^|\s)(?:inst\.rescue|rescue)(?:\s|$)',line):
             if 'inst.ks='in line:raise ValueError('Unexpected existing kickstart')
             line+=' inst.ks=hd:LABEL='+new_label+':/ks/mytelpbx.ks'
@@ -207,7 +207,7 @@ def build(args):
         for name in('isolinux/isolinux.cfg','EFI/BOOT/grub.cfg'):
             p=stage/('check-'+name.replace('/','-'));extract(temporary,name,p)
             text=p.read_text(encoding='utf-8')
-            if OLD_LABEL in text or 'Issabel'in text or 'https://mytel.one'not in text and name.startswith('isolinux'):raise ValueError('Boot branding verification failed')
+            if OLD_LABEL in text or 'Issabel'in text or 'Mytel.one'not in text and name.startswith('isolinux'):raise ValueError('Boot branding verification failed')
         if digest(source)!=ROCKY_SHA:raise ValueError('Source ISO changed')
         final_sha=digest(temporary);final_bytes=temporary.stat().st_size;publish(temporary,out)
         receipt.update(iso_sha256=final_sha,iso_bytes=final_bytes)

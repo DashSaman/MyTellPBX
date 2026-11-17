@@ -15,7 +15,7 @@ from unittest import mock
 
 ROOT = Path(__file__).resolve().parents[1]
 VERSION = '1.1.2'
-TREE = '21534a068bd8313a134d519872be9b5feb247dc8'
+TREE = '8fb715ccb2810994bb6c721b5352d699bb1867b6'
 TREE_111 = '237315df5b8f2f5168b3c01a6423daa912dfd784'
 TREE_110 = '59c96ab9ad25cf54161d198b1202cd1f28ea79ad'
 TREE_100 = '1d5a25c4b3bc4bc7d2b00e11099d64bb287b43ce'
@@ -114,8 +114,8 @@ class RealDeskReleaseWorkflow(unittest.TestCase):
     def test_reviewed_archive_and_git_commit_are_bound_to_the_release(self):
         self.assertEqual(self.pin['version'], VERSION)
         self.assertEqual(self.pin['archive'], 'myteldesk-1.1.2.tar.gz')
-        self.assertEqual(self.pin['sha256'], '69fdf92308035cf1280986109ced93715d6fd0e99eb223edf1aaa39d2b09d454')
-        self.assertEqual(self.pin['source_commit'], '6fcfd462f452566a19785cefdf14edeb4aa8d87e')
+        self.assertEqual(self.pin['sha256'], '0da5f65d7ebc165d36c145c8deb27093fe3265fd7d1783da35a8f6c2efa346d5')
+        self.assertEqual(self.pin['source_commit'], '615da84275ed1cd5c210c262fdb173dfa6a4254e')
         self.assertEqual(self.pin['source_tree'], TREE)
 
 
