@@ -30,6 +30,27 @@ key is in the locked manifest. PHP Remi module metadata and the installed kernel
 matching headers/devel must be included. The builder never invents missing files
 or downloads dependencies. An ISO containing only the PBX bundle is not offline.
 
+Prepare the depot with `scripts/collect-installer-media.py`; see
+[offline media collection](OFFLINE_MEDIA_COLLECTION.md). Run it on disposable
+Rocky Linux with empty private installroots. It performs no RPM transaction and
+must retain all repository, package-signature and local-closure checks.
+
+The reviewed `php-magpierss-0.72-3.fc17` package requires the legacy Elastix key.
+In a **private copied** repository configuration, append the official HTTPS key
+to `[issabel-updates]`'s `gpgkey` list while retaining its existing Issabel key:
+`https://repo.us.issabel.org/issabel/RPM-GPG-KEY-Elastix`.
+Verify the full fingerprint `5EB0CFE0BC7459B15956A1B14BFE99F4D05C057C`;
+keys belong only in the collector's private RPM database, not system trust.
+Never disable GPG or TLS verification to complete collection.
+
+The supported `--cache-dir` accepts licensed public cached assets. Bind cached
+DB-IP data with `--geoip-sha256` and its actual `--geoip-month`; bind GeoNames
+`countryInfo.txt` separately with `--country-info-sha256`. Retain both providers'
+CC BY 4.0 attribution and the exact accepted file hashes in the depot manifest.
+A DB-IP HTTP403 is a failed fetch, not evidence that its month is unpublished.
+Use an independently verified available cache or stop; identify cached inputs
+honestly rather than claiming a fresh download. Do not ignore the failed fetch.
+
 The extracted native installer `.buildstamp` must match Rocky8.10,
 UUID`202606221745.x86_64`, Lorax`28.14.71-1`. The product image preserves base
 variant/configuration while adding MytelPBX graphics and the product name. Original
