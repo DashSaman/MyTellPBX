@@ -10,9 +10,9 @@ set -o pipefail
 MYTELLPBX_VERSION="7.7.0"
 MYTELLPBX_BUNDLE="mytelpbx-bundle-7.7.0.tgz"
 # Immutable payload pin from the reviewed clean-source bundle assembly.
-MYTELLPBX_BUNDLE_SHA256="4b2903799e250f0351c6ad315bc1f87cc6a7c4b9ead13818116962d178fe9fe5"
+MYTELLPBX_BUNDLE_SHA256="078dc726771643409be0ce900212f3050288918f2a02a3bffdbe14e26540c848"
 MYTELLPBX_GITHUB="https://github.com/DashSaman/MyTellPBX"
-MYTELLPBX_RELEASE_TAG="v7.7.0-r2"
+MYTELLPBX_RELEASE_TAG="v7.7.0-r3"
 MYTELLPBX_BUNDLE_URL="${MYTELL_BUNDLE_URL:-${MYTELLPBX_GITHUB}/releases/download/${MYTELLPBX_RELEASE_TAG}/${MYTELLPBX_BUNDLE}}"
 
 die() { printf '\nMytelPBX: %s\n' "$*" >&2; exit 1; }
