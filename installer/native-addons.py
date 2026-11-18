@@ -122,13 +122,35 @@ def asterisk_major(output, requested=None):
     return actual
 
 
-def run(argv, capture=False, data=None):
-    result = subprocess.run(argv, input=data, stdout=subprocess.PIPE if capture else None,
-                            stderr=subprocess.PIPE if capture else None, timeout=300)
+def run(argv, capture=False, data=None, diagnostics=None, timeout=300):
+    if diagnostics is None:
+        result = subprocess.run(argv, input=data, stdout=subprocess.PIPE if capture else None,
+                                stderr=subprocess.PIPE if capture else None, timeout=timeout)
+    else:
+        with diagnostics.open('ab') as output:
+            result = subprocess.run(argv, input=data, stdout=output, stderr=subprocess.STDOUT, timeout=timeout)
     if result.returncode:
         # Never echo captured database diagnostics: they may contain credentials.
-        raise ValueError('Native addon command failed: ' + Path(argv[0]).name)
+        message = 'Native addon command failed: ' + Path(argv[0]).name
+        if diagnostics is not None:
+            message += '. Details: ' + str(diagnostics)
+        raise ValueError(message)
     return result.stdout if capture else b''
+
+
+def install_media_packages(bundle, diagnostics, command):
+    # The native package manager retains the same timeout, signing checks and
+    # repository flags. The shared renderer reads its output without a TTY.
+    render = '''MYTEL_BUNDLE_ROOT=$1 MYTEL_NATIVE_WORK=$2 MYTEL_PYTHON=$3
+shift 3
+source "$MYTEL_BUNDLE_ROOT/installer/vendor-native/terminal-ui.sh" || exit 1
+mytel_run_dnf iso timeout --kill-after=5 300 "$@" || exit $?
+'''
+    try:
+        run(['bash', '-c', render, 'mytel-iso-packages', str(bundle), str(diagnostics.parent), sys.executable]
+            + command, timeout=310)
+    except (ValueError, subprocess.TimeoutExpired):
+        raise ValueError('Package installation from ISO stopped. Details: ' + str(diagnostics)) from None
 
 
 def wait_native_ready(requested=None):
@@ -625,13 +647,19 @@ def install_ownership_hook(bundle, backup, root=Path('/')):
 
 def install(bundle, backup_root, requested=None, media=None, public_url=None, check=False):
     root = Path('/')
-    print('Mytel addons: checking the existing native services and credentials.', flush=True)
+    offline = media is not None
+
+    def progress(message):
+        print(('    · ' if offline else 'Mytel addons: ') + message, flush=True)
+
+    progress('Checking base services and credentials')
     for item in [bundle] + list(bundle.rglob('*')):
         if item.is_symlink() or item.stat().st_uid != 0 or item.stat().st_mode & 0o022:
             raise ValueError('Addon bundle must be root owned, immutable to other users, without symlinks')
     credentials = native_credentials(root / 'etc/issabel.conf', root / 'etc/amportal.conf')
     major = wait_native_ready(requested)
-    run(['httpd', '-t'])
+    if not offline:
+        run(['httpd', '-t'])
     desk = load('native_desk', bundle / 'installer/install-myteldesk.py')
     pin = desk.validate_pin(json.loads(regular(bundle / 'installer/myteldesk-release.json').read_text(encoding='utf-8')))
     if pin['version'] != REQUIRED_DESK_VERSION:
@@ -640,17 +668,24 @@ def install(bundle, backup_root, requested=None, media=None, public_url=None, ch
     ownership_hook_changes(bundle, root)  # Validate all hook inputs before activation, including --check.
     private_directory(backup_root)
     backup = Path(tempfile.mkdtemp(prefix='native-' + time.strftime('%Y%m%d-%H%M%S') + '-', dir=str(backup_root)))
+    diagnostics = backup / 'netinstall.log' if offline else None
+    if diagnostics is not None:
+        diagnostics.touch(mode=0o600, exist_ok=False)
+        progress('Private installation log: ' + str(diagnostics))
+        run(['httpd', '-t'], diagnostics=diagnostics)
     state = {'schema': 1, 'owner': 'MytelNativeAddons', 'asterisk': major, 'desk': pin['version'], 'phase': 'preparing'}
     receipt = backup / 'receipt.json'
     receipt.write_text(json.dumps(state, indent=2), encoding='utf-8')
     with tempfile.TemporaryDirectory(prefix='staging-', dir=str(backup)) as work:
-        print('Mytel addons: preparing theme, scoped repairs, calendar, optional Asternic and native GeoIP display.', flush=True)
+        progress('Preparing the Persian web panel and calendar')
         changes = prepare_files(bundle, root, Path(work))
+        if offline:
+            progress('Checking panel files before applying changes')
         for index, (path, data) in enumerate(changes.items()):
             if path.suffix == '.php':
                 candidate = Path(work) / ('lint-' + str(index) + '.php')
                 candidate.write_bytes(data)
-                run(['php', '-l', str(candidate)])
+                run(['php', '-l', str(candidate)], diagnostics=diagnostics)
         rows = brand_database(credentials, 'snapshot')
         if check:
             state['phase'] = 'checked-no-native-writes'
@@ -658,7 +693,7 @@ def install(bundle, backup_root, requested=None, media=None, public_url=None, ch
             receipt.write_text(json.dumps(state, indent=2), encoding='utf-8')
             print('Native addon candidates and PHP syntax checked; no installed files or settings changed.', flush=True)
             return
-        print('Mytel addons: backing up every changed native file and owned settings before activation.', flush=True)
+        progress('Saving recovery copies of files and settings')
         (backup / 'brand-rows.json').write_text(json.dumps(rows, indent=2), encoding='utf-8')
         records = snapshot_files(changes, backup, root)
         settings = regular(root / 'var/www/db/settings.db')
@@ -669,15 +704,15 @@ def install(bundle, backup_root, requested=None, media=None, public_url=None, ch
         account = pwd.getpwnam('asterisk')
         settings_activated = False
         try:
-            print('Mytel addons: activating the validated presentation layer.', flush=True)
+            progress('Applying Persian panel settings')
             for path, data in changes.items():
                 web_asset = root / 'var/www/html' in path.parents
                 atomic_write(path, data, account.pw_uid if web_asset else 0, account.pw_gid if web_asset else 0)
             brand_database(credentials, 'apply')
             activate_panel_settings(settings)
             settings_activated = True
-            run(['httpd', '-t'])
-            run(['systemctl', 'reload', 'httpd'])
+            run(['httpd', '-t'], diagnostics=diagnostics)
+            run(['systemctl', 'reload', 'httpd'], diagnostics=diagnostics)
         except BaseException:
             rollback_files(records, backup, root)
             brand_database(credentials, 'restore', rows)
@@ -688,31 +723,34 @@ def install(bundle, backup_root, requested=None, media=None, public_url=None, ch
             raise
     state['phase'] = 'ui-ready-desk-pending'
     receipt.write_text(json.dumps(state, indent=2), encoding='utf-8')
-    print('Mytel addons: enabling native CEL hangup details.', flush=True)
+    progress('Enabling call hangup details')
     state['cel'] = enable_cel_payload(credentials, backup)
     receipt.write_text(json.dumps(state, indent=2), encoding='utf-8')
-    if media is not None:
-        print('Mytel addons: installing only the sealed supplemental Python 3.11 package closure.', flush=True)
+    if offline:
+        progress('Installing the MytelDesk runtime from ISO')
         with tempfile.TemporaryDirectory(prefix='repos-', dir=str(backup)) as repository:
             repo = media.repo_text().replace('enabled=1\n', 'enabled=1\nincludepkgs=' + ','.join(SUPPLEMENTAL_PACKAGES) + '\n')
             (Path(repository) / 'mytel-supplemental.repo').write_text(repo, encoding='utf-8')
             command = ['dnf', '--disablerepo=*', '--setopt=reposdir=' + repository,
                        '--setopt=install_weak_deps=False', '--setopt=obsoletes=False']
             command += ['--enablerepo=' + entry['id'] for entry in media.manifest['repositories']]
-            run(command + ['-y', 'install', 'python3.11', 'python3.11-pip'])
+            install_media_packages(bundle, diagnostics, command + ['-y', 'install', 'python3.11', 'python3.11-pip'])
     # The pinned standalone installer owns Desk's own backups, secrets, rollback,
     # Node and CPU VAD. Its doctor and source-state checks are mandatory.
     cache = Path('/var/lib/mytelpbx-native-addons/myteldesk')
-    print('Mytel addons: installing the pinned MytelDesk release and mandatory CPU voice analysis.', flush=True)
+    progress('Installing MytelDesk and CPU voice analysis')
     desk.install(pin, cache, public_url, launcher_source=bundle / 'modules/mytellpbxopdesk', media=media)
     state['phase'] = 'desk-ready-ownership-hook-pending'
     receipt.write_text(json.dumps(state, indent=2), encoding='utf-8')
-    print('Mytel addons: registering the supported native ownership hook.', flush=True)
+    if offline:
+        print('\n  [4/4]  Check installed services', flush=True)
+    progress('Checking installed file permissions and service health')
     install_ownership_hook(bundle, backup)
-    run(['/usr/local/sbin/myteldesk', 'doctor'])
+    run(['/usr/local/sbin/myteldesk', 'doctor'], diagnostics=diagnostics)
     state['phase'] = 'complete'
     receipt.write_text(json.dumps(state, indent=2), encoding='utf-8')
-    print('Mytel addons complete on native Asterisk ' + major + '; private recovery record: ' + str(backup), flush=True)
+    progress('Asterisk ' + major + ' and MytelDesk checks passed')
+    progress('Recovery record: ' + str(backup))
 
 
 def main():

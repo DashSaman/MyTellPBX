@@ -14,8 +14,10 @@ import stat
 import sys
 import time
 
-KINDS = {'update': 'به‌روزرسانی سیستم', 'packages': 'نصب بسته‌ها', 'repositories': 'آماده‌سازی مخازن'}
-ENGLISH_KINDS = {'update': 'System update', 'packages': 'Package installation', 'repositories': 'Repository setup'}
+KINDS = {'update': 'به‌روزرسانی سیستم', 'packages': 'نصب بسته‌ها', 'repositories': 'آماده‌سازی مخازن',
+         'iso': 'نصب از ISO'}
+ENGLISH_KINDS = {'update': 'System update', 'packages': 'Package installation', 'repositories': 'Repository setup',
+                 'iso': 'Install from ISO'}
 DOWNLOAD = re.compile(rb'^\(\s*([0-9]{1,9})\s*/\s*([0-9]{1,9})\s*\):\s+')
 TRANSACTION = re.compile(rb'^\s*(Installing|Upgrading|Updating|Downgrading|Reinstalling|Erasing|Cleanup|Verifying|Running scriptlet|Preparing)\s*:\s+(.*?)\s+([0-9]{1,9})\s*/\s*([0-9]{1,9})\s*$')
 RPM_DOWNLOAD_NAME = re.compile(rb'([A-Za-z0-9][A-Za-z0-9_.+%-]{0,179}\.rpm)\s')
@@ -53,6 +55,8 @@ class ProgressReporter:
             label = 'بررسی بسته' if major == 'verify' else 'عملیات بسته'
         else:
             return
+        if self.kind == 'iso' and major == 'download':
+            label = 'خواندن بسته از ISO'
         if not 1 <= current <= total:
             return
         now = self.clock()
@@ -70,17 +74,22 @@ class ProgressReporter:
                      else RPM_TRANSACTION_NAME.fullmatch(target))
             package = '  ' + match.group(1).decode('ascii') if match is not None else ''
             if self.english:
-                label = {'download': 'Download', 'verify': 'Verification', 'transaction': 'Transaction'}[major]
+                label = self.english_label(major)
             self.output.write('      · {}  {}/{}{}\n'.format(label, current, total, package))
             self.output.flush()
             self.last_emit = now
             return
         if self.english:
-            label = {'download': 'Download', 'verify': 'Verification', 'transaction': 'Transaction'}[major]
+            label = self.english_label(major)
             self.output.write('[MyTellPBX] {}: {} {} of {}\n'.format(ENGLISH_KINDS[self.kind], label, current, total))
         else:
             self.output.write('[MyTellPBX] {}: {} {} از {}\n'.format(KINDS[self.kind], label, current, total))
         self.output.flush(); self.seen.add(major); self.last_emit = now
+
+    def english_label(self, major):
+        if major == 'download' and self.kind == 'iso':
+            return 'Read from ISO'
+        return {'download': 'Download', 'verify': 'Verification', 'transaction': 'Transaction'}[major]
 
 
 def copy_progress(source, private_log, reporter, console_failed=False, wait_for_input=None):
@@ -157,7 +166,7 @@ def main():
             if args.check_log: return 0
             console_failed = False
             try:
-                if args.detail and args.kind == 'repositories':
+                if args.detail and args.kind in ('repositories', 'iso'):
                     print('      · ' + (ENGLISH_KINDS[args.kind] if english else KINDS[args.kind]), flush=True)
                 elif not args.detail and english:
                     print('[MyTellPBX] {}: running; full output is recorded in the private installer log.'.format(ENGLISH_KINDS[args.kind]), flush=True)

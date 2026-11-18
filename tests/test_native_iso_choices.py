@@ -70,7 +70,7 @@ class NativeCompsChoicesTests(unittest.TestCase):
         result = ET.fromstring(self.module.derive_comps(self.original, self.names))
         old_groups = {node.findtext('id'): node for node in original.findall('group')}
         groups = {node.findtext('id'): node for node in result.findall('group')}
-        self.assertEqual(set(groups), set(old_groups) - {'asterisk16', 'asterisk18'})
+        self.assertEqual(set(groups), set(old_groups) - {'asterisk16', 'asterisk18', 'guru'})
         for identity in groups:
             self.assertEqual(semantic(groups[identity], brand=True),
                              semantic(old_groups[identity], brand=True), identity)
@@ -82,8 +82,13 @@ class NativeCompsChoicesTests(unittest.TestCase):
             self.assertIn('Asterisk ' + version, item.findtext('name'))
             self.assertEqual(item.findtext('display_order'), order)
             self.assertEqual([node.text.strip() for node in item.findall('grouplist/groupid')],
-                             ['asterisk' + version, 'issabel'])
+                             ['asterisk' + version, 'issabel', 'rbl'])
         native20 = next(node for node in original.findall('environment') if node.findtext('id') == 'issabelast20')
+        options = native20.find('optionlist')
+        for entry in list(options):
+            if entry.text in {'rbl', 'guru'}:
+                options.remove(entry)
+        ET.SubElement(native20.find('grouplist'), 'groupid').text = 'rbl'
         self.assertEqual(semantic(environments['issabelast20'], brand=True), semantic(native20, brand=True))
         self.assertFalse(any(node.text in {'asterisk16', 'asterisk18'} for node in result.iter('groupid')))
         ks = self.module.kickstart((FIXTURE / 'issabel.ks').read_text())

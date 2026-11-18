@@ -10,6 +10,7 @@ import shlex
 import shutil
 import subprocess
 import sqlite3
+import sys
 import tempfile
 import unittest
 from unittest import mock
@@ -19,6 +20,27 @@ SPEC = importlib.util.spec_from_file_location('native_addons', str(ROOT / 'insta
 ADDONS = importlib.util.module_from_spec(SPEC)
 SPEC.loader.exec_module(ADDONS)
 BASH = 'C:/Program Files/Git/bin/bash.exe' if os.name == 'nt' else shutil.which('bash')
+
+
+class OfflineProgressTests(unittest.TestCase):
+    def test_private_static_check_output_and_failure_path_are_preserved(self):
+        with tempfile.TemporaryDirectory() as work:
+            log = Path(work) / 'netinstall.log'
+            command = [sys.executable, '-c', 'print("fixture private diagnostic", flush=True); raise SystemExit(7)']
+            with self.assertRaises(ValueError) as error:
+                ADDONS.run(command, diagnostics=log)
+            self.assertIn(str(log), str(error.exception))
+            self.assertNotIn('fixture private diagnostic', str(error.exception))
+            self.assertIn(b'fixture private diagnostic', log.read_bytes())
+
+    @unittest.skipUnless(os.name == 'posix' and BASH and shutil.which('timeout'), 'Bash and GNU timeout required')
+    def test_offline_package_wrapper_keeps_dnf_error_and_raw_private_output(self):
+        with tempfile.TemporaryDirectory() as work:
+            log = Path(work).resolve() / 'netinstall.log'
+            command = [sys.executable, '-c', 'print("fixture raw dnf diagnostic"); raise SystemExit(42)']
+            with self.assertRaisesRegex(ValueError, 'Package installation from ISO stopped'):
+                ADDONS.install_media_packages(ROOT, log, command)
+            self.assertIn(b'fixture raw dnf diagnostic', log.read_bytes())
 
 
 class NativeOwnershipIntegrationTests(unittest.TestCase):

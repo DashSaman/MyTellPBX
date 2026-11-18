@@ -113,12 +113,11 @@ class NativeIsoStructureTests(unittest.TestCase):
         original = (FIXTURE / 'issabel.ks').read_text(encoding='utf-8')
         result = module.kickstart(original)
         for token in ['clearpart --all --initlabel', 'autopart --type=plain --fstype=ext4',
-                      '@^issabelast20', '@rbl', '@guru', 'touch /mnt/sysimage/installamp',
+                      '@^issabelast20', '@rbl', 'touch /mnt/sysimage/installamp',
                       'reboot --eject', 'firewall --disabled', 'selinux --disabled']:
             self.assertIn(token, result)
-        self.assertEqual(re.search(r'%packages\n(.*?)\n%end', result, re.S).group(1),
-                         re.search(r'%packages\n(.*?)\n%end', original, re.S).group(1))
-        expected = original.replace('issabel.local', 'mytelpbx.local')
+        self.assertNotIn('\n@guru\n', result)
+        expected = original.replace('issabel.local', 'mytelpbx.local').replace('\n@guru\n', '\n')
         for line in module.ONLINE_POST_LINES:
             self.assertEqual(expected.count(line), 1)
             expected = expected.replace(line, '')
@@ -137,16 +136,20 @@ class NativeIsoStructureTests(unittest.TestCase):
         with self.assertRaises(ValueError):
             builder().kickstart((FIXTURE / 'issabel.ks').read_text() + '\n# unreviewed\n')
 
-    def test_success_only_dropin_does_not_replace_native_execstart(self):
+    def test_guided_dropin_reuses_native_tty_and_orders_final_reload(self):
         module = builder()
         scripts = (FIXTURE / 'firstboot-rpm-scripts.txt').read_text()
         unit = scripts.split("<<'ISSABELFIRSTBOOT'\n", 1)[1].split('\nISSABELFIRSTBOOT', 1)[0]
         self.assertIn('/usr/bin/issabel-admin-passwords --init && chvt 1 && dmesg -E', unit)
         dropin = module.firstboot_dropin()
-        self.assertNotRegex(dropin, r'(?m)^ExecStart=')
+        self.assertRegex(dropin, r'(?m)^ExecStart=\nExecStart=/bin/bash')
         self.assertNotIn('ExecStartPre=', dropin)
         self.assertIn('ExecStartPost=', dropin)
-        self.assertIn('chvt 2 && /bin/bash /usr/local/libexec/mytelpbx/run-offline.sh && ', dropin)
+        self.assertIn('chvt 2 && exec /bin/bash /usr/local/libexec/mytelpbx/run-offline.sh', dropin)
+        self.assertIn('TTYPath=/dev/tty2', unit)
+        self.assertIn('StandardError=tty', dropin)
+        self.assertIn('After=issabel-firstboot.service\n', module.reload_dropin())
+        self.assertIn('ConditionPathExists=/var/lib/mytelpbx-native-addons/offline-complete\n', module.reload_dropin())
         self.assertRegex(dropin, r'&& chvt 1"\n$')
         runner = (ROOT / 'installer/vendor-native/run-offline.sh').read_text()
         for forbidden in ['issabel-admin-passwords --init', 'install_amp', 'prepare-native-start',
@@ -238,21 +241,78 @@ class NativeIsoStructureTests(unittest.TestCase):
         self.assertEqual(result.returncode, 0, result.stderr)
 
     @unittest.skipUnless(BASH and Path(BASH).is_file(), 'Bash is required')
-    def test_offline_runner_only_accepts_actual20_before_the_shared_hook(self):
-        source = (ROOT / 'installer/vendor-native/run-offline.sh').read_text()
-        tail = 'version=$(asterisk -V)' + source.split('version=$(asterisk -V)', 1)[1]
-        for major in ('16', '18', '20', '22'):
-            with self.subTest(major=major):
-                script = ('set -eu\nfail(){ printf "%s\\n" "$*" >&2; exit 79; }\n'
-                          'asterisk(){ printf "Asterisk ' + major + '.30.1\\n"; }\n'
-                          'bash(){ printf "HOOK_ASTVER=%s\\n" "$ASTVER"; }\n'
-                          'MYTEL_BUNDLE_ROOT=/fixture\nMYTEL_NATIVE_WORK=/fixture\n'
-                          'MYTEL_PYTHON=/fixture\nMYTEL_MEDIA_ROOT=/fixture\n'
-                          'MYTEL_MEDIA_MANIFEST_SHA256=fixture\n') + tail
+    def test_guided_offline_handoff_orders_probes_access_core_and_addons(self):
+        vendor = ROOT / 'installer/vendor-native'
+        source = (vendor / 'run-offline.sh').read_text(encoding='utf-8')
+        actual_credentials = (vendor / 'online-credentials.sh').read_text(encoding='utf-8')
+        for mode, expected in (
+            ('wrong-version', ['version']),
+            ('missing-package', ['version', 'package']),
+            ('established', ['version', 'package']),
+            ('cancelled', ['version', 'package', 'mariadb', 'sip', 'collect']),
+            ('core-fails', ['version', 'package', 'mariadb', 'sip', 'collect', 'core']),
+            ('marker-remains', ['version', 'package', 'mariadb', 'sip', 'collect', 'core']),
+            ('addons-fail', ['version', 'package', 'mariadb', 'sip', 'collect', 'core', 'addons']),
+            ('success', ['version', 'package', 'mariadb', 'sip', 'collect', 'core', 'addons']),
+        ):
+            with self.subTest(mode=mode), tempfile.TemporaryDirectory() as directory:
+                root = Path(directory)
+                trace = root / 'events'
+                marker = root / 'installamp'
+                config = root / 'issabel.conf'
+                marker.touch()
+                if mode == 'established':
+                    config.write_text('mysqlrootpwd=existing-credential\n', encoding='utf-8')
+                native = root / 'installer/vendor-native'
+                native.mkdir(parents=True)
+                shutil.copyfile(vendor / 'terminal-ui.sh', native / 'terminal-ui.sh')
+                (native / 'online-credentials.sh').write_text(actual_credentials + r'''
+mytel_collect_online_passwords(){
+    printf 'collect\n' >> "$TRACE"
+    [ "$MODE" != cancelled ] || return 1
+    printf '%s\n' 'FakeDB.42!' 'FakeAdmin.52!' pjsip
+}
+mytel_apply_online_passwords(){
+    printf 'core\n' >> "$TRACE"
+    [ "$_mytel_db_password" = 'FakeDB.42!' ] && [ "$_mytel_admin_password" = 'FakeAdmin.52!' ] || return 2
+    [ "$MYTEL_ONLINE_SIP_DRIVER" = pjsip ] || return 3
+    printf 'native fixture diagnostic\n' >&2
+    [ "$MODE" != core-fails ] || return 4
+    if [ "$MODE" != marker-remains ]; then rm -- "$MARKER" || return 5; fi
+}
+''', encoding='utf-8')
+                runner = root / 'fixture-runner.sh'
+                runner.write_text(source.replace('/installamp', marker.as_posix())
+                                  .replace('/etc/issabel.conf', config.as_posix()), encoding='utf-8')
+                # Check only home-grown fixture stubs. No live sockets, RPM or systemd calls.
+                script = 'source ' + shlex.quote(runner.as_posix()) + '\n'
+                for variable, value in dict(MODE=mode, TRACE=trace, MARKER=marker, MYTEL_BUNDLE_ROOT=root,
+                                            MYTEL_NATIVE_WORK=root, MYTEL_MEDIA_ROOT=root,
+                                            MYTEL_MEDIA_MANIFEST_SHA256='sealed', MYTEL_PYTHON='fixture_python').items():
+                    script += variable + '=' + shlex.quote(value.as_posix() if isinstance(value, Path) else value) + '\n'
+                script += r'''
+asterisk(){
+    printf 'version\n' >> "$TRACE"
+    [ "$*" = '-V' ] || return 90
+    if [ "$MODE" = wrong-version ]; then echo 'Asterisk 18.0.0'; else echo 'Asterisk 20.3.0'; fi
+}
+rpm(){ printf 'package\n' >> "$TRACE"; [ "$*" = '-q --quiet issabel-packetbl' ] && [ "$MODE" != missing-package ]; }
+systemctl(){ printf 'mariadb\n' >> "$TRACE"; [ "$*" = 'is-active --quiet mariadb.service' ]; }
+fixture_python(){ printf 'sip\n' >> "$TRACE"; [ "$1 $2" = '-I -B' ]; }
+bash(){
+    printf 'addons\n' >> "$TRACE"
+    [ "$1" = "$MYTEL_BUNDLE_ROOT/installer/install-mytel-addons.sh" ] && [ "$ASTVER" = 20 ] && [ "$MODE" != addons-fail ]
+}
+guided_offline_setup
+'''
                 result = subprocess.run([BASH, '--noprofile', '--norc', '-s'], input=script.encode(),
                                         capture_output=True, timeout=20)
-                self.assertEqual(result.returncode, 0 if major == '20' else 79, result.stderr)
-                self.assertEqual(b'HOOK_ASTVER=20' in result.stdout, major == '20')
+                self.assertEqual(result.returncode, 0 if mode == 'success' else 1, result.stderr)
+                self.assertEqual(trace.read_text().splitlines(), expected)
+                self.assertNotIn(b'native fixture diagnostic', result.stdout + result.stderr)
+                self.assertNotIn(b'FakeAdmin.52!', result.stdout + result.stderr)
+                if 'core' in expected:
+                    self.assertIn(b'native fixture diagnostic', (root / 'native-init.log').read_bytes())
 
 
 @unittest.skipUnless(BASH and Path(BASH).is_file(), 'Bash is required')
@@ -316,7 +376,7 @@ chmod "$mode" "$target"
         return '/' + text[0].lower() + text[2:] if os.name == 'nt' else text
 
     def boot(self, runner_result=0, install_result=0, parent_uid=0, parent_mode='755', before_command=None):
-        config = configparser.ConfigParser(interpolation=None)
+        config = configparser.ConfigParser(interpolation=None, strict=False)
         config.read_string(builder().firstboot_dropin())
         condition = config.get('Unit', 'ConditionPathExists', fallback=None)
         if condition is not None:
@@ -324,16 +384,19 @@ chmod "$mode" "$target"
             if self.marker.exists():
                 return None  # systemd skips the entire unit when this condition fails.
         command = shlex.split(config['Service']['ExecStartPost'])
+        start = shlex.split(config['Service']['ExecStart'])
+        self.assertEqual(start[:2], ['/bin/bash', '-c'])
         self.assertEqual(command[:2], ['/bin/bash', '-c'])
         # systemd expands %% to a literal % before the command reaches Bash.
         self.assertNotRegex(command[2].replace('%%', ''), r'%[a-zA-Z]',
                             'All stat formats must escape systemd specifiers')
-        script = command[2].replace('%%', '%')
+        script = '(' + start[2] + ') && ' + command[2].replace('%%', '%')
         script = script.replace('/usr/local/libexec/mytelpbx/run-offline.sh',
                                 shlex.quote(self.shell_path(self.runner)))
         script = script.replace('/var/lib/mytelpbx-native-addons',
                                 shlex.quote(self.shell_path(self.state)))
         script = 'PATH=' + shlex.quote(self.shell_path(self.bin)) + ':/usr/bin:/bin\n' + script
+        script = 'sleep(){ [ "$1" = 5 ]; }\n' + script
         environment = dict(os.environ, TRACE=self.shell_path(self.trace),
                            FIXTURE_ROOT=self.shell_path(self.root),
                            FIXTURE_STATE=self.shell_path(self.state),

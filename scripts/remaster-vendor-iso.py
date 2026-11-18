@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
 """Rebrand the pinned native Issabel ISO and append sealed Mytel add-ons.
 
-The original RPM depot, package groups, storage policy, /installamp trigger and
-native firstboot/password initializer remain the installation engine. This is
+The original RPM depot, storage policy, /installamp trigger and native
+first-boot engine remain the base for guided offline setup. This is
 not the former Rocky-plus-custom-core ISO builder. Build only on the Linux lab.
 """
 import argparse
@@ -74,10 +74,12 @@ def kickstart(source):
         if result.count(line) != 1:
             raise ValueError('Native offline post boundary changed')
         result = result.replace(line, '')
+    if result.count('\n@guru\n') != 1 or result.count('\n@rbl\n') != 1:
+        raise ValueError('Unexpected native add-on group selection')
+    result = result.replace('\n@guru\n', '\n')
     return result.rstrip('\n') + '''
 # MYTEL_NATIVE_ADDONS_BEGIN
-# Native packages and /installamp above are unchanged. This only prepares a
-# success-only post-firstboot add-on; no native initializer runs in this section.
+# Prepare guided first boot. The native initializer runs after installation.
 %post --nochroot --erroronfail
 set -euo pipefail
 umask 077
@@ -95,6 +97,8 @@ install -m 0644 "$source/brand-native-dialogs.py" "$target/usr/local/libexec/myt
 install -m 0600 "$source/native-media.json" "$target/etc/mytelpbx-native-media.json"
 install -d -m 0755 "$target/etc/systemd/system/issabel-firstboot.service.d"
 install -m 0644 "$source/20-mytel-addons.conf" "$target/etc/systemd/system/issabel-firstboot.service.d/20-mytel-addons.conf"
+install -d -m 0755 "$target/etc/systemd/system/amportal-reload.service.d"
+install -m 0644 "$source/20-mytel-after-firstboot.conf" "$target/etc/systemd/system/amportal-reload.service.d/20-mytel-after-firstboot.conf"
 # Native labels/startup guard and optional completion UX; core PHP --init stays intact.
 chroot "$target" /usr/libexec/platform-python -I -S -B /usr/local/libexec/mytelpbx/brand-native-dialogs.py --tool passwords
 chroot "$target" /usr/libexec/platform-python -I -S -B /usr/local/libexec/mytelpbx/brand-native-dialogs.py --tool completion
@@ -108,14 +112,11 @@ chroot "$target" /bin/bash /usr/local/libexec/mytelpbx/run-offline.sh --verify-m
 
 
 def firstboot_dropin():
-    # Native ExecStart changes back to VT1. Show add-on progress on its existing
-    # TTY2 and retain that screen on failure. Mark only completed offline add-ons;
-    # the enabled native unit must not replay them on the next boot.
+    # Keep the vendor unit's ordering and TTY2. Mark success only after both
+    # native initialization and the sealed add-ons complete.
     state = '/var/lib/mytelpbx-native-addons'
     marker = state + '/offline-complete'
     commands = [
-        'chvt 2',
-        '/bin/bash /usr/local/libexec/mytelpbx/run-offline.sh',
         'test -d ' + state,
         r'test \"$(readlink -e ' + state + r')\" = ' + state,
         r'test \"$(stat -c %%u ' + state + r')\" = 0',
@@ -124,10 +125,19 @@ def firstboot_dropin():
         'test ! -L ' + marker,
         'install -d -o root -g root -m 0700 ' + state,
         'install -o root -g root -m 0600 /dev/null ' + marker,
+        'sleep 5',
         'chvt 1',
     ]
     return ('[Unit]\nConditionPathExists=!' + marker + '\n\n[Service]\n'
+            'StandardError=tty\n'
+            'ExecStart=\n'
+            'ExecStart=/bin/bash -c "chvt 2 && exec /bin/bash /usr/local/libexec/mytelpbx/run-offline.sh"\n'
             'ExecStartPost=/bin/bash -c "' + ' && '.join(commands) + '"\n')
+
+
+def reload_dropin():
+    return ('[Unit]\nAfter=issabel-firstboot.service\n'
+            'ConditionPathExists=/var/lib/mytelpbx-native-addons/offline-complete\n')
 
 
 def boot_config(source, label, version):
@@ -296,7 +306,7 @@ def comps_blocks(source):
 
 
 def derive_comps(original, available_package_names):
-    """Expose only native Asterisk 20; retain its groups, options and RPM assets."""
+    """Select Asterisk 20 and the community block list from native RPMs."""
     if hashlib.sha256(original).hexdigest() != VENDOR_COMPS_SHA256:
         raise ValueError('Unknown native comps source')
     before = ET.fromstring(original)
@@ -304,6 +314,7 @@ def derive_comps(original, available_package_names):
     environments = {node.findtext('id'): node for node in before.findall('environment')}
     if set(environments) != {'issabelast20', 'issabelast18'}:
         raise ValueError('Unexpected native Asterisk environments')
+    removed = {'asterisk16', 'asterisk18', 'issabelast18', 'guru'}
     for major in ('20',):
         group = groups.get('asterisk' + major)
         if group is None:
@@ -318,15 +329,19 @@ def derive_comps(original, available_package_names):
     if len(blocks) != len(groups) + len(environments):
         raise ValueError('Unknown native comps layout')
     neutral_names = {
-        'guru': 'Optional upstream licensed add-ons',
         'rbl': 'Community RBL (Realtime Blackhole List)',
         'contactcenter': 'Upstream Contact Center -DEMO-',
     }
     def brand_block(match):
         block = match.group(0)
         identity = ET.fromstring(block).findtext('id')
-        if identity in {'asterisk16', 'asterisk18', 'issabelast18'}:
+        if identity in removed:
             return ''
+        if identity == 'issabelast20':
+            block, count = re.subn(r'(?m)^[ \t]*<groupid>(?:rbl|guru)</groupid>\n', '', block)
+            if count != 2 or block.count('</grouplist>') != 1:
+                raise ValueError('Unexpected native add-on references')
+            block = block.replace('    </grouplist>', '            <groupid>rbl</groupid>\n    </grouplist>')
         def label(item):
             tag, attributes, value = item.group(1), item.group(2) or '', item.group(3)
             if tag == 'name' and identity in neutral_names:
@@ -341,16 +356,22 @@ def derive_comps(original, available_package_names):
     after = ET.fromstring(result)
     after_groups = {node.findtext('id'): node for node in after.findall('group')}
     after_environments = {node.findtext('id'): node for node in after.findall('environment')}
-    if (set(after_groups) != set(groups) - {'asterisk16', 'asterisk18'}
+    if (set(after_groups) != set(groups) - removed
             or set(after_environments) != {'issabelast20'}):
         raise ValueError('Native comps identities changed')
     for identity, node in list(groups.items()) + list(environments.items()):
-        if identity in {'asterisk16', 'asterisk18', 'issabelast18'}:
+        if identity in removed:
             continue
+        if identity == 'issabelast20':
+            options = node.find('optionlist')
+            for entry in list(options):
+                if entry.text in {'rbl', 'guru'}:
+                    options.remove(entry)
+            ET.SubElement(node.find('grouplist'), 'groupid').text = 'rbl'
         actual = (after_groups if identity in groups else after_environments)[identity]
         if xml_structure(node, True) != xml_structure(actual, True):
             raise ValueError('Native group/environment data changed: ' + identity)
-    if any(node.text in {'asterisk16', 'asterisk18'} for node in after.iter('groupid')):
+    if any(node.text in removed for node in after.iter('groupid')):
         raise ValueError('Unsupported Asterisk choice remains in native comps')
     if any('issabel' in (node.text or '').lower()
            for item in after for node in item if node.tag in ('name', 'description')):
@@ -578,6 +599,7 @@ def build(args):
                          'validator_sha256': digest(payload / 'media.py')}
         (payload / 'native-media.json').write_text(json.dumps(configuration, sort_keys=True) + '\n', encoding='utf-8')
         (payload / '20-mytel-addons.conf').write_text(firstboot_dropin(), encoding='utf-8')
+        (payload / '20-mytel-after-firstboot.conf').write_text(reload_dropin(), encoding='utf-8')
         ks = stage / 'mytelpbx.ks'
         extract(source, 'ks/issabel.ks', ks)
         ks.write_text(kickstart(ks.read_text(encoding='utf-8')), encoding='utf-8')
@@ -665,7 +687,7 @@ def build(args):
                    'native_inventory_sha256': hashlib.sha256(json.dumps(native_inventory, sort_keys=True).encode()).hexdigest(),
                    'native_files': sum(len(value) for value in native_inventory.values()),
                    'runtime_display_files': runtime_hashes, 'embedded_efi_configs': efi_count,
-                   'success_hook': 'issabel-firstboot.service ExecStartPost', 'boot_acceptance': False}
+                   'success_hook': 'guided issabel-firstboot.service then completion marker', 'boot_acceptance': False}
         publish_candidate(candidate, output, receipt['iso_sha256'])
         with output.with_suffix('.iso.json').open('x', encoding='utf-8') as stream:
             json.dump(receipt, stream, indent=2)

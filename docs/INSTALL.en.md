@@ -135,18 +135,16 @@ see [the third-party notices](../THIRD_PARTY_NOTICES.md).
 
 ## Owner-lab native ISO
 
-The separate ISO remasters the original **Issabel 5 ISO**, retaining its RPM bytes,
-non-group repository metadata, `/installamp` trigger and native firstboot/password
-command. The native **Software Selection** screen offers **MytelPBX with Asterisk
-20 only**. Voice-prompt language selection remains available. Asterisk 16 and 18 groups and
-their selectable environments are omitted from the derived installer metadata;
-the original RPM bytes and optional `rbl`/`guru` choices remain intact.
+The separate ISO uses the native **Asterisk 20** packages and installs the Community
+Realtime Block List automatically. The licensed add-on group is omitted. At first
+boot, the English console takes both passwords and their confirmations, then accepts
+PJSIP by default or SIP as the primary driver. Setup applies the Persian defaults.
 Within **native repo metadata**, only group/environment metadata, human labels
 and its repository index are updated; non-group records and RPM bytes are
 preserved. The ISO also includes Mytel boot/Anaconda presentation assets, the
-sealed add-on depot and the native firstboot success hook. That hook runs the
-shared Mytel add-on after native setup, not another PBX core installer. Its
-Root-protected completion marker is written only after successful add-on exit;
+sealed add-on depot. The guided console reports local package progress and keeps
+full diagnostics in a private log. The root-protected completion marker is written
+only after native initialization and the add-on complete;
 `ConditionPathExists=!/var/lib/mytelpbx-native-addons/offline-complete` prevents
 later firstboot invocations from rerunning native initialization and the add-on.
 

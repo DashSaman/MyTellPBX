@@ -1,4 +1,4 @@
-# MytelPBX online installer. Secret transport uses anonymous pipes only.
+# MytelPBX installer credential collection over an interactive terminal.
 
 mytel_online_password_valid() {
     local LC_ALL=C
@@ -35,7 +35,7 @@ mytel_collect_online_passwords() (
     set +a
     local visibility db_password admin_password accent reset sip_choice
     if ! { exec 8<>/dev/tty; } 2>/dev/null; then
-        printf '\nMytelPBX requires an interactive SSH terminal.\n' >&2
+        printf '\nMytelPBX requires an interactive terminal.\n' >&2
         return 1
     fi
     accent='' reset=''

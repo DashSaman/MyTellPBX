@@ -1,5 +1,5 @@
 #!/bin/bash
-# Installer output for an ordinary SSH terminal. Source only in the online flow.
+# Shared MytelPBX output for SSH and the local installation console.
 
 mytel_terminal_init() {
   MYTEL_UI_BLUE= MYTEL_UI_AMBER= MYTEL_UI_GREEN= MYTEL_UI_RED= MYTEL_UI_RESET=
@@ -14,8 +14,19 @@ mytel_terminal_init() {
 
 mytel_terminal_banner() {
   mytel_terminal_init
-  printf '\n%s  Mytel%sPBX%s   /   Mytel.one\n%s  ──────────────────────────────%s\n  Online installation on Rocky Linux 8.10 · Asterisk 20\n' \
-    "$MYTEL_UI_BLUE" "$MYTEL_UI_AMBER" "$MYTEL_UI_RESET" "$MYTEL_UI_BLUE" "$MYTEL_UI_RESET"
+  local mode='Online installation on Rocky Linux 8.10 · Asterisk 20'
+  if [[ ${1:-} == offline ]]; then mode='Offline installation from ISO · Asterisk 20'; fi
+  printf '\n%s  Mytel%sPBX%s   /   Mytel.one\n%s  ──────────────────────────────%s\n  %s\n' \
+    "$MYTEL_UI_BLUE" "$MYTEL_UI_AMBER" "$MYTEL_UI_RESET" "$MYTEL_UI_BLUE" "$MYTEL_UI_RESET" "$mode"
+}
+
+mytel_terminal_offline_phase() {
+  printf '\n%s  [%s/%s]  %s%s\n' "$MYTEL_UI_BLUE" "$1" "$2" "$3" "$MYTEL_UI_RESET"
+}
+
+mytel_terminal_offline_ready() {
+  printf '\n%s  MytelPBX · Installation complete%s\n  The Persian web panel is ready.\n\n' \
+    "$MYTEL_UI_GREEN" "$MYTEL_UI_RESET"
 }
 
 mytel_terminal_phase() {

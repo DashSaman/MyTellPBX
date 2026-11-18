@@ -166,6 +166,21 @@ class DnfProgressTests(unittest.TestCase):
         self.assertIn('Transaction  1/2  dep-1.2-3.el8.noarch', lines[2])
         self.assertNotIn('RedactMe', output.getvalue())
 
+    def test_offline_package_rows_describe_local_iso_reads(self):
+        output = io.StringIO()
+        reporter = self.module.ProgressReporter(output, 'iso', english=True, detail=True)
+        stream = (b'(1/2): python3.11-3.11.13-7.el8_10.x86_64.rpm 1 MB/s\r'
+                  b'Importing signing key from sealed media\n'
+                  b'Installing : python3.11-3.11.13-7.el8_10.x86_64 1/2\n'
+                  b'Verifying : python3.11-3.11.13-7.el8_10.x86_64 1/2\n')
+        log = io.BytesIO()
+        self.assertTrue(self.module.copy_progress(io.BytesIO(stream), log, reporter))
+        self.assertEqual(log.getvalue(), stream)
+        self.assertIn('Read from ISO  1/2  python3.11-3.11.13-7.el8_10.x86_64.rpm', output.getvalue())
+        self.assertIn('Verification  1/2  python3.11-3.11.13-7.el8_10.x86_64', output.getvalue())
+        self.assertNotIn('Download', output.getvalue())
+        self.assertNotIn('signing key', output.getvalue())
+
     def test_idle_message_is_about_waiting_and_preserves_the_next_observation(self):
         output = io.StringIO()
         self.now = 0
