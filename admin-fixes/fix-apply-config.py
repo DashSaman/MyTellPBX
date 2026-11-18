@@ -103,6 +103,16 @@ PATCHES = [
             "            unset($_SESSION['msg'], $_SESSION['msgtstamp'], $_SESSION['msgtimer'], $_SESSION['msgtype']);\n",
         ),
     ]),
+    (BASE / "libraries/components.class.php", [
+        (
+            "        // toast js_display_confirmation\n"
+            "        $htmlout .= js_display_confirmation_toasts();\n",
+            "        // This component discards its markup when it has no output.\n"
+            "        if ($hasoutput) {\n"
+            "            $htmlout .= js_display_confirmation_toasts();\n"
+            "        }\n",
+        ),
+    ]),
     (BASE / "assets/mytel/skin.css", [
         # keep the pill look for all three selectors, but drop the !important
         # on display (with it, the button could never be hidden)

@@ -1,6 +1,7 @@
 <?php
-// Run with the native helper file from a disposable installation or fixture.
+// Pass the installed native helper and component files from a disposable fixture.
 require $argv[1];
+require $argv[2];
 
 function check_flash($condition, $message) {
     if (!$condition) {
@@ -22,7 +23,11 @@ check_flash(js_display_confirmation_toasts() === '', 'A fragment must defer the 
 check_flash($_SESSION === $flash, 'A fragment must retain the pending flash');
 
 unset($_SERVER['HTTP_X_UP_MODE']);
-$rendered = js_display_confirmation_toasts();
+$component = new component('fixture');
+check_flash($component->generateconfigpage('') === '', 'An empty component must have no form markup');
+check_flash($_SESSION === $flash, 'The native component must retain the flash when it discards its markup');
+$component->_guielems_top = [];
+$rendered = $component->generateconfigpage('');
 check_flash(
     strpos($rendered, 'sweet_toast(\'warning\',"Fixture extension deleted",6000)') !== false,
     'A full render must emit the native notice with the original text, severity and timeout'
