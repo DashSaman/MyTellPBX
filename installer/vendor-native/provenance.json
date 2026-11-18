@@ -48,6 +48,9 @@
     }
   },
   "derivation_changes": [
+    "Online terminal collects confirmed credentials through a private pipe before package setup and preselects PJSIP unless the operator chooses SIP",
+    "Online packages always include the native Community Realtime Block List; licensed optional selections are excluded",
+    "English terminal phases and observed package output replace the online graphical gauge; native package diagnostics remain private",
     "MytelPBX / Mytel.one display labels; native executable, package, database and repository IDs remain unchanged",
     "Fix the derived online product to ASTVER=20 without a version dialog; derived ISO software metadata exposes only the native Asterisk 20 environment and group, preserving native language selection, remaining group data and immutable original RPM assets",
     "Use the official US repository HTTPS base URLs in the existing native repository definitions; primary and mirrorlist hosts refused HTTPS during read-only checks on 2026-11-17",

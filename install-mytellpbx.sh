@@ -1,8 +1,8 @@
 #!/bin/bash
 # MytelPBX / Mytel.one - verified native Issabel installer bootstrap.
 # Run in an interactive root terminal on fresh Rocky Linux 8.10 x86_64.
-# Installs Asterisk 20 only. Native dialogs select language and optional
-# packages, followed by four password screens. Native completion reboots the server.
+# Installs Asterisk 20 only. Collects and confirms passwords in the terminal
+# before native package setup. Native completion reboots the server.
 # Verified source and logs remain in the printed private workspace.
 set -u
 set -o pipefail
@@ -134,7 +134,7 @@ main() {
     umask 077
     MYTEL_NATIVE_WORK=$(mktemp -d /var/tmp/mytelpbx-native.XXXXXXXX) \
         || die 'Cannot create a private workspace.'
-    printf 'MytelPBX %s / Mytel.one\nNative source and logs: %s\n' \
+    printf '\nMytelPBX %s  |  Mytel.one\n  Preparing and verifying installer files…\n  Private log directory  %s\n' \
         "$MYTELLPBX_VERSION" "$MYTEL_NATIVE_WORK"
     download_bundle
     extract_bundle
@@ -142,7 +142,11 @@ main() {
     if [ -n "${MYTEL_MEDIA_ROOT:-}" ]; then
         bash "$MYTEL_BUNDLE_ROOT/installer/vendor-native/run-offline.sh"
     else
-        bash "$MYTEL_BUNDLE_ROOT/installer/vendor-native/mytelpbx-netinstall.sh"
+        source "$MYTEL_BUNDLE_ROOT/installer/vendor-native/terminal-ui.sh" || die 'Cannot load the terminal UI.'
+        source "$MYTEL_BUNDLE_ROOT/installer/vendor-native/online-credentials.sh" || die 'Cannot load the password prompt.'
+        mytel_terminal_banner
+        bash "$MYTEL_BUNDLE_ROOT/installer/vendor-native/mytelpbx-netinstall.sh" \
+            3< <(mytel_collect_online_passwords)
     fi
     local status=$?
     [ "$status" = 0 ] || die "Native installation stopped (status $status). Inspect $MYTEL_NATIVE_WORK/netinstall.log."

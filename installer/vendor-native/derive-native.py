@@ -31,9 +31,6 @@ def derive(original):
                      'set -o pipefail\n')
     source = replace(source, 'BACKTITLE="Issabel 5 netinstall"',
                      'BACKTITLE="MytelPBX netinstall - Mytel.one"')
-    source = replace(source, r'\nIssabel"', r'\nMytelPBX\nMytel.one"')
-    source = replace(source, '        7 11\n', '        8 15\n')
-    source = replace(source, '            Issabel ', '       MytelPBX / Mytel.one ')
     source = replace(source, 'Issabel Network Licensed modules(http://issabel.guru)',
                      'Optional upstream licensed add-ons')
     source = re.sub(r'(?m)^name=(.*)Issabel(.*)$', r'name=\1MytelPBX\2', source)
@@ -49,7 +46,8 @@ def derive(original):
     if count != 13:
         raise ValueError('Unexpected native repository set')
     source = source.replace('http://repo.issabel.org/', 'https://repo.us.issabel.org/')
-    source = replace(source, 'yum $BETAREPO --nogpg -y $YUMCMD $p', 'yum $BETAREPO -y $YUMCMD $p')
+    animation = source[source.index('BLA_metro='):source.index('function generate_files')]
+    source = replace(source, animation, '')
 
     for filename in ('inst1.txt', 'inst2.txt', 'netinstall.log', 'netinstall_errors.txt'):
         source = source.replace('/tmp/' + filename, '"${MYTEL_NATIVE_WORK}/' + filename + '"')
@@ -59,46 +57,72 @@ def derive(original):
                     'cat > /etc/yum.repos.d/Issabel5.repo <<EOF',
                     'cat > /etc/yum.repos.d/commercial-addons.repo <<EOF'):
         source = replace(source, command, command + ' || return 1')
-    source = replace(source, '  yum -y install issabel-config_helpers &> /dev/null',
-                     '  if ! yum -y install issabel-config_helpers &>>"${MYTEL_NATIVE_WORK}/netinstall.log"; then\n'
-                     '    BLA::stop_loading_animation\n    return 1\n  fi')
-    source = replace(source, '    yum -y install dialog &>/dev/null',
-                     '    if ! yum -y install dialog &>>"${MYTEL_NATIVE_WORK}/netinstall.log"; then\n'
-                     '      BLA::stop_loading_animation\n      return 1\n    fi')
-    source = replace(source, '      exit\n', '      return 1\n')
-    source = replace(source, '    exit\n', '    exit 1\n', 2)
+    settings_tail = source[source.index('  echo -en "        Installing base packages '):source.index('\nfunction sel_astver')]
+    source = replace(source, settings_tail,
+                     '  mytel_run_dnf repositories yum -y install issabel-config_helpers\n}\n')
+    dialog = source[source.index('function check_dialog'):source.index('\nfunction enable_beta')]
+    source = replace(source, dialog, '''function check_dialog
+{
+  if ! command -v dialog >/dev/null; then
+    mytel_run_dnf repositories yum -y install dialog || return $?
+  fi
+  command -v dialog >/dev/null
+}
+''')
     version_start = source.index('function sel_astver\n{\n')
     version_end = source.index('\nfunction add_repos\n', version_start)
     source = replace(source, source[version_start:version_end],
                      'function sel_astver\n{\n'
                      '  # MytelPBX installs the supported Asterisk 20 product only.\n'
                      '  ASTVER=20\n}\n')
+    packages = source[source.index('function additional_packages'):source.index('function yum_gauge')]
+    source = replace(source, packages, '''function additional_packages
+{
+  # Install the community SIP block list without selecting licensed add-ons.
+  ADDPKGS=issabel-packetbl
+}
 
+''')
+    beta = source[source.index('function enable_beta'):source.index('function set_passwords()')]
+    source = replace(source, beta, '')
+
+    remi = 'dnf module enable php:remi-7.4 -y'
+    for command in ('dnf install -y https://rpms.remirepo.net/enterprise/remi-release-${ROCKY_VERSION}.rpm ', remi):
+        source = replace(source, command + ' &>>"${MYTEL_NATIVE_WORK}/netinstall.log"',
+                         'mytel_run_dnf repositories ' + command.rstrip() + ' || return $?')
     for command in (
-        'dnf install -y https://rpms.remirepo.net/enterprise/remi-release-${ROCKY_VERSION}.rpm ',
-        'dnf module enable php:remi-7.4 -y',
         'dnf config-manager --set-enabled remi',
         'dnf config-manager --set-enabled powertools',
         'dnf config-manager --set-enabled devel',
     ):
         old = command + ' &>>"${MYTEL_NATIVE_WORK}/netinstall.log"'
         source = replace(source, old, old + ' || return 1')
-    remi = 'dnf module enable php:remi-7.4 -y'
-    source = replace(source, remi, '"${MYTEL_PYTHON}" -B "${MYTEL_BUNDLE_ROOT}/installer/repair-repository-transport.py" || return 1\n' + remi)
+    remi_progress = 'mytel_run_dnf repositories ' + remi
+    source = replace(source, remi_progress,
+                     '"${MYTEL_PYTHON}" -B "${MYTEL_BUNDLE_ROOT}/installer/repair-repository-transport.py" || return 1\n'
+                     + remi_progress)
     source = replace(source, 'dnf -y check-upgrade &>>"${MYTEL_NATIVE_WORK}/netinstall.log"',
                      'dnf -y check-upgrade &>>"${MYTEL_NATIVE_WORK}/netinstall.log"\n'
                      'local update_status=$?\n[ "$update_status" = 0 ] || [ "$update_status" = 100 ] || return "$update_status"')
-    source = replace(source, 'echo "end yum gauge"',
-                     'local dialog_status=$?\n[ "$dialog_status" = 0 ] || return "$dialog_status"\n'
-                     '[ ! -s "${MYTEL_NATIVE_WORK}/netinstall_errors.txt" ] || return 1\necho "end yum gauge"')
+    gauge = source[source.index('function yum_gauge'):source.index('function update_os')]
+    source = replace(source, gauge, '''function yum_gauge
+{
+  mytel_package_batch "$1" "$3" "$2"
+}
+''')
     source = replace(source, 'PACKAGES=$(yum $BETAREPO -d 0 list updates | tail -n +2 | cut -d\' \' -f1) &>>"${MYTEL_NATIVE_WORK}/netinstall.log"',
                      'PACKAGES=$(yum $BETAREPO -d 0 list updates | tail -n +2 | cut -d\' \' -f1) 2>>"${MYTEL_NATIVE_WORK}/netinstall.log" || return 1')
     source = replace(source, 'yum_gauge "$PACKAGES" "Yum update" update',
-                     'yum_gauge "$PACKAGES" "Yum update" update || return 1')
+                     'yum_gauge "$PACKAGES" update update || return $?')
     source = replace(source, 'yum_gauge "$PACKAGES" "(1/2) Please wait..." install',
-                     'yum_gauge "$PACKAGES" "(1/2) Please wait..." install || return 1')
+                     'yum_gauge "$PACKAGES" core install || return $?')
     source = replace(source, 'yum_gauge "$PACKAGES $ADDPKGS" "(2/2) Please wait..." install',
-                     'yum_gauge "$PACKAGES $ADDPKGS" "(2/2) Please wait..." install || return 1')
+                     'yum_gauge "$PACKAGES $ADDPKGS" product install || return $?')
+    source = replace(source, '  yum clean all &>>"${MYTEL_NATIVE_WORK}/netinstall.log"',
+                     '  yum clean all &>>"${MYTEL_NATIVE_WORK}/netinstall.log" || return $?', count=2)
+    for filename in ('inst1.txt', 'inst2.txt'):
+        line = '  PACKAGES=$(cat "${MYTEL_NATIVE_WORK}/' + filename + '")'
+        source = replace(source, line, line + ' || return $?')
     for command in ('systemctl enable mariadb.service', 'systemctl start mariadb',
                     'mysql -e "SET PASSWORD FOR \'root\'@\'localhost\' = PASSWORD(\'iSsAbEl.2o17\')"',
                     'systemctl enable httpd',
@@ -149,12 +173,21 @@ def derive(original):
     source = replace(source, 'function select_language()\n{\n',
                      'function select_language()\n{\n'
                      '  "${MYTEL_PYTHON}" -B "${MYTEL_BUNDLE_ROOT}/installer/vendor-native/brand-native-dialogs.py" --tool language || return 1\n')
+    source = replace(source, '  /usr/bin/issabel-change-language\n',
+                     '  # The later online initializer applies the fixed Persian locale.\n')
+    source = replace(source, '  /usr/bin/issabel-admin-passwords --init\n',
+                     '  "${MYTEL_PYTHON}" -B "${MYTEL_BUNDLE_ROOT}/installer/vendor-native/online-sip.py" "${MYTEL_NATIVE_WORK}" || return 1\n'
+                     '  mytel_apply_online_passwords\n')
+    bye = source[source.index('function bye()'):source.index('\ncheck_dialog\nadd_repos\n')]
+    source = replace(source, bye, 'function bye()\n{\n  mytel_terminal_success\n}\n')
 
     footer = source.index('\ncheck_dialog\nadd_repos\n')
     definitions, flow = source[:footer], source[footer:]
+    flow = replace(flow, '\nwelcome\n', '\n', count=2)
+    flow = replace(flow, '#if enable_beta\n#then\n#    BETAREPO="--enablerepo=issabel-beta"\n#fi\n', '')
     flow = flow.replace('\nset_passwords\n', '\nset_passwords\nmytel_addons\n')
     flow = replace(flow, '\ncleanup\n', '\ncleanup\nmytel_verify_addons\n')
-    flow = re.sub(r'(?m)^(check_dialog|add_repos|settings|welcome|select_language|sel_astver|additional_packages|generate_files|centos8_tweaks|clean_yum|update_os|install_packages|post_install|set_passwords|mytel_addons|cleanup|mytel_verify_addons|bye|reboot)$',
+    flow = re.sub(r'(?m)^(check_dialog|add_repos|settings|select_language|sel_astver|additional_packages|generate_files|centos8_tweaks|clean_yum|update_os|install_packages|post_install|set_passwords|mytel_addons|cleanup|mytel_verify_addons|bye|reboot)$',
                   r'mytel_native_step \1', flow)
     helpers = '''
 function mytel_addons()
@@ -172,8 +205,11 @@ function mytel_verify_addons()
 
 function mytel_native_step()
 {
+  local started=$SECONDS
+  mytel_terminal_phase "$1"
   "$@"
   local status=$?
+  mytel_terminal_result "$1" "$status" "$((SECONDS - started))"
   if [ "$status" != 0 ]; then
     printf '\\nMytelPBX stopped at %s (status %s). No automatic reboot.\\n' "$1" "$status" >&2
     printf 'Native log: %s/netinstall.log\\n' "${MYTEL_NATIVE_WORK}" >&2
@@ -181,7 +217,11 @@ function mytel_native_step()
   fi
 }
 '''
-    return (definitions + helpers + '\n# MYTEL_NATIVE_FLOW\n' + flow.lstrip('\n')).encode('utf-8')
+    load_online = '''source "${MYTEL_BUNDLE_ROOT}/installer/vendor-native/terminal-ui.sh" || exit 1
+source "${MYTEL_BUNDLE_ROOT}/installer/vendor-native/online-credentials.sh" || exit 1
+mytel_receive_online_passwords || exit 1
+'''
+    return (definitions + helpers + '\n# MYTEL_NATIVE_FLOW\n' + load_online + flow.lstrip('\n')).encode('utf-8')
 
 
 def main():

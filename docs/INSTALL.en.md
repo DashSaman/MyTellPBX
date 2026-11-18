@@ -1,8 +1,7 @@
-# MytelPBX 7.7.0 revision 4 installation
+# MytelPBX 7.7.0 revision 5 installation
 
-Revision 4 uses tag `v7.7.0-r4`. Both installers set the web panel to Persian
-from the first sign-in and remove its language selector. The web panel locale
-is independent of the native Asterisk voice-prompt selection. The
+Revision 5 uses tag `v7.7.0-r5`. The online installer runs in English and sets the
+web panel to Persian from the first sign-in. The
 [revision 3 record](releases/7.7.0/revision-3.md) covers the earlier release.
 
 ## Online installation
@@ -11,22 +10,21 @@ Use a **fresh Rocky Linux 8.10 Minimal x86_64 server**, root access, an interact
 console or SSH terminal, and working Internet access. To install the published revision, run:
 
 ```bash
-curl -fsSL -o install-mytellpbx.sh https://github.com/DashSaman/MyTellPBX/releases/download/v7.7.0-r4/install-mytellpbx.sh && bash install-mytellpbx.sh
+curl -fsSL -o install-mytellpbx.sh https://github.com/DashSaman/MyTellPBX/releases/download/v7.7.0-r5/install-mytellpbx.sh && bash install-mytellpbx.sh
 ```
 
-The script is downloaded to a file before Bash starts, so native dialogs retain
+The script is downloaded to a file before Bash starts, so setup retains
 the terminal. The bootstrap verifies the release bundle checksum before running
 the pinned native installer. An existing PBX is refused; use scoped maintenance
 for an installed or partly initialized server.
 
 The native sequence includes:
 
-1. Native Asterisk voice-prompt language selection.
-2. Asterisk **20**, installed automatically without a version-selection dialog.
-3. Native optional package selection. Vendor licensed modules remain optional;
-   choosing them is not a Mytel license or paid activation.
-4. Native repositories, packages and post-install setup.
-5. Native password dialogs through `issabel-admin-passwords --init`.
+1. MariaDB `root` and panel `admin` passwords and their confirmations.
+2. Primary SIP driver choice. Enter selects PJSIP, or choose SIP.
+3. Native repositories and OS update with terminal package progress.
+4. Asterisk **20** and Community Realtime Block List (`issabel-packetbl`).
+5. Native setup applies the confirmed passwords and selected SIP driver.
 6. The shared Mytel branding/Desk add-on after native setup succeeds.
 7. Native cleanup, an independent Desk doctor check, completion and **automatic
    reboot** on online success.
@@ -42,23 +40,21 @@ are recorded separately in the release receipt.
 
 ## Passwords and private records
 
-The native wizard has four password screens: MariaDB root password and its
-confirmation, then panel `admin` password and its confirmation. Choose nonempty
-passwords accepted by native validation. Its allowed characters are ASCII letters,
-digits, spaces and `. @ = _ ! -`.
+The online installer shows passwords as you type. Use `MYTEL_HIDE_PASSWORDS=1`
+when running the script to turn off terminal echo. Choose passwords with ASCII
+letters, digits and `. @ = _ ! -`. Passwords can be entered again if a confirmation differs.
 
 Native service credentials are stored privately in `/etc/issabel.conf`. Keep that
 file and recovery records private. The independent Desk administrator has a
 separate root-only record at `/etc/myteldesk/initial-admin.txt`.
 
-The native optional completion prompt says that the core/password wizard has
-completed and Mytel add-ons run next. That prompt is not a final product-health
-or call-acceptance result.
+The terminal shows the current package, observed download and transaction counters,
+and the result of each installation phase.
 
 ## Panel, Desk and CPU VAD
 
 After successful completion and reboot, open `https://<server-ip>/` and sign in as
-`admin` with the password chosen in the native wizard. The pinned native generator
+`admin` with the password entered at setup. The pinned native generator
 retains its existing-certificate guard and key/lifetime policy. When it generates
 a new default certificate, its Organization is MytelPBX - Mytel.one and its SANs
 include validated native DNS and assigned global-scope IPv4 addresses (including

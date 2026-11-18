@@ -43,6 +43,8 @@ raise SystemExit(int(os.environ.get('FIXTURE_STATUS','0')))
         script += '\n'.join(('' if key == 'ASTVER' else 'export ') + key + '=' + shlex.quote(value)
                             for key, value in values.items())
         script += '\nbash(){ command ' + shlex.quote(Path(BASH).as_posix()) + ' "$@"; }\n'
+        terminal = ROOT / 'installer/vendor-native/terminal-ui.sh'
+        script += 'source ' + shlex.quote(terminal.as_posix()) + '\n'
         script += 'mytel_native_step mytel_addons\nprintf "CONTINUED\\n"\n'
         return subprocess.run([BASH, '--noprofile', '--norc', '-s'], input=script.encode('utf-8'),
                               stdout=subprocess.PIPE, stderr=subprocess.PIPE, timeout=20,
@@ -53,7 +55,7 @@ raise SystemExit(int(os.environ.get('FIXTURE_STATUS','0')))
             with self.subTest(major=major):
                 result = self.exercise(major)
                 self.assertEqual(result.returncode, 0, result.stderr)
-                value = json.loads(result.stdout.splitlines()[0])
+                value = json.loads(next(line for line in result.stdout.splitlines() if line.startswith(b'{')))
                 self.assertEqual(value['env']['ASTVER'], major)
                 self.assertEqual(value['env']['MYTEL_BUNDLE_ROOT'], self.bundle.as_posix())
                 self.assertEqual(value['argv'], [])
@@ -70,7 +72,7 @@ raise SystemExit(int(os.environ.get('FIXTURE_STATUS','0')))
     def test_sealed_offline_identity_and_public_origin_survive_both_shell_boundaries(self):
         result = self.exercise(offline=True)
         self.assertEqual(result.returncode, 0, result.stderr)
-        value = json.loads(result.stdout.splitlines()[0])['env']
+        value = json.loads(next(line for line in result.stdout.splitlines() if line.startswith(b'{')))['env']
         self.assertEqual(value['MYTEL_MEDIA_ROOT'], '/verified/media')
         self.assertEqual(value['MYTEL_MEDIA_MANIFEST_SHA256'], 'a' * 64)
         self.assertEqual(value['MYTELL_DESK_PUBLIC_URL'], 'https://pbx.example/MytellDesk')

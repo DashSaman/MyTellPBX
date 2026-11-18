@@ -1,30 +1,46 @@
 #!/usr/bin/env python3
-"""Keep DNF output private while showing bounded, observed package counters.
+"""Keep raw DNF output private while showing observed package progress.
 
 This foreground stdin consumer never starts DNF, retries it or infers success.
-Only fixed phase labels and validated integer counters reach the console.
-Python 3.6 compatible; no background timer or additional runtime dependency.
+Only known phase labels, validated counters and optional RPM names reach the
+console. Python 3.6 compatible; no background timer or runtime dependency.
 """
 import argparse
 import os
 from pathlib import Path
 import re
+import select
 import stat
 import sys
 import time
 
 KINDS = {'update': 'به‌روزرسانی سیستم', 'packages': 'نصب بسته‌ها', 'repositories': 'آماده‌سازی مخازن'}
 ENGLISH_KINDS = {'update': 'System update', 'packages': 'Package installation', 'repositories': 'Repository setup'}
-DOWNLOAD = re.compile(rb'^\(\s*([0-9]{1,9})\s*/\s*([0-9]{1,9})\s*\):\s')
-TRANSACTION = re.compile(rb'^\s*(Installing|Upgrading|Updating|Downgrading|Reinstalling|Erasing|Cleanup|Verifying|Running scriptlet|Preparing)\s*:\s+.*?\s+([0-9]{1,9})\s*/\s*([0-9]{1,9})\s*$')
+DOWNLOAD = re.compile(rb'^\(\s*([0-9]{1,9})\s*/\s*([0-9]{1,9})\s*\):\s+')
+TRANSACTION = re.compile(rb'^\s*(Installing|Upgrading|Updating|Downgrading|Reinstalling|Erasing|Cleanup|Verifying|Running scriptlet|Preparing)\s*:\s+(.*?)\s+([0-9]{1,9})\s*/\s*([0-9]{1,9})\s*$')
+RPM_DOWNLOAD_NAME = re.compile(rb'([A-Za-z0-9][A-Za-z0-9_.+%-]{0,179}\.rpm)\s')
+RPM_TRANSACTION_NAME = re.compile(rb'([A-Za-z0-9][A-Za-z0-9_.+%-]{0,179}\.(?:x86_64|noarch|i[3-6]86))')
 
 
 class ProgressReporter:
-    def __init__(self, output, kind, clock=time.monotonic, interval=30.0, english=False):
+    def __init__(self, output, kind, clock=time.monotonic, interval=30.0, english=False, detail=False):
         if kind not in KINDS:
             raise ValueError('Unknown DNF stage kind')
         self.output = output; self.kind = kind; self.clock = clock; self.english = english
         self.interval = interval; self.last_emit = None; self.seen = set()
+        self.detail = detail
+        self.started = clock()
+        self.last_counter = None
+
+    def waiting(self):
+        now = self.clock()
+        if self.last_emit is not None and now - self.last_emit < self.interval:
+            return
+        seconds = int(now - self.started)
+        label = 'Waiting for package manager output' if self.english else 'در انتظار خروجی سامانهٔ بسته‌ها'
+        self.output.write('      · {} · {}s\n'.format(label, seconds))
+        self.output.flush()
+        self.last_emit = now
 
     def observe(self, record):
         download = DOWNLOAD.match(record)
@@ -32,7 +48,7 @@ class ProgressReporter:
         if download is not None:
             major = 'download'; label = 'دریافت بسته'; current, total = map(int, download.groups())
         elif transaction is not None:
-            operation, current, total = transaction.groups(); current = int(current); total = int(total)
+            operation, target, current, total = transaction.groups(); current = int(current); total = int(total)
             major = 'verify' if operation == b'Verifying' else 'transaction'
             label = 'بررسی بسته' if major == 'verify' else 'عملیات بسته'
         else:
@@ -40,9 +56,24 @@ class ProgressReporter:
         if not 1 <= current <= total:
             return
         now = self.clock()
-        # A first real download/transaction/verification observation can appear
-        # immediately. Alternating scriptlet/install lines share one category.
-        if major in self.seen and self.last_emit is not None and now - self.last_emit < self.interval:
+        if self.detail:
+            # DNF emits repeated CR-delimited progress and matching scriptlet
+            # counters. Show distinct observations, including verification.
+            counter = (major, current, total)
+            if counter == self.last_counter:
+                return
+            self.last_counter = counter
+        elif major in self.seen and self.last_emit is not None and now - self.last_emit < self.interval:
+            return
+        if self.detail:
+            match = (RPM_DOWNLOAD_NAME.match(record, download.end()) if download is not None
+                     else RPM_TRANSACTION_NAME.fullmatch(target))
+            package = '  ' + match.group(1).decode('ascii') if match is not None else ''
+            if self.english:
+                label = {'download': 'Download', 'verify': 'Verification', 'transaction': 'Transaction'}[major]
+            self.output.write('      · {}  {}/{}{}\n'.format(label, current, total, package))
+            self.output.flush()
+            self.last_emit = now
             return
         if self.english:
             label = {'download': 'Download', 'verify': 'Verification', 'transaction': 'Transaction'}[major]
@@ -52,10 +83,14 @@ class ProgressReporter:
         self.output.flush(); self.seen.add(major); self.last_emit = now
 
 
-def copy_progress(source, private_log, reporter, console_failed=False):
+def copy_progress(source, private_log, reporter, console_failed=False, wait_for_input=None):
     record = bytearray(); oversized = False; log_failed = False
     read = getattr(source, 'read1', source.read)
     while True:
+        if wait_for_input is not None and not console_failed and not log_failed and not wait_for_input():
+            try: reporter.waiting()
+            except (OSError, ValueError): console_failed = True
+            continue
         chunk = read(65536)
         if not chunk:
             break
@@ -114,6 +149,7 @@ def main():
     parser.add_argument('--log', required=True, type=Path)
     parser.add_argument('--kind', required=True, choices=sorted(KINDS))
     parser.add_argument('--check-log', action='store_true', help='validate private logging before DNF starts')
+    parser.add_argument('--detail', action='store_true', help='show package progress in the interactive installer')
     args = parser.parse_args()
     english = os.environ.get('MYTELL_CONSOLE_ENGLISH') == '1'
     try:
@@ -121,12 +157,24 @@ def main():
             if args.check_log: return 0
             console_failed = False
             try:
-                if english:
+                if args.detail and args.kind == 'repositories':
+                    print('      · ' + (ENGLISH_KINDS[args.kind] if english else KINDS[args.kind]), flush=True)
+                elif not args.detail and english:
                     print('[MyTellPBX] {}: running; full output is recorded in the private installer log.'.format(ENGLISH_KINDS[args.kind]), flush=True)
-                else:
+                elif not args.detail:
                     print('[MyTellPBX] {}: در حال اجرا؛ گزارش کامل در فایل خصوصی نصب ثبت می‌شود.'.format(KINDS[args.kind]), flush=True)
             except (OSError, ValueError): console_failed = True
-            valid = copy_progress(sys.stdin.buffer, private_log, ProgressReporter(sys.stdout, args.kind, english=english), console_failed=console_failed)
+            source = sys.stdin.buffer
+            wait_for_input = None
+            if args.detail and os.name == 'posix' and stat.S_ISFIFO(os.fstat(source.fileno()).st_mode):
+                # `read1` has no read-ahead beyond the returned chunk. Polling
+                # the actual pipe lets us report waiting without pacing DNF.
+                def wait_for_input():
+                    return bool(select.select([source], [], [], 20)[0])
+            reporter = ProgressReporter(sys.stdout, args.kind, interval=20 if args.detail else 30,
+                                        english=english, detail=args.detail)
+            valid = copy_progress(source, private_log, reporter, console_failed=console_failed,
+                                  wait_for_input=wait_for_input)
             if not valid: return 1
     except (OSError, ValueError):
         if not args.check_log:

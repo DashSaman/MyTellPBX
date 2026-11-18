@@ -4,7 +4,7 @@
 
 وب‌سایت: [Mytel.one](https://mytel.one)
 
-نسخهٔ **۷٫۷٫۰ بازبینی ۴** از نصاب بومی Issabel برای نصب روی
+نسخهٔ **۷٫۷٫۰ بازبینی ۵** از نصاب بومی Issabel برای نصب روی
 **Rocky Linux 8.10 Minimal تازه، x86_64** استفاده می‌کند. پس از تکمیل
 راه‌اندازی بومی مرکز تلفن و رمزها، لایهٔ MytelPBX و **MytelDesk 1.1.4**
 با بستهٔ قفل‌شده و محیط VAD روی CPU نصب می‌شوند.
@@ -16,28 +16,28 @@
 
 ## نصب آنلاین با یک خط
 
-برای نسخهٔ `v7.7.0-r4`، در ترمینال تعاملی سرور تازه و با دسترسی
+برای نسخهٔ `v7.7.0-r5`، در ترمینال تعاملی سرور تازه و با دسترسی
 root اجرا کنید. فایل ابتدا دریافت و سپس با Bash اجرا می‌شود؛ ترمینال برای
 پنجره‌های بومی در دسترس می‌ماند:
 
 </div>
 
 ```bash
-curl -fsSL -o install-mytellpbx.sh https://github.com/DashSaman/MyTellPBX/releases/download/v7.7.0-r4/install-mytellpbx.sh && bash install-mytellpbx.sh
+curl -fsSL -o install-mytellpbx.sh https://github.com/DashSaman/MyTellPBX/releases/download/v7.7.0-r5/install-mytellpbx.sh && bash install-mytellpbx.sh
 ```
 
 <div dir="rtl">
 
-نصاب، هش بسته را بررسی می‌کند و ترتیب بومی انتخاب زبان پیام‌های صوتی، نصب
-**استریسک ۲۰**، بسته‌های اختیاری، نصب و راه‌اندازی
-رمزها را اجرا می‌کند. پنجره‌های بومی، رمز MariaDB را همراه تأیید و سپس رمز
-مدیر پنل را همراه تأیید می‌پرسند. پس از موفقیت لایهٔ Mytel و doctor پس از پاک‌سازی بومی، مسیر آنلاین طبق
-رفتار بومی سرور را خودکار reboot می‌کند. خطای مرحله، ادامه و reboot خودکار را متوقف می‌کند.
+نصاب انگلیسی اول رمز `root` پایگاه داده و رمز `admin` پنل را با تأیید هر دو
+می‌گیرد. همان‌جا می‌توان نوع SIP را انتخاب کرد. Enter گزینهٔ پیش‌فرض PJSIP را
+می‌پذیرد. سپس **استریسک ۲۰** و Community Realtime Block List خودکار نصب و
+پیشرفت بسته‌ها در همان ترمینال نمایش داده می‌شود. افزونه‌های اختیاری لایسنس‌دار
+از فهرست نصب آنلاین حذف شده‌اند. پس از پاک‌سازی و بررسی نهایی، سرور خودکار
+راه‌اندازی مجدد می‌شود. خطای مرحله ادامهٔ نصب و راه‌اندازی مجدد را متوقف می‌کند.
 
 لایهٔ افزوده تا ۱۲۰ ثانیه برای CLI استریسک ۲۰ و فعال‌شدن MariaDB، httpd و
 Asterisk صبر می‌کند؛ نسخهٔ اشتباه یا پایان مهلت، خطاست و ادامه را متوقف می‌کند.
-پنل وب از اولین ورود فارسی است و گزینهٔ تغییر زبان ندارد. زبان پیام‌های صوتی
-استریسک جداگانه در مرحلهٔ بومی نصب انتخاب می‌شود.
+پنل وب از اولین ورود فارسی است و گزینهٔ تغییر زبان ندارد.
 
 این مسیر برای نصب تازه است. نصب موجود یا نیمه‌تمام به بررسی و بازیابی محدود
 نیاز دارد؛ اجرای دوبارهٔ نصاب پایه، روش ارتقای یک PBX عملیاتی نیست.
@@ -80,12 +80,13 @@ Asterisk صبر می‌کند؛ نسخهٔ اشتباه یا پایان مهلت
 
 ---
 
-# MytelPBX 7.7.0 revision 4
+# MytelPBX 7.7.0 revision 5
 
 The online installer runs the pinned native Issabel flow on **fresh Rocky Linux
-8.10 Minimal x86_64**. It keeps the native voice-prompt and package dialogs, installs
-**Asterisk 20 only**, and retains the native four-screen password
-setup. Mytel branding and checksum-pinned **MytelDesk 1.1.4** with CPU VAD follow
+8.10 Minimal x86_64**. Its English terminal prompts once for each password and
+confirmation, then asks which driver should use the primary SIP port. PJSIP is
+the default. It reports package progress as it installs **Asterisk 20** and the
+Community Realtime Block List. Mytel branding and checksum-pinned **MytelDesk 1.1.4** with CPU VAD follow
 successful native initialization. A bounded 120-second readiness gate waits for
 the Asterisk 20 CLI and MariaDB/httpd/Asterisk services; a wrong version or timeout
 stops the add-on. The web panel opens in Persian and has no language selector.

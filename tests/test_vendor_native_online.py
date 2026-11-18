@@ -19,8 +19,8 @@ NATIVE = ROOT / 'installer/vendor-native'
 BASH = 'C:/Program Files/Git/bin/bash.exe' if os.name == 'nt' else shutil.which('bash')
 OPENSSL = 'C:/Program Files/Git/usr/bin/openssl.exe' if os.name == 'nt' else shutil.which('openssl')
 VENDOR_SHA = 'd0793041a422981293d74153f1aa56b29ff9803d18ee3319a53865b5b6132d46'
-FLOW = ['check_dialog', 'add_repos', 'settings', 'welcome', 'select_language',
-        'sel_astver', 'additional_packages', 'generate_files', 'welcome',
+FLOW = ['check_dialog', 'add_repos', 'settings', 'select_language',
+        'sel_astver', 'additional_packages', 'generate_files',
         'centos8_tweaks', 'clean_yum', 'update_os', 'install_packages',
         'post_install', 'set_passwords', 'mytel_addons', 'cleanup',
         'mytel_verify_addons', 'bye', 'reboot']
@@ -58,7 +58,8 @@ class NativeSourceTests(unittest.TestCase):
 
     def test_native_package_and_password_operations_remain_native(self):
         source = (NATIVE / 'mytelpbx-netinstall.sh').read_text(encoding='utf-8')
-        self.assertIn('/usr/bin/issabel-admin-passwords --init', source)
+        self.assertIn('mytel_apply_online_passwords', source)
+        self.assertIn('mytel_receive_online_passwords || exit 1\nmytel_native_step check_dialog', source)
         version = source.split('function sel_astver\n{\n', 1)[1].split('\n}', 1)[0]
         self.assertIn('ASTVER=20', version)
         self.assertNotIn('dialog', version)
@@ -73,14 +74,11 @@ class NativeSourceTests(unittest.TestCase):
         self.assertIn('gpgcheck=1', source)
         self.assertIn('https://repo.us.issabel.org/issabel/5/base/\\$basearch/', source)
 
-    def test_language_selection_retains_the_native_flow_and_saved_choice(self):
-        original = (NATIVE / 'issabel5-netinstall.sh').read_text(encoding='utf-8')
+    def test_online_language_setup_does_not_open_the_native_choice_dialog(self):
         derived = (NATIVE / 'mytelpbx-netinstall.sh').read_text(encoding='utf-8')
-        def language(source):
-            return source.split('function select_language()\n{\n', 1)[1].split('\n}', 1)[0]
-        injected = ('  "${MYTEL_PYTHON}" -B "${MYTEL_BUNDLE_ROOT}/installer/vendor-native/'
-                    'brand-native-dialogs.py" --tool language || return 1\n')
-        self.assertEqual(language(derived), injected + language(original))
+        stage = derived.split('function select_language()\n{\n', 1)[1].split('\n}', 1)[0]
+        self.assertIn('--tool language || return 1', stage)
+        self.assertNotIn('/usr/bin/issabel-change-language', stage)
 
     @unittest.skipUnless(BASH and Path(BASH).is_file(), 'Bash is required')
     def test_product_version_is_fixed20_even_with_an_inherited_older_value(self):
@@ -94,16 +92,12 @@ class NativeSourceTests(unittest.TestCase):
                 self.assertEqual(result.returncode, 0, result.stderr)
                 self.assertEqual(result.stdout, b'ACTUAL=20\n')
 
-    def test_optional_license_label_preserves_native_choices_and_defaults(self):
-        original = (NATIVE / 'issabel5-netinstall.sh').read_text(encoding='utf-8')
+    def test_online_addons_include_community_block_list_without_licensed_packages(self):
         derived = (NATIVE / 'mytelpbx-netinstall.sh').read_text(encoding='utf-8')
-        def selection(source):
-            return source.split('function additional_packages\n{', 1)[1].split('\nfunction yum_gauge', 1)[0]
-        expected = selection(original).replace(
-            'Issabel Network Licensed modules(http://issabel.guru)',
-            'Optional upstream licensed add-ons').replace('\n    exit\n', '\n    exit 1\n')
-        self.assertEqual(selection(derived), expected)
-        self.assertIn('1 "Optional upstream licensed add-ons" on', derived)
+        stage = derived.split('function additional_packages\n{', 1)[1].split('\n}', 1)[0]
+        self.assertIn('ADDPKGS=issabel-packetbl', stage)
+        for fragment in ('issabel-license', 'wanpipe-utils', '--checklist', '--radiolist'):
+            self.assertNotIn(fragment, derived)
 
     def test_unrecognized_vendor_reference_is_refused(self):
         with self.assertRaises(ValueError):
@@ -115,7 +109,7 @@ class NativeSourceTests(unittest.TestCase):
         passwords = source.split('function set_passwords()\n{\n', 1)[1].split('\n}', 1)[0]
         self.assertNotIn('--tool sip', language)
         self.assertIn('--tool sip || return 1', passwords)
-        self.assertLess(passwords.index('--tool sip'), passwords.index('issabel-admin-passwords --init'))
+        self.assertLess(passwords.index('--tool sip'), passwords.index('mytel_apply_online_passwords'))
 
     def test_offline_post_brands_sip_before_native_firstboot(self):
         spec = importlib.util.spec_from_file_location('sip_iso_builder', ROOT / 'scripts/remaster-vendor-iso.py')
@@ -132,7 +126,7 @@ class NativeSourceTests(unittest.TestCase):
         passwords = source.split('function set_passwords()\n{\n', 1)[1].split('\n}', 1)[0]
         self.assertNotIn('--tool certificate', language)
         self.assertIn('--tool certificate || return 1', passwords)
-        self.assertLess(passwords.index('--tool certificate'), passwords.index('issabel-admin-passwords --init'))
+        self.assertLess(passwords.index('--tool certificate'), passwords.index('mytel_apply_online_passwords'))
         spec = importlib.util.spec_from_file_location('certificate_iso_builder', ROOT / 'scripts/remaster-vendor-iso.py')
         builder = importlib.util.module_from_spec(spec); spec.loader.exec_module(builder)
         post = builder.kickstart((ROOT / 'tests/fixtures/vendor-iso/issabel.ks').read_text()).split('# MYTEL_NATIVE_ADDONS_BEGIN', 1)[1]
@@ -158,6 +152,44 @@ class NativeDialogTests(unittest.TestCase):
                 self.assertEqual(recovered, source)
                 self.assertIn(b'MytelPBX', result)
                 self.assertIn(b'Mytel.one', result)
+
+    @unittest.skipUnless(BASH and Path(BASH).is_file(), 'Bash is required')
+    def test_online_sip_applies_both_native_port_choices_without_a_dialog(self):
+        vendor = (ROOT / 'tests/fixtures/vendor-native/issabel-change-sip').read_bytes()
+        generated = module('online-sip').derive(vendor).decode()
+        # Never source the running system's configuration or call MariaDB.
+        generated = generated.replace('source /etc/issabel.conf || exit 1',
+                                      'mysqlrootpwd=DemoOnly')
+        fixtures = '''asterisk(){ printf 'Asterisk 20.12.0\\n'; }
+dialog(){ exit 90; }
+mysql(){
+    [ "$1" = '--defaults-extra-file=/dev/fd/3' ] || return 91
+    grep -qx 'password="DemoOnly"' <&3 || return 92
+    printf '%s\\n' "$*" >> "$EVENTS"
+    if [[ $* == *bindport* && ${FAIL_SQL:-} == 1 ]]; then return 37; fi
+}
+amportal(){ printf 'apply %s\\n' "$*" >> "$EVENTS"; }
+'''
+        with tempfile.TemporaryDirectory() as work:
+            events = Path(work) / 'events'
+            for driver, sip_port, pjsip_port in (('pjsip', 5066, 5060), ('sip', 5060, 5066)):
+                with self.subTest(driver=driver):
+                    events.write_text('')
+                    setup = 'EVENTS=' + shlex.quote(events.as_posix()) + '\nMYTEL_ONLINE_SIP_DRIVER=' + driver + '\n'
+                    result = subprocess.run([BASH, '--noprofile', '--norc', '-s'],
+                                            input=(setup + fixtures + generated).encode(), capture_output=True, timeout=20)
+                    self.assertEqual(result.returncode, 0, result.stderr)
+                    log = events.read_text()
+                    self.assertIn("sipsettings(keyword,data,seq) VALUES('bindport','" + str(sip_port), log)
+                    self.assertIn("pjsipsettings(keyword,data,seq) VALUES('bindport','" + str(pjsip_port), log)
+                    self.assertIn('apply a r', log)
+                    self.assertNotIn('DemoOnly', log)
+            events.write_text('')
+            result = subprocess.run([BASH, '--noprofile', '--norc', '-s'],
+                                    input=(setup + 'FAIL_SQL=1\n' + fixtures + generated).encode(),
+                                    capture_output=True, timeout=20)
+            self.assertEqual(result.returncode, 37, result.stderr)
+            self.assertNotIn('apply a r', events.read_text())
 
     @unittest.skipUnless(os.name == 'posix', 'Native POSIX installed path, ownership and atomic replacement')
     def test_certificate_apply_uses_explicit_sbin_path_preserves_original_and_failure_recovery(self):
@@ -716,6 +748,10 @@ class NativeFlowTests(unittest.TestCase):
         for name in set(FLOW):
             body += name + '(){ printf "%s\\n" ' + shlex.quote(name) + ' >> "$EVENTS"; '
             body += ('return 27;' if name == fail else ':;') + ' }\n'
+        # Run the real derived stage flow with native actions stubbed and an
+        # in-memory handoff carrying only synthetic fixture values.
+        body += 'MYTEL_BUNDLE_ROOT=' + shlex.quote(ROOT.as_posix()) + '\n'
+        body += 'exec 3< <(printf "DemoDb-1234\\nDemoPanel-4321\\npjsip\\n")\n'
         body += footer
         script = base / 'run.sh'
         script.write_text(body, encoding='utf-8')
@@ -825,14 +861,16 @@ class NativeBootstrapTests(unittest.TestCase):
                 self.assertNotEqual(result.returncode, 0)
                 self.assertFalse((self.work / 'payload').exists())
 
-    def test_real_native_gauge_package_failure_is_not_hidden_by_dialog_or_echo(self):
+    def test_real_native_package_progress_propagates_package_failure(self):
         source = (NATIVE / 'mytelpbx-netinstall.sh').read_text(encoding='utf-8')
         definitions = source.split('\n# MYTEL_NATIVE_FLOW\n', 1)[0]
         runner = self.base / 'gauge.sh'
         runner.write_text(definitions + '\nMYTEL_NATIVE_WORK=' + shlex.quote(self.work.as_posix())
-                          + '\nBACKTITLE=Fixture\ndialog(){ cat >/dev/null; }\n'
+                          + '\nMYTEL_BUNDLE_ROOT=' + shlex.quote(ROOT.as_posix())
+                          + '\nMYTEL_PYTHON=' + shlex.quote(os.sys.executable.replace('\\', '/'))
+                          + '\nsource "$MYTEL_BUNDLE_ROOT/installer/vendor-native/terminal-ui.sh"\n'
                           + 'rpm(){ return 1; }\nyum(){ return 34; }\n'
-                          + 'yum_gauge "required-package" Fixture install\n', encoding='utf-8')
+                          + 'yum_gauge "required-package" core install\n', encoding='utf-8')
         result = subprocess.run([BASH, '--noprofile', '--norc', str(runner)],
                                 stdin=subprocess.DEVNULL, capture_output=True, timeout=20)
         self.assertNotEqual(result.returncode, 0)

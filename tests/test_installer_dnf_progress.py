@@ -1,4 +1,4 @@
-"""Retained standalone DNF logger units; the native installer uses its own gauge."""
+"""DNF renderer and private-log contracts for the native online installer."""
 import importlib.util
 import io
 import os
@@ -148,9 +148,39 @@ class DnfProgressTests(unittest.TestCase):
         self.module.copy_progress(io.BytesIO(fixture), raw, reporter)
         self.assertEqual(raw.getvalue(), fixture); self.assertEqual(self.output.getvalue(), '')
 
+    def test_detailed_output_uses_observed_counts_and_validated_rpm_names(self):
+        output = io.StringIO()
+        reporter = self.module.ProgressReporter(output, 'packages', english=True, detail=True)
+        stream = (b'(1/2):  httpd-2.4.37-62.el8.x86_64.rpm 10 MB/s\r'
+                  b'(1/2):  httpd-2.4.37-62.el8.x86_64.rpm 10 MB/s\r'
+                  b'(2/2): https://example.invalid/private?secret=RedactMe\n'
+                  b'  Installing : dep-1.2-3.el8.noarch 1/2\n'
+                  b'  Running scriptlet : dep-1.2-3.el8.noarch 1/2\n'
+                  b'  Verifying : URL https://example.invalid/token: RedactMe.noarch 2/2')
+        raw = io.BytesIO()
+        self.assertTrue(self.module.copy_progress(io.BytesIO(stream), raw, reporter))
+        self.assertEqual(raw.getvalue(), stream)
+        lines = output.getvalue().splitlines()
+        self.assertEqual(len(lines), 4)
+        self.assertIn('Download  1/2  httpd-2.4.37-62.el8.x86_64.rpm', lines[0])
+        self.assertIn('Transaction  1/2  dep-1.2-3.el8.noarch', lines[2])
+        self.assertNotIn('RedactMe', output.getvalue())
 
-
-
+    def test_idle_message_is_about_waiting_and_preserves_the_next_observation(self):
+        output = io.StringIO()
+        self.now = 0
+        reporter = self.module.ProgressReporter(output, 'update', clock=lambda: self.now,
+                                                interval=20, english=True, detail=True)
+        readiness = iter((False, True, True))
+        def wait():
+            self.now = 20
+            return next(readiness)
+        stream = b'(2/2):  httpd-2.4.37-62.el8.x86_64.rpm 10 MB/s'
+        raw = io.BytesIO()
+        self.assertTrue(self.module.copy_progress(io.BytesIO(stream), raw, reporter, wait_for_input=wait))
+        self.assertIn('Waiting for package manager output · 20s', output.getvalue())
+        self.assertIn('Download  2/2', output.getvalue())
+        self.assertEqual(raw.getvalue(), stream)
     @unittest.skipIf(os.name != 'posix', 'Native POSIX private-log boundary')
     def test_log_refuses_symlink_and_nonprivate_file(self):
         outside = self.base / 'outside'; outside.write_bytes(b'original')
