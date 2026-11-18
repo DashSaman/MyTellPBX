@@ -117,7 +117,8 @@ class NativeIsoStructureTests(unittest.TestCase):
                       'reboot --eject', 'firewall --disabled', 'selinux --disabled']:
             self.assertIn(token, result)
         self.assertNotIn('\n@guru\n', result)
-        expected = original.replace('issabel.local', 'mytelpbx.local').replace('\n@guru\n', '\n')
+        self.assertIn('\n-issabel-license\n', result)
+        expected = original.replace('issabel.local', 'mytelpbx.local').replace('\n@guru\n', '\n-issabel-license\n')
         for line in module.ONLINE_POST_LINES:
             self.assertEqual(expected.count(line), 1)
             expected = expected.replace(line, '')

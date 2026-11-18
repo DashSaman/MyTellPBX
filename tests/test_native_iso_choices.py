@@ -71,6 +71,9 @@ class NativeCompsChoicesTests(unittest.TestCase):
         old_groups = {node.findtext('id'): node for node in original.findall('group')}
         groups = {node.findtext('id'): node for node in result.findall('group')}
         self.assertEqual(set(groups), set(old_groups) - {'asterisk16', 'asterisk18', 'guru'})
+        package_list = old_groups['issabel'].find('packagelist')
+        package_list.remove(package_list.find("packagereq[.='issabel-license']"))
+        self.assertFalse(any(node.text == 'issabel-license' for node in result.iter('packagereq')))
         for identity in groups:
             self.assertEqual(semantic(groups[identity], brand=True),
                              semantic(old_groups[identity], brand=True), identity)

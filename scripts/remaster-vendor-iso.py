@@ -76,7 +76,9 @@ def kickstart(source):
         result = result.replace(line, '')
     if result.count('\n@guru\n') != 1 or result.count('\n@rbl\n') != 1:
         raise ValueError('Unexpected native add-on group selection')
-    result = result.replace('\n@guru\n', '\n')
+    # The stock core group also lists the optional license package. Exclude it
+    # explicitly in addition to omitting it from the derived group metadata.
+    result = result.replace('\n@guru\n', '\n-issabel-license\n')
     return result.rstrip('\n') + '''
 # MYTEL_NATIVE_ADDONS_BEGIN
 # Prepare guided first boot. The native initializer runs after installation.
@@ -337,6 +339,10 @@ def derive_comps(original, available_package_names):
         identity = ET.fromstring(block).findtext('id')
         if identity in removed:
             return ''
+        if identity == 'issabel':
+            block, count = re.subn(r'(?m)^[ \t]*<packagereq type="mandatory">issabel-license</packagereq>\n', '', block)
+            if count != 1:
+                raise ValueError('Unexpected native license package selection')
         if identity == 'issabelast20':
             block, count = re.subn(r'(?m)^[ \t]*<groupid>(?:rbl|guru)</groupid>\n', '', block)
             if count != 2 or block.count('</grouplist>') != 1:
@@ -362,6 +368,10 @@ def derive_comps(original, available_package_names):
     for identity, node in list(groups.items()) + list(environments.items()):
         if identity in removed:
             continue
+        if identity == 'issabel':
+            package_list = node.find('packagelist')
+            license_package = package_list.find("packagereq[.='issabel-license']")
+            package_list.remove(license_package)
         if identity == 'issabelast20':
             options = node.find('optionlist')
             for entry in list(options):
