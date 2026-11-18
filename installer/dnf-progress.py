@@ -110,7 +110,14 @@ class ProgressReporter:
             package = '  ' + match.group(1).decode('ascii') if match is not None else ''
             if self.english:
                 label = self.english_label(major)
-            self.detail_line('{}  {}/{}{}'.format(label, current, total, package))
+            progress = '{}  {}/{}'.format(label, current, total)
+            if self.live:
+                percent = current * 100 // total
+                if shutil.get_terminal_size((80, 24)).columns >= 70:
+                    filled = current * 12 // total
+                    progress += '  [{}{}]'.format('=' * filled, '-' * (12 - filled))
+                progress += ' {:3d}%'.format(percent)
+            self.detail_line(progress + package)
             self.last_emit = now
             self.last_idle = None
             return
