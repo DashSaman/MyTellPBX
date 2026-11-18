@@ -94,7 +94,7 @@ function settings
       /usr/sbin/useradd -r -g asterisk -c "Asterisk PBX" -s /bin/bash -d /var/lib/asterisk asterisk &>/dev/null
   fi
 
-  mytel_run_dnf repositories yum -y install issabel-config_helpers
+  mytel_run_dnf repositories yum -y install issabel-config_helpers dialog
 }
 
 function sel_astver
@@ -222,9 +222,6 @@ mytel_run_dnf repositories dnf module enable php:remi-7.4 -y || return $?
 dnf config-manager --set-enabled remi &>>"${MYTEL_NATIVE_WORK}/netinstall.log" || return 1
 dnf config-manager --set-enabled powertools &>>"${MYTEL_NATIVE_WORK}/netinstall.log" || return 1
 dnf config-manager --set-enabled devel &>>"${MYTEL_NATIVE_WORK}/netinstall.log" || return 1
-dnf -y check-upgrade &>>"${MYTEL_NATIVE_WORK}/netinstall.log"
-local update_status=$?
-[ "$update_status" = 0 ] || [ "$update_status" = 100 ] || return "$update_status"
 echo "centos $ROCKY_VERSION tweaks end" >>"${MYTEL_NATIVE_WORK}/netinstall.log"
 }
 
@@ -234,41 +231,20 @@ function additional_packages
   ADDPKGS=issabel-packetbl
 }
 
-function yum_gauge
-{
-  mytel_package_batch "$1" "$3" "$2"
-}
 function update_os
 {
-  echo "start update os" >>"${MYTEL_NATIVE_WORK}/netinstall.log"
-  PACKAGES=$(yum $BETAREPO -d 0 list updates | tail -n +2 | cut -d' ' -f1) 2>>"${MYTEL_NATIVE_WORK}/netinstall.log" || return 1
-  if [ "$PACKAGES" = "" ]; then
-  echo "no package to upgrade" >>"${MYTEL_NATIVE_WORK}/netinstall.log"
-  else
-      yum_gauge "$PACKAGES" update update || return $?
-  fi
-  echo "end update os" >>"${MYTEL_NATIVE_WORK}/netinstall.log"
-}
-
-function clean_yum
-{
-  echo "Cleaning yum" >>"${MYTEL_NATIVE_WORK}/netinstall.log"
-  yum clean all &>>"${MYTEL_NATIVE_WORK}/netinstall.log" || return $?
+  local -a repository_options=()
+  IFS=$' \t\n' read -r -a repository_options <<< "${BETAREPO:-}" || :
+  mytel_run_dnf update yum "${repository_options[@]}" -y update
 }
 
 function install_packages
 {
-  echo "install packages 1" >>"${MYTEL_NATIVE_WORK}/netinstall.log"
-  yum clean all &>>"${MYTEL_NATIVE_WORK}/netinstall.log" || return $?
-  echo "install packages 2" >>"${MYTEL_NATIVE_WORK}/netinstall.log"
-  PACKAGES=$(cat "${MYTEL_NATIVE_WORK}/inst1.txt") || return $?
-  echo "install packages 3" >>"${MYTEL_NATIVE_WORK}/netinstall.log"
-  yum_gauge "$PACKAGES" core install || return $?
-  echo "install packages 4" >>"${MYTEL_NATIVE_WORK}/netinstall.log"
-  PACKAGES=$(cat "${MYTEL_NATIVE_WORK}/inst2.txt") || return $?
-  echo "install packages 5" >>"${MYTEL_NATIVE_WORK}/netinstall.log"
-  yum_gauge "$PACKAGES $ADDPKGS" product install || return $?
-  echo "install packages 6" >>"${MYTEL_NATIVE_WORK}/netinstall.log"
+  local packages
+  packages=$(cat "${MYTEL_NATIVE_WORK}/inst1.txt") || return $?
+  mytel_package_batch "$packages" core || return $?
+  packages=$(cat "${MYTEL_NATIVE_WORK}/inst2.txt") || return $?
+  mytel_package_batch "$packages $ADDPKGS" product
 }
 
 function post_install
@@ -323,12 +299,9 @@ function post_install
   ) &>>"${MYTEL_NATIVE_WORK}/netinstall.log"
 }
 
-function check_dialog
+function check_tools
 {
-  if ! command -v dialog >/dev/null; then
-    mytel_run_dnf repositories yum -y install dialog || return $?
-  fi
-  command -v dialog >/dev/null
+  command -v yum >/dev/null && command -v dnf >/dev/null && command -v rpm >/dev/null
 }
 
 function set_passwords()
@@ -371,7 +344,7 @@ function mytel_addons()
 function mytel_verify_addons()
 {
   # Native cleanup must preserve the registered Mytel integrations and CPU VAD.
-  /usr/local/sbin/myteldesk doctor
+  /usr/local/sbin/myteldesk doctor >>"${MYTEL_NATIVE_WORK}/netinstall.log" 2>&1
 }
 
 function mytel_native_step()
@@ -392,7 +365,7 @@ function mytel_native_step()
 source "${MYTEL_BUNDLE_ROOT}/installer/vendor-native/terminal-ui.sh" || exit 1
 source "${MYTEL_BUNDLE_ROOT}/installer/vendor-native/online-credentials.sh" || exit 1
 mytel_receive_online_passwords || exit 1
-mytel_native_step check_dialog
+mytel_native_step check_tools
 mytel_native_step add_repos
 mytel_native_step settings
 mytel_native_step select_language
@@ -400,7 +373,6 @@ mytel_native_step sel_astver
 mytel_native_step additional_packages
 mytel_native_step generate_files
 mytel_native_step centos8_tweaks
-mytel_native_step clean_yum
 mytel_native_step update_os
 mytel_native_step install_packages
 mytel_native_step post_install

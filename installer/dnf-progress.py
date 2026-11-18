@@ -10,6 +10,7 @@ import os
 from pathlib import Path
 import re
 import select
+import shutil
 import stat
 import sys
 import time
@@ -22,6 +23,7 @@ DOWNLOAD = re.compile(rb'^\(\s*([0-9]{1,9})\s*/\s*([0-9]{1,9})\s*\):\s+')
 TRANSACTION = re.compile(rb'^\s*(Installing|Upgrading|Updating|Downgrading|Reinstalling|Erasing|Cleanup|Verifying|Running scriptlet|Preparing)\s*:\s+(.*?)\s+([0-9]{1,9})\s*/\s*([0-9]{1,9})\s*$')
 RPM_DOWNLOAD_NAME = re.compile(rb'([A-Za-z0-9][A-Za-z0-9_.+%-]{0,179}\.rpm)\s')
 RPM_TRANSACTION_NAME = re.compile(rb'([A-Za-z0-9][A-Za-z0-9_.+%-]{0,179}\.(?:x86_64|noarch|i[3-6]86))')
+TRANSFER_ERROR = re.compile(rb'^\s*(?:-\s*|\[MIRROR\]\s+[^\s:]+:\s*)?(Curl error \([0-9]{1,3}\)|Status code: [45][0-9]{2}):?\s')
 
 
 class ProgressReporter:
@@ -33,16 +35,38 @@ class ProgressReporter:
         self.detail = detail
         self.started = clock()
         self.last_counter = None
+        self.live = detail and getattr(output, 'isatty', lambda: False)() and os.environ.get('TERM') != 'dumb'
+        self.line_length = 0
+        self.last_idle = None
+        self.last_transfer_error = None
+
+    def detail_line(self, label):
+        text = '      · ' + label
+        if self.live:
+            width = max(1, shutil.get_terminal_size((80, 24)).columns - 1)
+            text = text[:width]
+            self.output.write('\r' + text.ljust(min(self.line_length, width)))
+            self.line_length = len(text)
+        else:
+            self.output.write(text + '\n')
+        self.output.flush()
+
+    def finish(self):
+        if self.line_length:
+            self.output.write('\n')
+            self.output.flush()
 
     def waiting(self):
         now = self.clock()
         if self.last_emit is not None and now - self.last_emit < self.interval:
             return
+        if not self.live and self.last_idle is not None and now - self.last_idle < 120:
+            return
         seconds = int(now - self.started)
         label = 'Waiting for package manager output' if self.english else 'در انتظار خروجی سامانهٔ بسته‌ها'
-        self.output.write('      · {} · {}s\n'.format(label, seconds))
-        self.output.flush()
+        self.detail_line('{} · {}s'.format(label, seconds))
         self.last_emit = now
+        self.last_idle = now
 
     def observe(self, record):
         download = DOWNLOAD.match(record)
@@ -54,6 +78,12 @@ class ProgressReporter:
             major = 'verify' if operation == b'Verifying' else 'transaction'
             label = 'بررسی بسته' if major == 'verify' else 'عملیات بسته'
         else:
+            if self.detail and self.english:
+                error = TRANSFER_ERROR.match(record)
+                if error and error.group(1) != self.last_transfer_error:
+                    self.last_transfer_error = error.group(1)
+                    # Keep URLs, credentials and the remote server's text private.
+                    self.detail_line('Repository transfer · ' + error.group(1).decode('ascii'))
             return
         if self.kind == 'iso' and major == 'download':
             label = 'خواندن بسته از ISO'
@@ -61,11 +91,16 @@ class ProgressReporter:
             return
         now = self.clock()
         if self.detail:
-            # DNF emits repeated CR-delimited progress and matching scriptlet
-            # counters. Show distinct observations, including verification.
             counter = (major, current, total)
             if counter == self.last_counter:
                 return
+            if self.last_counter and self.last_counter[0] == major and current != total:
+                previous = self.last_counter[1]
+                elapsed = now - self.last_emit
+                if self.live and elapsed < 0.25:
+                    return
+                if not self.live and total > 10 and current * 10 // total == previous * 10 // total and elapsed < 60:
+                    return
             self.last_counter = counter
         elif major in self.seen and self.last_emit is not None and now - self.last_emit < self.interval:
             return
@@ -75,9 +110,9 @@ class ProgressReporter:
             package = '  ' + match.group(1).decode('ascii') if match is not None else ''
             if self.english:
                 label = self.english_label(major)
-            self.output.write('      · {}  {}/{}{}\n'.format(label, current, total, package))
-            self.output.flush()
+            self.detail_line('{}  {}/{}{}'.format(label, current, total, package))
             self.last_emit = now
+            self.last_idle = None
             return
         if self.english:
             label = self.english_label(major)
@@ -132,6 +167,9 @@ def copy_progress(source, private_log, reporter, console_failed=False, wait_for_
                     record.clear(); oversized = True
     if record and not oversized and not console_failed and not log_failed:
         try: reporter.observe(bytes(record))
+        except (OSError, ValueError): console_failed = True
+    if not console_failed:
+        try: reporter.finish()
         except (OSError, ValueError): console_failed = True
     return not (log_failed or console_failed)
 

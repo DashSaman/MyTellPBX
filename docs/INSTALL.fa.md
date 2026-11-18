@@ -1,6 +1,6 @@
-# نصب MytelPBX ۷٫۷٫۰ بازبینی ۵
+# نصب MytelPBX ۷٫۷٫۰ بازبینی ۶
 
-بازبینی ۵ با برچسب `v7.7.0-r5` نصاب آنلاین انگلیسی و پنل فارسی را ارائه می‌کند.
+بازبینی ۶ با برچسب `v7.7.0-r6` نصاب آنلاین انگلیسی و پنل فارسی را ارائه می‌کند.
 [گزارش بازبینی ۳](releases/7.7.0/revision-3.md) آزمون نصب نسخهٔ پیشین را پوشش می‌دهد.
 
 ## نصب آنلاین
@@ -9,7 +9,7 @@
 تعاملی کنسول یا SSH و اینترنت استفاده کنید. برای نصب نسخهٔ منتشرشده اجرا کنید:
 
 ```bash
-curl -fsSL -o install-mytellpbx.sh https://github.com/DashSaman/MyTellPBX/releases/download/v7.7.0-r5/install-mytellpbx.sh && bash install-mytellpbx.sh
+curl -fsSL -o install-mytellpbx.sh https://github.com/DashSaman/MyTellPBX/releases/download/v7.7.0-r6/install-mytellpbx.sh && bash install-mytellpbx.sh
 ```
 
 فایل ابتدا دریافت و سپس با Bash اجرا می‌شود تا ترمینال برای پنجره‌های بومی
@@ -48,6 +48,10 @@ curl -fsSL -o install-mytellpbx.sh https://github.com/DashSaman/MyTellPBX/releas
 
 ترمینال نام بستهٔ فعلی، شمارندهٔ واقعی دانلود و عملیات بسته و نتیجهٔ هر مرحله
 را نشان می‌دهد.
+
+DNF به‌روزرسانی سیستم را در یک تراکنش و بسته‌های پایه و مرکز تلفن را در دو گروه
+نصب می‌کند. پیشرفت در همان خط ترمینال به‌روز می‌شود. هنگام شروع میز کار، اگر لاگ
+سرویس مقداردهی اولیهٔ دیتابیس را تأیید کند، نصاب همان مرحله را نشان می‌دهد.
 
 ## پنل، میز کار و VAD روی CPU
 

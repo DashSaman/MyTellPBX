@@ -55,7 +55,9 @@ download_bundle() {
             || die 'Cannot copy local bundle.'
     else
         case "$MYTELLPBX_BUNDLE_URL" in https://*) ;; *) die 'Bundle downloads require HTTPS.';; esac
-        curl --fail --show-error --location --proto '=https' --proto-redir '=https' \
+        local progress=--silent
+        if [ -t 2 ] && [ "${TERM:-dumb}" != dumb ]; then progress=--progress-bar; fi
+        curl --fail "$progress" --show-error --location --proto '=https' --proto-redir '=https' \
             --connect-timeout 30 --max-time 600 --retry 2 \
             --output "$MYTEL_NATIVE_WORK/bundle.tgz" "$MYTELLPBX_BUNDLE_URL" \
             || die 'Bundle download failed.'
@@ -123,7 +125,7 @@ PY_EXTRACT
         || die 'Bundle integrity manifests are missing.'
     (cd "$MYTEL_BUNDLE_ROOT" && sha256sum --check --quiet SHA256SUMS) \
         || die 'Bundle internal checksums failed.'
-    "$MYTEL_PYTHON" -B "$MYTEL_BUNDLE_ROOT/installer/vendor-native/derive-native.py" --check \
+    "$MYTEL_PYTHON" -B "$MYTEL_BUNDLE_ROOT/installer/vendor-native/derive-native.py" --check >/dev/null \
         || die 'Pinned native source or its reviewed derivation differs.'
 }
 
@@ -134,7 +136,7 @@ main() {
     umask 077
     MYTEL_NATIVE_WORK=$(mktemp -d /var/tmp/mytelpbx-native.XXXXXXXX) \
         || die 'Cannot create a private workspace.'
-    printf '\nMytelPBX %s  |  Mytel.one\n  Preparing and verifying installer files…\n  Private log directory  %s\n' \
+    printf '\n  Preparing and verifying MytelPBX %s…\n  Installation log directory  %s\n' \
         "$MYTELLPBX_VERSION" "$MYTEL_NATIVE_WORK"
     download_bundle
     extract_bundle

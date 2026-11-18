@@ -14,6 +14,7 @@ class FakeChild:
         self.args = argv; self.clock = clock; self.remaining = duration
         self.final_code = returncode; self.returncode = None
         self.waits = []; self.kills = 0
+        self.stdout = io.BytesIO()
 
     def __enter__(self): return self
     def __exit__(self, *_args): return False
@@ -44,8 +45,9 @@ class DeskProgressTests(unittest.TestCase):
         self.argv = ['/usr/local/sbin/myteldesk', 'doctor']
         self.clock = [0.0]; self.options = None
 
-    def run_child(self, duration, status=0, output=None):
+    def run_child(self, duration, status=0, output=None, transcript=b''):
         self.child = FakeChild(self.argv, self.clock, duration, status)
+        self.child.stdout = io.BytesIO(transcript)
         def spawn(argv, **options):
             self.assertEqual(argv, self.argv); self.options = options
             return self.child
@@ -58,8 +60,8 @@ class DeskProgressTests(unittest.TestCase):
         output = io.StringIO()
         self.run_child(65, output=output)
         lines = output.getvalue().splitlines()
-        self.assertEqual(len(lines), 2)
-        self.assertIn('30 seconds', lines[0]); self.assertIn('60 seconds', lines[1])
+        self.assertEqual(len(lines), 1)
+        self.assertIn('60s elapsed', lines[0])
         self.assertNotIn('/usr/local', output.getvalue()); self.assertNotIn('doctor', output.getvalue())
         self.assertNotIn('%', output.getvalue())
         self.assertTrue(all(timeout <= 30 for timeout in self.child.waits))
@@ -69,7 +71,7 @@ class DeskProgressTests(unittest.TestCase):
         output = io.StringIO(); self.run_child(1, output=output)
         self.assertEqual(output.getvalue(), '')
         self.assertIs(self.options.get('stdin'), subprocess.DEVNULL)
-        self.assertIsNone(self.options.get('stdout')); self.assertIsNone(self.options.get('stderr'))
+        self.assertIs(self.options.get('stdout'), subprocess.PIPE); self.assertIsNone(self.options.get('stderr'))
         self.assertFalse(self.options.get('shell', False))
 
     def test_nonzero_child_preserves_failure_without_killing_completed_child(self):
@@ -98,10 +100,34 @@ class DeskProgressTests(unittest.TestCase):
 
     def test_argument_values_are_never_echoed_in_heartbeat(self):
         self.argv = ['python', '-B', '/private/installer/install.py', 'install', '--fixture-secret', 'NeverEchoSecret']
-        output = io.StringIO(); self.run_child(31, output=output)
+        output = io.StringIO(); self.run_child(61, output=output)
         self.assertNotIn('NeverEchoSecret', output.getvalue())
         self.assertNotIn('/private', output.getvalue())
-        self.assertIn('30 seconds', output.getvalue())
+        self.assertIn('60s elapsed', output.getvalue())
+
+    def test_readiness_reports_one_live_database_stage_without_echoing_setting_values(self):
+        output = io.StringIO()
+        transcript = ('[7/9] Starting MytelDesk and checking database/AMI readiness\n'
+                      'Waiting for backend/database startup and local AMI: 16s elapsed (limit 900s)\n'
+                      'Waiting for backend/database startup and local AMI: 32s elapsed (limit 900s)\n'
+                      '[8/9] Activating Apache configuration\n')
+        with mock.patch.object(self.module.subprocess, 'run') as journal:
+            journal.return_value.stdout = b'Initialized default setting: fixture=private-value\n'
+            self.run_child(0, output=output, transcript=transcript.encode())
+        lines = output.getvalue().splitlines()
+        self.assertEqual(len(lines), 3)
+        self.assertTrue(lines[0].startswith('[7/9]')); self.assertTrue(lines[2].startswith('[8/9]'))
+        self.assertIn('Initializing the Desk database default settings', lines[1])
+        self.assertIn('16s elapsed (limit 900s)', lines[1])
+        self.assertNotIn('private-value', output.getvalue()); self.assertEqual(journal.call_count, 1)
+
+    def test_unavailable_journal_keeps_readiness_checks_and_failure_status_intact(self):
+        output = io.StringIO()
+        with mock.patch.object(self.module.subprocess, 'run', side_effect=OSError), \
+             self.assertRaises(subprocess.CalledProcessError) as failure:
+            self.run_child(0, 17, output, b'Waiting for backend/database startup and local AMI: 16s elapsed (limit 900s)\n')
+        self.assertEqual(failure.exception.returncode, 17)
+        self.assertIn('Waiting for backend HTTP readiness and the local Asterisk AMI connection', output.getvalue())
 
 
 if __name__ == '__main__': unittest.main()

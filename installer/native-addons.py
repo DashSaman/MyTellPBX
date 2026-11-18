@@ -6,7 +6,7 @@ TLS changes. Python 3.6+ standard library. Both official netinstall and ISO call
 the same hook; supplemental offline inputs use the existing sealed media format.
 """
 import argparse
-from contextlib import closing
+from contextlib import closing, redirect_stdout
 import hashlib
 import importlib.util
 import json
@@ -658,8 +658,6 @@ def install(bundle, backup_root, requested=None, media=None, public_url=None, ch
             raise ValueError('Addon bundle must be root owned, immutable to other users, without symlinks')
     credentials = native_credentials(root / 'etc/issabel.conf', root / 'etc/amportal.conf')
     major = wait_native_ready(requested)
-    if not offline:
-        run(['httpd', '-t'])
     desk = load('native_desk', bundle / 'installer/install-myteldesk.py')
     pin = desk.validate_pin(json.loads(regular(bundle / 'installer/myteldesk-release.json').read_text(encoding='utf-8')))
     if pin['version'] != REQUIRED_DESK_VERSION:
@@ -668,19 +666,18 @@ def install(bundle, backup_root, requested=None, media=None, public_url=None, ch
     ownership_hook_changes(bundle, root)  # Validate all hook inputs before activation, including --check.
     private_directory(backup_root)
     backup = Path(tempfile.mkdtemp(prefix='native-' + time.strftime('%Y%m%d-%H%M%S') + '-', dir=str(backup_root)))
-    diagnostics = backup / 'netinstall.log' if offline else None
-    if diagnostics is not None:
-        diagnostics.touch(mode=0o600, exist_ok=False)
-        progress('Private installation log: ' + str(diagnostics))
-        run(['httpd', '-t'], diagnostics=diagnostics)
+    diagnostics = backup / 'netinstall.log'
+    diagnostics.touch(mode=0o600, exist_ok=False)
+    progress('Private installation log: ' + str(diagnostics))
+    run(['httpd', '-t'], diagnostics=diagnostics)
     state = {'schema': 1, 'owner': 'MytelNativeAddons', 'asterisk': major, 'desk': pin['version'], 'phase': 'preparing'}
     receipt = backup / 'receipt.json'
     receipt.write_text(json.dumps(state, indent=2), encoding='utf-8')
     with tempfile.TemporaryDirectory(prefix='staging-', dir=str(backup)) as work:
         progress('Preparing the Persian web panel and calendar')
-        changes = prepare_files(bundle, root, Path(work))
-        if offline:
-            progress('Checking panel files before applying changes')
+        with diagnostics.open('a', encoding='utf-8') as output, redirect_stdout(output):
+            changes = prepare_files(bundle, root, Path(work))
+        progress('Checking panel files before applying changes')
         for index, (path, data) in enumerate(changes.items()):
             if path.suffix == '.php':
                 candidate = Path(work) / ('lint-' + str(index) + '.php')

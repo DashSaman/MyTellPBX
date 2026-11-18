@@ -16,6 +16,7 @@ import subprocess
 import sys
 import tarfile
 import tempfile
+import threading
 import time
 from urllib.parse import urlsplit
 from urllib.request import urlopen
@@ -253,12 +254,67 @@ def record_attempt(cache, pin, state_path, phase):
         if os.path.exists(temporary): os.unlink(temporary)
 
 
+DESK_WAIT = re.compile(r'Waiting for backend/database startup and local AMI: (\d+)s elapsed \(limit (\d+)s\)')
+
+
+def startup_activity(since):
+    # A cold Desk starts its HTTP listener after database migrations and seeds.
+    # The journal may contain settings and URLs. Only emit fixed stage labels.
+    fallback = 'Waiting for backend HTTP readiness and the local Asterisk AMI connection'
+    try:
+        output = subprocess.run(['journalctl', '-b', '-u', 'myteldesk.service', '--no-pager',
+                                 '-o', 'cat', '-n', '16', '--since=@' + str(int(since))],
+                                stdin=subprocess.DEVNULL, stdout=subprocess.PIPE,
+                                stderr=subprocess.DEVNULL, timeout=2, check=True).stdout
+    except (OSError, subprocess.SubprocessError):
+        return fallback
+    for line in reversed(output.splitlines()):
+        if b'Initialized default setting:' in line:
+            return 'Initializing the Desk database default settings'
+        if b'Checking the myteldesk database schema' in line:
+            return 'Checking the Desk database schema'
+        if b'OpDesk failed to start:' in line:
+            return 'Backend startup reported an error; see journalctl -u myteldesk.service'
+    return fallback
+
+
 def run_command(argv):
-    # Only the pinned Desk installer and doctor use this runner. Keep their
-    # output inherited, and show elapsed time without echoing argv or secrets.
-    process = subprocess.Popen(argv, stdin=subprocess.DEVNULL, stdout=None, stderr=None)
-    started = time.monotonic(); next_notice = started + 30
-    output_available = True
+    process = subprocess.Popen(argv, stdin=subprocess.DEVNULL, stdout=subprocess.PIPE, stderr=None)
+    started = time.monotonic()
+    last_output = started
+    monitoring_readiness = False
+    lock = threading.Lock()
+
+    def show(line):
+        try:
+            print(line, flush=True)
+        except (OSError, ValueError):
+            pass  # Console loss must never interrupt provisioning.
+
+    def forward():
+        nonlocal last_output, monitoring_readiness
+        phase_started = time.time()
+        with process.stdout as source:
+            for raw in source:
+                line = raw.decode('utf-8', 'replace').rstrip('\r\n')
+                waiting = DESK_WAIT.fullmatch(line)
+                with lock:
+                    now = time.monotonic()
+                    if waiting:
+                        if monitoring_readiness and now - last_output < 60:
+                            continue
+                        monitoring_readiness = True
+                        stage = startup_activity(max(phase_started, time.time() - 60))
+                        show('    {} | {}s elapsed (limit {}s)'.format(stage, *waiting.groups()))
+                    else:
+                        monitoring_readiness = False
+                        if line.startswith('[7/9]'):
+                            phase_started = time.time()
+                        show(line)
+                    last_output = now
+
+    reader = threading.Thread(target=forward, name='myteldesk-progress', daemon=True)
+    reader.start()
     try:
         while True:
             remaining = 2700 - (time.monotonic() - started)
@@ -271,16 +327,17 @@ def run_command(argv):
                 now = time.monotonic()
                 if now - started >= 2700:
                     raise subprocess.TimeoutExpired(argv, 2700)
-                if output_available and now >= next_notice:
-                    try:
-                        print('[MyTellPBX] MytelDesk operation still running; elapsed: {} seconds.'.format(int(now - started)), flush=True)
-                    except (OSError, ValueError):
-                        output_available = False  # Never interrupt active work for a cosmetic output failure.
-                    next_notice = now + 30
+                with lock:
+                    if not monitoring_readiness and now - last_output >= 60:
+                        show('    MytelDesk setup in progress | {}s elapsed'.format(int(now - started)))
+                        last_output = now
     except BaseException:
         # Match the existing subprocess.run(timeout=2700) cleanup contract.
         process.kill(); process.wait()
         raise
+    finally:
+        # An unrelated descendant holding the pipe open must not hold up the caller.
+        reader.join(timeout=3)
     if returncode:
         raise subprocess.CalledProcessError(returncode, argv)
 

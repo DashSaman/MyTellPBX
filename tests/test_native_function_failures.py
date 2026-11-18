@@ -57,14 +57,14 @@ mytel_python_fixture(){
         result = self.shell('''
 rpm(){ return 1; }
 yum(){ printf 'private-fixture-package-diagnostic\\n'; return 42; }
-mytel_native_step yum_gauge "required-package" Fixture install
+mytel_native_step mytel_package_batch "required-package" core
 printf 'CONTINUED\\n'
 ''')
         self.assertEqual(result.returncode, 42)
         self.assertNotIn(b'CONTINUED', result.stdout)
         self.assertNotIn(b'private-fixture-package-diagnostic', result.stdout + result.stderr)
         self.assertIn('private-fixture-package-diagnostic', self.log.read_text())
-        self.assertIn('required-package: ERROR', (self.base / 'netinstall_errors.txt').read_text())
+        self.assertIn('requested: required-package', (self.base / 'netinstall_errors.txt').read_text())
 
     def test_renderer_failure_is_fatal_even_after_successful_package_transaction(self):
         result = self.shell('''
@@ -75,26 +75,28 @@ mytel_python_fixture(){
 }
 rpm(){ return 1; }
 yum(){ return 0; }
-mytel_native_step yum_gauge "required-package" Fixture install
+mytel_native_step mytel_package_batch "required-package" core
 printf 'CONTINUED\\n'
 ''')
         self.assertEqual(result.returncode, 7)
         self.assertNotIn(b'CONTINUED', result.stdout)
 
-    def test_native_package_progress_names_only_real_requested_and_observed_packages(self):
+    def test_install_batch_submits_all_missing_packages_in_one_transaction(self):
         result = self.shell('''
 rpm(){ [ "$3" = preinstalled ]; }
 yum(){
-  [ "$*" = '-y install needed' ] || return 71
+  printf 'invoked\\n' >> "$MYTEL_NATIVE_WORK/calls"
+  [ "$*" = '-y install needed second' ] || return 71
   printf '(1/2): needed-1.0-1.el8.x86_64.rpm 10 kB/s | 10 kB 00:01\\n'
   printf '(2/2): https://hidden:fixture-secret@repo.invalid/download\\n'
   printf '  Installing : dependency-1.0-1.el8.noarch 1/2\\n'
   printf '  Verifying : needed-1.0-1.el8.x86_64 2/2\\n'
 }
-mytel_native_step yum_gauge $'preinstalled\\nneeded' core install
+mytel_native_step mytel_package_batch $'preinstalled\\nneeded\\nsecond' core
 ''')
         self.assertEqual(result.returncode, 0, result.stderr)
-        for text in (b'[1/2] preinstalled', b'Already installed', b'[2/2] needed',
+        self.assertEqual((self.base / 'calls').read_text().splitlines(), ['invoked'])
+        for text in (b'2 to install', b'1 already installed',
                      b'Download  1/2  needed-1.0-1.el8.x86_64.rpm',
                      b'Transaction  1/2  dependency-1.0-1.el8.noarch', b'Verification  2/2'):
             self.assertIn(text, result.stdout)
@@ -105,27 +107,28 @@ mytel_native_step yum_gauge $'preinstalled\\nneeded' core install
     def test_stage_display_does_not_change_native_result(self):
         result = self.shell('''
 mytel_terminal_banner
-check_dialog(){ return 0; }
+check_tools(){ return 0; }
 update_os(){ return 18; }
-mytel_native_step check_dialog
+mytel_native_step check_tools
 mytel_native_step update_os
 printf 'CONTINUED\\n'
 ''')
         self.assertEqual(result.returncode, 18)
         self.assertIn(b'Mytel.one', result.stdout)
-        self.assertIn(b'[01/09]  Preparing setup tools', result.stdout)
+        self.assertIn(b'[01/09]  Checking setup tools', result.stdout)
         self.assertIn(b'Done', result.stdout)
         self.assertIn(b'[04/09]  Updating the operating system', result.stdout)
         self.assertIn(b'Stopped', result.stderr)
         self.assertNotIn(b'CONTINUED', result.stdout)
 
-    def test_update_catalog_failure_cannot_become_empty_successful_update(self):
+    def test_update_uses_a_single_system_transaction_and_preserves_its_status(self):
         result = self.shell('''
-yum(){ return 42; }
+yum(){ printf '%s\\n' "$*" >> "$MYTEL_NATIVE_WORK/calls"; return 42; }
 mytel_native_step update_os
 printf 'CONTINUED\\n'
 ''')
-        self.assertNotEqual(result.returncode, 0)
+        self.assertEqual(result.returncode, 42)
+        self.assertEqual((self.base / 'calls').read_text().splitlines(), ['-y update'])
         self.assertNotIn(b'CONTINUED', result.stdout)
         self.assertNotIn('no package to upgrade', self.log.read_text())
 
@@ -167,8 +170,8 @@ mytel_native_step centos8_tweaks
 ''')
         self.assertEqual(result.returncode, 0, result.stderr)
 
-    def test_native_remi_failure_stops_and_check_upgrade_status100_is_expected(self):
-        for failure in ('install', 'repair', 'module', 'remi', 'powertools', 'devel', 'check-upgrade'):
+    def test_native_remi_failure_stops_before_system_update(self):
+        for failure in ('install', 'repair', 'module', 'remi', 'powertools', 'devel'):
             with self.subTest(command=failure):
                 result = self.shell('FAIL=' + shlex.quote(failure) + '''
 repair_stub(){ [ "$FAIL" != repair ]; }

@@ -25,22 +25,36 @@ mytel_terminal_offline_phase() {
 }
 
 mytel_terminal_offline_ready() {
-  printf '\n%s  MytelPBX · Installation complete%s\n  The Persian web panel is ready.\n\n' \
-    "$MYTEL_UI_GREEN" "$MYTEL_UI_RESET"
+  printf '\n%s  MytelPBX · Installation complete%s\n' "$MYTEL_UI_GREEN" "$MYTEL_UI_RESET"
+  mytel_panel_address
+}
+
+mytel_panel_address() {
+  local client client_port server server_port address
+  read -r client client_port server server_port <<< "${SSH_CONNECTION:-}"
+  # Prefer the SSH destination if it is actually assigned. For a local console,
+  # use the first global IPv4 address reported by the installed network stack.
+  address=$(ip -o -4 addr show up scope global 2>/dev/null | awk -v preferred="$server" '
+    { split($4, net, "/"); if (!first) first=net[1]; if (net[1]==preferred) found=net[1] }
+    END { print found ? found : first }') || address=''
+  if [[ $address =~ ^[0-9.]+$ ]]; then
+    printf '  Web panel  https://%s/   ·   Sign in as admin\n\n' "$address"
+  else
+    printf '  Open the server HTTPS address and sign in as admin.\n\n'
+  fi
 }
 
 mytel_terminal_phase() {
   local number= label
   MYTEL_UI_ACTIVE_STEP=
   case "$1" in
-    check_dialog)        number=01; label='Preparing setup tools' ;;
+    check_tools)         number=01; label='Checking setup tools' ;;
     add_repos)                      label='Registering package repositories' ;;
     settings)                       label='Preparing the base system' ;;
     select_language)     number=02; label='Setting language defaults' ;;
     additional_packages)            label='Preparing the community package set' ;;
     generate_files)                 label='Preparing package lists' ;;
     centos8_tweaks)       number=03; label='Preparing the package manager' ;;
-    clean_yum)                      label='Refreshing repository cache' ;;
     update_os)           number=04; label='Updating the operating system' ;;
     install_packages)    number=05; label='Installing MytelPBX packages' ;;
     post_install)        number=06; label='Setting up base services' ;;
@@ -69,7 +83,8 @@ mytel_terminal_result() {
 
 mytel_terminal_success() {
   local seconds
-  printf '\n%s  MytelPBX · Installation complete%s\n\n' "$MYTEL_UI_GREEN" "$MYTEL_UI_RESET"
+  printf '\n%s  MytelPBX · Installation complete%s\n' "$MYTEL_UI_GREEN" "$MYTEL_UI_RESET"
+  mytel_panel_address
   for seconds in 5 4 3 2 1; do
     if [[ -t 1 && ${TERM:-dumb} != dumb ]]; then
       printf '\r  Server reboots in %d seconds…' "$seconds"
@@ -94,13 +109,13 @@ mytel_run_dnf() {
 }
 
 mytel_package_batch() {
-  local operation=$2 kind package total current=0 status first_error=0
-  local -a packages=() repository_options=()
+  local package status title
+  local -a packages=() missing=() repository_options=()
   IFS=$' \t\n' read -r -d '' -a packages <<< "$1" || :
   IFS=$' \t\n' read -r -a repository_options <<< "${BETAREPO:-}" || :
-  case "$operation" in
-    install) kind=packages ;;
-    update)  kind=update ;;
+  case "$2" in
+    core) title='Base packages' ;;
+    product) title='Product packages' ;;
     *) return 2 ;;
   esac
   for package in "${packages[@]}"; do
@@ -108,31 +123,20 @@ mytel_package_batch() {
       printf 'MytelPBX · Invalid package name. Package phase stopped.\n' >&2
       return 2
     fi
-  done
-  case "$3" in
-    core)    printf '    Base packages · batch 1 of 2\n' ;;
-    product) printf '    Product packages · batch 2 of 2\n' ;;
-  esac
-  total=${#packages[@]}
-  for package in "${packages[@]}"; do
-    current=$((current + 1))
-    if [[ $operation == install ]] && rpm --quiet -q "$package"; then
-      printf '    [%d/%d] %s  ·  Already installed\n' "$current" "$total" "$package"
-      continue
+    if ! rpm --quiet -q "$package"; then
+      missing+=("$package")
     fi
-    printf '    %s[%d/%d]%s %s  ·  Running\n' "$MYTEL_UI_AMBER" "$current" "$total" "$MYTEL_UI_RESET" "$package"
-    mytel_run_dnf "$kind" yum "${repository_options[@]}" -y "$operation" "$package"
+  done
+  printf '    %s · %d to install · %d already installed\n' "$title" "${#missing[@]}" "$((${#packages[@]} - ${#missing[@]}))"
+  (( ${#missing[@]} )) || return 0
+  if mytel_run_dnf packages yum "${repository_options[@]}" -y install "${missing[@]}"; then
+    return 0
+  else
     status=$?
-    if (( status == 0 )); then
-      printf '      %sReady%s\n' "$MYTEL_UI_GREEN" "$MYTEL_UI_RESET"
-    else
-      printf '%s: ERROR installing package (exit %d)\n' "$package" "$status" >> "${MYTEL_NATIVE_WORK}/netinstall_errors.txt"
-      printf '%s: ERROR installing package (exit %d)\n' "$package" "$status" >> "${MYTEL_NATIVE_WORK}/netinstall.log"
-      printf '      %sPackage operation failed%s · exit %d\n' "$MYTEL_UI_RED" "$MYTEL_UI_RESET" "$status" >&2
-      if (( first_error == 0 )); then first_error=$status; fi
-    fi
-  done
-  return "$first_error"
+  fi
+  printf '%s transaction failed (exit %d), requested: %s\n' "$title" "$status" "${missing[*]}" >> "${MYTEL_NATIVE_WORK}/netinstall_errors.txt"
+  printf '    %s transaction failed · exit %d\n' "$title" "$status" >&2
+  return "$status"
 }
 
 mytel_terminal_init

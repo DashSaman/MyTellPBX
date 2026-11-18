@@ -59,14 +59,11 @@ def derive(original):
         source = replace(source, command, command + ' || return 1')
     settings_tail = source[source.index('  echo -en "        Installing base packages '):source.index('\nfunction sel_astver')]
     source = replace(source, settings_tail,
-                     '  mytel_run_dnf repositories yum -y install issabel-config_helpers\n}\n')
+                     '  mytel_run_dnf repositories yum -y install issabel-config_helpers dialog\n}\n')
     dialog = source[source.index('function check_dialog'):source.index('\nfunction enable_beta')]
-    source = replace(source, dialog, '''function check_dialog
+    source = replace(source, dialog, '''function check_tools
 {
-  if ! command -v dialog >/dev/null; then
-    mytel_run_dnf repositories yum -y install dialog || return $?
-  fi
-  command -v dialog >/dev/null
+  command -v yum >/dev/null && command -v dnf >/dev/null && command -v rpm >/dev/null
 }
 ''')
     version_start = source.index('function sel_astver\n{\n')
@@ -101,28 +98,25 @@ def derive(original):
     source = replace(source, remi_progress,
                      '"${MYTEL_PYTHON}" -B "${MYTEL_BUNDLE_ROOT}/installer/repair-repository-transport.py" || return 1\n'
                      + remi_progress)
-    source = replace(source, 'dnf -y check-upgrade &>>"${MYTEL_NATIVE_WORK}/netinstall.log"',
-                     'dnf -y check-upgrade &>>"${MYTEL_NATIVE_WORK}/netinstall.log"\n'
-                     'local update_status=$?\n[ "$update_status" = 0 ] || [ "$update_status" = 100 ] || return "$update_status"')
-    gauge = source[source.index('function yum_gauge'):source.index('function update_os')]
-    source = replace(source, gauge, '''function yum_gauge
+    source = replace(source, 'dnf -y check-upgrade &>>"${MYTEL_NATIVE_WORK}/netinstall.log"\n', '')
+    transactions = source[source.index('function yum_gauge'):source.index('function post_install')]
+    source = replace(source, transactions, '''function update_os
 {
-  mytel_package_batch "$1" "$3" "$2"
+  local -a repository_options=()
+  IFS=$' \\t\\n' read -r -a repository_options <<< "${BETAREPO:-}" || :
+  mytel_run_dnf update yum "${repository_options[@]}" -y update
 }
+
+function install_packages
+{
+  local packages
+  packages=$(cat "${MYTEL_NATIVE_WORK}/inst1.txt") || return $?
+  mytel_package_batch "$packages" core || return $?
+  packages=$(cat "${MYTEL_NATIVE_WORK}/inst2.txt") || return $?
+  mytel_package_batch "$packages $ADDPKGS" product
+}
+
 ''')
-    source = replace(source, 'PACKAGES=$(yum $BETAREPO -d 0 list updates | tail -n +2 | cut -d\' \' -f1) &>>"${MYTEL_NATIVE_WORK}/netinstall.log"',
-                     'PACKAGES=$(yum $BETAREPO -d 0 list updates | tail -n +2 | cut -d\' \' -f1) 2>>"${MYTEL_NATIVE_WORK}/netinstall.log" || return 1')
-    source = replace(source, 'yum_gauge "$PACKAGES" "Yum update" update',
-                     'yum_gauge "$PACKAGES" update update || return $?')
-    source = replace(source, 'yum_gauge "$PACKAGES" "(1/2) Please wait..." install',
-                     'yum_gauge "$PACKAGES" core install || return $?')
-    source = replace(source, 'yum_gauge "$PACKAGES $ADDPKGS" "(2/2) Please wait..." install',
-                     'yum_gauge "$PACKAGES $ADDPKGS" product install || return $?')
-    source = replace(source, '  yum clean all &>>"${MYTEL_NATIVE_WORK}/netinstall.log"',
-                     '  yum clean all &>>"${MYTEL_NATIVE_WORK}/netinstall.log" || return $?', count=2)
-    for filename in ('inst1.txt', 'inst2.txt'):
-        line = '  PACKAGES=$(cat "${MYTEL_NATIVE_WORK}/' + filename + '")'
-        source = replace(source, line, line + ' || return $?')
     for command in ('systemctl enable mariadb.service', 'systemctl start mariadb',
                     'mysql -e "SET PASSWORD FOR \'root\'@\'localhost\' = PASSWORD(\'iSsAbEl.2o17\')"',
                     'systemctl enable httpd',
@@ -183,11 +177,13 @@ def derive(original):
 
     footer = source.index('\ncheck_dialog\nadd_repos\n')
     definitions, flow = source[:footer], source[footer:]
+    flow = replace(flow, '\ncheck_dialog\n', '\ncheck_tools\n')
+    flow = replace(flow, '\nclean_yum\n', '\n')
     flow = replace(flow, '\nwelcome\n', '\n', count=2)
     flow = replace(flow, '#if enable_beta\n#then\n#    BETAREPO="--enablerepo=issabel-beta"\n#fi\n', '')
     flow = flow.replace('\nset_passwords\n', '\nset_passwords\nmytel_addons\n')
     flow = replace(flow, '\ncleanup\n', '\ncleanup\nmytel_verify_addons\n')
-    flow = re.sub(r'(?m)^(check_dialog|add_repos|settings|select_language|sel_astver|additional_packages|generate_files|centos8_tweaks|clean_yum|update_os|install_packages|post_install|set_passwords|mytel_addons|cleanup|mytel_verify_addons|bye|reboot)$',
+    flow = re.sub(r'(?m)^(check_tools|add_repos|settings|select_language|sel_astver|additional_packages|generate_files|centos8_tweaks|update_os|install_packages|post_install|set_passwords|mytel_addons|cleanup|mytel_verify_addons|bye|reboot)$',
                   r'mytel_native_step \1', flow)
     helpers = '''
 function mytel_addons()
@@ -200,7 +196,7 @@ function mytel_addons()
 function mytel_verify_addons()
 {
   # Native cleanup must preserve the registered Mytel integrations and CPU VAD.
-  /usr/local/sbin/myteldesk doctor
+  /usr/local/sbin/myteldesk doctor >>"${MYTEL_NATIVE_WORK}/netinstall.log" 2>&1
 }
 
 function mytel_native_step()

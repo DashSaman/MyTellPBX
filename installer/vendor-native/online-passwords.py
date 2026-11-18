@@ -72,6 +72,9 @@ if(file_exists("/tmp/ipbx.lang")) {
 {
     global $langs, $mytelOnlinePasswords;
 ''')
+    source = replace(source, b"    action_installIssabelPBX($langs['ipbxLang']);",
+                     b"    if (file_exists('/installamp')) print \"    Initializing the PBX core and database schemas...\\n\";\n"
+                     b"    action_installIssabelPBX($langs['ipbxLang']);")
     source = replace(source, br'''        // Prompt for the MySQL password for this system
         if (!issabel_prompt_mysql_passwd()) return FALSE;
     } else {
@@ -101,10 +104,13 @@ if(file_exists("/tmp/ipbx.lang")) {
     source = replace(source, b'''                $output = $retval = NULL;
                 exec('mysql -u root '.escapeshellarg('-p'.$passwords['mysqlrootpwd']).' < '.escapeshellarg($script), $output, $retval);
                 if ($retval != 0) return FALSE;''', MYSQL_UPDATE)
-    source = replace(source, b'''    system("/usr/bin/issabel-change-language > /dev/null 2>&1");''', b'''    system("/usr/bin/issabel-change-language pr > /dev/null 2>&1", $status);
+    source = replace(source, b'''    system("/usr/bin/issabel-change-language > /dev/null 2>&1");''', b'''    $script = escapeshellarg(__DIR__ . '/mytel-online-language.sh');
+    print "    Applying Persian settings.\\n";
+    system('/bin/bash ' . $script, $status);
     return $status === 0;''')
     source = replace(source, b'''    system("/usr/bin/issabel-change-sip > /dev/null 2>&1");
     restart_amportal();''', b'''    $script = escapeshellarg(__DIR__ . '/mytel-online-sip.sh');
+    print "    Configuring the selected SIP driver.\\n";
     system('/bin/bash ' . $script, $status);
     if ($status !== 0) return FALSE;
     restart_amportal();

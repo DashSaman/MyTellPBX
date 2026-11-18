@@ -19,9 +19,9 @@ NATIVE = ROOT / 'installer/vendor-native'
 BASH = 'C:/Program Files/Git/bin/bash.exe' if os.name == 'nt' else shutil.which('bash')
 OPENSSL = 'C:/Program Files/Git/usr/bin/openssl.exe' if os.name == 'nt' else shutil.which('openssl')
 VENDOR_SHA = 'd0793041a422981293d74153f1aa56b29ff9803d18ee3319a53865b5b6132d46'
-FLOW = ['check_dialog', 'add_repos', 'settings', 'select_language',
+FLOW = ['check_tools', 'add_repos', 'settings', 'select_language',
         'sel_astver', 'additional_packages', 'generate_files',
-        'centos8_tweaks', 'clean_yum', 'update_os', 'install_packages',
+        'centos8_tweaks', 'update_os', 'install_packages',
         'post_install', 'set_passwords', 'mytel_addons', 'cleanup',
         'mytel_verify_addons', 'bye', 'reboot']
 
@@ -59,7 +59,7 @@ class NativeSourceTests(unittest.TestCase):
     def test_native_package_and_password_operations_remain_native(self):
         source = (NATIVE / 'mytelpbx-netinstall.sh').read_text(encoding='utf-8')
         self.assertIn('mytel_apply_online_passwords', source)
-        self.assertIn('mytel_receive_online_passwords || exit 1\nmytel_native_step check_dialog', source)
+        self.assertIn('mytel_receive_online_passwords || exit 1\nmytel_native_step check_tools', source)
         version = source.split('function sel_astver\n{\n', 1)[1].split('\n}', 1)[0]
         self.assertIn('ASTVER=20', version)
         self.assertNotIn('dialog', version)
@@ -870,11 +870,11 @@ class NativeBootstrapTests(unittest.TestCase):
                           + '\nMYTEL_PYTHON=' + shlex.quote(os.sys.executable.replace('\\', '/'))
                           + '\nsource "$MYTEL_BUNDLE_ROOT/installer/vendor-native/terminal-ui.sh"\n'
                           + 'rpm(){ return 1; }\nyum(){ return 34; }\n'
-                          + 'yum_gauge "required-package" core install\n', encoding='utf-8')
+                          + 'mytel_package_batch "required-package" core\n', encoding='utf-8')
         result = subprocess.run([BASH, '--noprofile', '--norc', str(runner)],
                                 stdin=subprocess.DEVNULL, capture_output=True, timeout=20)
         self.assertNotEqual(result.returncode, 0)
-        self.assertIn('required-package: ERROR', (self.work / 'netinstall_errors.txt').read_text())
+        self.assertIn('requested: required-package', (self.work / 'netinstall_errors.txt').read_text())
 
 
 if __name__ == '__main__':

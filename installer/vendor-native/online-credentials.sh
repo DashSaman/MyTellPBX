@@ -33,16 +33,11 @@ mytel_prompt_online_password_pair() {
 mytel_collect_online_passwords() (
     set +x
     set +a
-    local visibility db_password admin_password accent reset sip_choice
+    local visibility db_password admin_password sip_choice
     if ! { exec 8<>/dev/tty; } 2>/dev/null; then
         printf '\nMytelPBX requires an interactive terminal.\n' >&2
         return 1
     fi
-    accent='' reset=''
-    if [ "${TERM:-dumb}" != dumb ] && [ -z "${NO_COLOR+x}" ]; then
-        accent=$'\033[1;36m' reset=$'\033[0m'
-    fi
-    printf '\n%s  MytelPBX  ·  ACCESS SETUP%s\n' "$accent" "$reset" >&8
     if [ "${MYTEL_HIDE_PASSWORDS:-0}" = 1 ]; then
         visibility=hidden
         printf '  Password entry is hidden.\n\n' >&8
@@ -93,10 +88,12 @@ mytel_apply_online_passwords() {
     local helper="$MYTEL_NATIVE_WORK/online-password-init.php" status
     if "$MYTEL_PYTHON" -I -B "$MYTEL_BUNDLE_ROOT/installer/vendor-native/online-passwords.py" "$helper"; then
         if /usr/bin/php -d zend.exception_ignore_args=1 "$helper" --init \
-                3< <(printf '%s\n%s\n' "$_mytel_db_password" "$_mytel_admin_password"); then
+                3< <(printf '%s\n%s\n' "$_mytel_db_password" "$_mytel_admin_password") \
+                2>>"$MYTEL_NATIVE_WORK/native-init.log"; then
             status=0
         else
             status=$?
+            printf '    Native setup stopped (exit %s). See %s/native-init.log\n' "$status" "$MYTEL_NATIVE_WORK" >&2
         fi
     else
         status=$?

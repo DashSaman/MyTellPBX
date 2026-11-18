@@ -181,6 +181,38 @@ class DnfProgressTests(unittest.TestCase):
         self.assertNotIn('Download', output.getvalue())
         self.assertNotIn('signing key', output.getvalue())
 
+    def test_large_redirected_transaction_sample_keeps_the_first_and_last_names(self):
+        output = io.StringIO()
+        reporter = self.module.ProgressReporter(output, 'update', clock=lambda: 0,
+                                                english=True, detail=True)
+        for n in range(1, 1001):
+            reporter.observe(' Installing : pkg{}.noarch {}/1000'.format(n, n).encode())
+        lines = output.getvalue().splitlines()
+        self.assertEqual(len(lines), 11)
+        self.assertIn('1/1000  pkg1.noarch', lines[0])
+        self.assertIn('1000/1000  pkg1000.noarch', lines[-1])
+        self.assertNotIn('\r', output.getvalue())
+
+    def test_live_progress_finishes_its_single_line_and_only_exposes_safe_mirror_status(self):
+        class Terminal(io.StringIO):
+            def isatty(self): return True
+        output = Terminal()
+        with patch.dict(os.environ, {'TERM': 'xterm'}):
+            reporter = self.module.ProgressReporter(output, 'packages', english=True, detail=True)
+        raw = (b'  - Curl error (28): Timeout https://user:secret@host.invalid\n'
+               b'  - Curl error (28): Timeout https://other.invalid?token=private\n'
+               b'  Verifying : good-2.0-1.el8.x86_64 1/1\n')
+        log = io.BytesIO()
+        self.assertTrue(self.module.copy_progress(io.BytesIO(raw), log, reporter))
+        self.assertEqual(log.getvalue(), raw)
+        view = output.getvalue()
+        self.assertEqual(view.count('Curl error (28)'), 1)
+        self.assertIn('1/1  good-2.0-1.el8.x86_64', view)
+        self.assertGreaterEqual(view.count('\r'), 2)
+        self.assertEqual(view.count('\n'), 1)
+        self.assertNotIn('invalid', view)
+        self.assertNotIn('secret', view)
+
     def test_idle_message_is_about_waiting_and_preserves_the_next_observation(self):
         output = io.StringIO()
         self.now = 0
