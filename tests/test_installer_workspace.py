@@ -27,8 +27,18 @@ class InstallerWorkspaceTests(BootstrapFixture, unittest.TestCase):
         body = ('flock(){ :; }\n' if os.name == 'nt' else '') + '''
 preflight(){ :; }
 download_bundle(){ printf 'fixture-private-log\\n' > "$MYTEL_NATIVE_WORK/netinstall.log"; }
-extract_bundle(){ MYTEL_BUNDLE_ROOT="$MYTEL_NATIVE_WORK/payload"; }
+extract_bundle(){
+    MYTEL_BUNDLE_ROOT="$MYTEL_NATIVE_WORK/payload"
+    local native="$MYTEL_BUNDLE_ROOT/installer/vendor-native"
+    mkdir -p "$native" || return 1
+    printf '%s\\n' 'mytel_terminal_banner(){ :; }' > "$native/terminal-ui.sh"
+    printf '%s\\n' 'mytel_collect_online_passwords(){ printf "%s\\n" Fixture-DB Fixture-Panel pjsip; }' \
+        > "$native/online-credentials.sh"
+}
 bash(){
+  local db admin driver
+  IFS= read -r -u 3 db && IFS= read -r -u 3 admin && IFS= read -r -u 3 driver || return 98
+  [[ "$db" == Fixture-DB && "$admin" == Fixture-Panel && "$driver" == pjsip ]] || return 98
 ''' + probe + '''printf 'WORK=%s\\n' "$MYTEL_NATIVE_WORK" >> "$EVENTS"
 return ''' + str(child_status) + '''
 }
