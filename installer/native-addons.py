@@ -23,7 +23,7 @@ import time
 
 sys.dont_write_bytecode = True
 NATIVE_GEOIP_STATUS_SHA256 = 'de1fb7c39ec9b67859d4346e90c90a8fb440d32ea16dcb1437c1024fd8bfa34a'
-REQUIRED_DESK_VERSION = '1.1.3'
+REQUIRED_DESK_VERSION = '1.1.4'
 NATIVE_ENGINE_SHA256 = '38f930292ddee65d2d86e4e2e65e9759c3b1b06f1e3b90ee7caefbd1bc07f45c'
 NATIVE_OWNERSHIP_HOOK_SHA256 = '2896ff9fff56e2b0451d59f80cd613c9b7d71fee3a63b00d3af60c41bcc90b22'
 OWNERSHIP_STUB = b'''# Mytel supported native ownership hook. No action when sourced.
@@ -106,7 +106,7 @@ def native_credentials(issabel, amportal):
     if not password:
         raise ValueError('Native password wizard has not completed; mysqlrootpwd missing')
     # The vendor framework owns this identity and its credentials. The addon
-    # uses the native root password only for existing brand settings rows.
+    # uses the native root password for scoped brand and CEL schema work.
     if amp.get('AMPDBNAME', 'asterisk') != 'asterisk':
         raise ValueError('Unexpected native framework database; reviewed integration required')
     return {'user': 'root', 'password': password}
@@ -223,6 +223,68 @@ try {
     return json.loads(result.decode('utf-8')) if action == 'snapshot' else None
 
 
+def cel_payload_schema(credentials, create=False):
+    """Read the vendor CEL definition, or add Asterisk's standard payload column."""
+    code = r'''
+$v=json_decode(stream_get_contents(STDIN),true);
+try {
+ $db=new PDO('mysql:host=localhost;dbname=asteriskcdrdb',$v['user'],$v['password']);
+ $db->setAttribute(PDO::ATTR_ERRMODE,PDO::ERRMODE_EXCEPTION);
+ $q=$db->query("SELECT COLUMN_NAME, DATA_TYPE, CHARACTER_MAXIMUM_LENGTH
+                FROM information_schema.COLUMNS
+                WHERE TABLE_SCHEMA='asteriskcdrdb' AND TABLE_NAME='cel'
+                AND COLUMN_NAME IN ('eventtype','linkedid','channame','extra')");
+ $columns=[];
+ foreach($q as $row){$columns[$row['COLUMN_NAME']]=$row;}
+ foreach(['eventtype','linkedid','channame'] as $required){
+  if(!isset($columns[$required]))throw new RuntimeException('Unsupported CEL table');
+ }
+ if(isset($columns['extra'])){
+  $field=$columns['extra'];
+  if(!in_array($field['DATA_TYPE'],['text','mediumtext','longtext','json'],true)
+   && !($field['DATA_TYPE']==='varchar' && (int)$field['CHARACTER_MAXIMUM_LENGTH']>=1024)){
+   throw new RuntimeException('Existing CEL extra column is too narrow');
+  }
+ }elseif($v['create']){
+  $db->exec('ALTER TABLE `cel` ADD COLUMN IF NOT EXISTS `extra` TEXT NULL');
+ }
+ $table=$db->query('SHOW CREATE TABLE `cel`')->fetch(PDO::FETCH_NUM);
+ echo json_encode(['has_payload'=>isset($columns['extra']),'table_sql'=>$table[1]]);
+}catch(Exception $e){fwrite(STDERR,"Native CEL schema operation failed\n");exit(1);}
+'''
+    payload = json.dumps(dict(credentials, create=create)).encode('utf-8')
+    return json.loads(run(['php', '-r', code], capture=True, data=payload).decode('utf-8'))
+
+
+def enable_cel_payload(credentials, backup):
+    """Enable recording of new hangup details without rewriting historical CEL rows."""
+    cli = ['/usr/sbin/asterisk', '-rx']
+
+    def require_cel_writer():
+        status = run(cli + ['cel show status'], capture=True).decode('utf-8', errors='replace')
+        required = {'CEL Logging: Enabled', 'CEL Tracking Event: HANGUP',
+                    'CEL Event Subscriber: ODBC CEL backend'}
+        if not required.issubset(set(status.splitlines())):
+            raise ValueError('Native CEL ODBC and HANGUP tracking are required')
+
+    require_cel_writer()
+    before = cel_payload_schema(credentials)
+    (backup / 'cel-schema-before.json').write_text(json.dumps(before, indent=2), encoding='utf-8')
+    if not before['has_payload']:
+        cel_payload_schema(credentials, create=True)
+    after = cel_payload_schema(credentials)
+    if not after['has_payload']:
+        raise ValueError('Native CEL extra column was not found after migration')
+
+    # The adaptive driver caches the table layout. Reload even on an existing
+    # column so a retry after interrupted DDL activates the current layout.
+    reload_result = run(cli + ['module reload cel_odbc.so'], capture=True).decode('utf-8', errors='replace')
+    if "Module 'cel_odbc.so' reloaded successfully." not in reload_result.splitlines():
+        raise ValueError('Native CEL ODBC reload was not confirmed')
+    require_cel_writer()
+    return {'extra_column': 'present', 'added': not before['has_payload'], 'odbc_reloaded': True}
+
+
 def replace_brand_config(text):
     lines = text.splitlines()
     for key, value in BRAND_KEYS.items():
@@ -307,6 +369,9 @@ def prepare_files(bundle, root, staging):
                     raise ValueError('Symlinked native addon input refused')
             shutil.copytree(str(source), str(staged_web / relative))
     shutil.copyfile(str(regular(web / 'admin/functions.inc.php')), str(staged_web / 'admin/functions.inc.php'))
+    toast_helper = 'admin/helpers/issabelpbx_helpers.php'
+    (staged_web / toast_helper).parent.mkdir(parents=True, exist_ok=True)
+    shutil.copyfile(str(regular(web / toast_helper)), str(staged_web / toast_helper))
     copy_assets(bundle / 'theme', staged_web / 'themes/mytel')
     copy_assets(bundle / 'installer/payload/admin/assets/mytel', staged_web / 'admin/assets/mytel')
     copy_assets(bundle / 'theme/images/admin', staged_web / 'admin/images')
@@ -316,7 +381,7 @@ def prepare_files(bundle, root, staging):
     changes = {}
     theme = load('native_theme', bundle / 'admin-theme/patch-admin-theme.py')
     changes.update(theme.plan(staged_web / 'admin'))
-    # Retain the known Apply fix, without the old global success toast.
+    # Retain native Apply and confirmation-toast fixes without global AJAX hooks.
     apply = load('native_apply_compat', bundle / 'admin-fixes/fix-apply-config.py')
     for legacy, pairs in apply.PATCHES:
         path = staged_web / 'admin' / legacy.relative_to(apply.BASE)
@@ -613,6 +678,9 @@ def install(bundle, backup_root, requested=None, media=None, public_url=None, ch
             receipt.write_text(json.dumps(state, indent=2), encoding='utf-8')
             raise
     state['phase'] = 'ui-ready-desk-pending'
+    receipt.write_text(json.dumps(state, indent=2), encoding='utf-8')
+    print('Mytel addons: enabling native CEL hangup details.', flush=True)
+    state['cel'] = enable_cel_payload(credentials, backup)
     receipt.write_text(json.dumps(state, indent=2), encoding='utf-8')
     if media is not None:
         print('Mytel addons: installing only the sealed supplemental Python 3.11 package closure.', flush=True)

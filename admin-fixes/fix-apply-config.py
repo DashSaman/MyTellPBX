@@ -22,6 +22,8 @@ Fixes:
      pbxlib shows it only when the server flags reload_needed.
   4) mytel sub.js: green Persian toast «تغییرات مرکز تلفن با موفقیت
      اعمال شد» when the reload POST returns OK.
+  5) consume native confirmation flashes in the rendering PHP request.
+     Dismissing a toast in the browser no longer makes a session write.
 
 Run as root on the Issabel box (paths are absolute):
     python3 fix-apply-config.py
@@ -75,6 +77,30 @@ PATCHES = [
             "        type: 'POST',\n"
             "        url: document.location.pathname,\n"
             "        data: \"handler=reload\",\n",
+        ),
+        (
+            "        title: msg,\n"
+            "        timer: timer,\n"
+            "        didDestroy: function() {\n"
+            "            fetch(window.location.href+'&quietmode=1&action=resetnotifications').then(response=>{ });\n"
+            "        }\n",
+            "        title: msg,\n"
+            "        timer: timer\n"
+            "        // Flash state is consumed by the native PHP renderer.\n",
+        ),
+    ]),
+    (BASE / "helpers/issabelpbx_helpers.php", [
+        (
+            "                    $out.= \"sweet_toast('$type',\".$msg.\",$timer);\\n\";\n"
+            "                    $out.= \"});\\n\";\n"
+            "                }\n"
+            "            }\n",
+            "                    $out.= \"sweet_toast('$type',\".$msg.\",$timer);\\n\";\n"
+            "                    $out.= \"});\\n\";\n"
+            "                }\n"
+            "            }\n"
+            "            // Consume this flash while the rendering request owns the session.\n"
+            "            unset($_SESSION['msg'], $_SESSION['msgtstamp'], $_SESSION['msgtimer'], $_SESSION['msgtype']);\n",
         ),
     ]),
     (BASE / "assets/mytel/skin.css", [

@@ -183,7 +183,7 @@ class NativeCredentialsTests(unittest.TestCase):
 class NativeIdentityTests(unittest.TestCase):
     def test_product_desk_requirement_matches_the_reviewed_candidate_pin(self):
         pin = json.loads((ROOT / 'installer/myteldesk-release.json').read_text())
-        self.assertEqual(pin['version'], '1.1.3')
+        self.assertEqual(pin['version'], '1.1.4')
         self.assertEqual(ADDONS.REQUIRED_DESK_VERSION, pin['version'])
 
     def test_only20_is_accepted_against_actual_running_output(self):
@@ -411,6 +411,30 @@ class NativeReadinessTests(unittest.TestCase):
                 ADDONS.install(self.bundle(), Path('/unused-backup'), requested='20')
         self.assertEqual(self.calls, [])
         backup.assert_not_called()
+
+
+class NativeCelTests(unittest.TestCase):
+    def test_adds_missing_payload_then_confirms_actual_odbc_reload(self):
+        creds = {'user': 'root', 'password': 'fixture'}
+        before = {'has_payload': False, 'table_sql': 'vendor definition'}
+        after = {'has_payload': True, 'table_sql': 'vendor definition with extra'}
+        status = b'CEL Logging: Enabled\nCEL Tracking Event: HANGUP\nCEL Event Subscriber: ODBC CEL backend\n'
+        with tempfile.TemporaryDirectory() as temp:
+            backup = Path(temp)
+
+            def schema(credentials, create=False):
+                self.assertEqual(credentials, creds)
+                if create:
+                    self.assertEqual(json.loads((backup / 'cel-schema-before.json').read_text()), before)
+                    return after
+                return after if (backup / 'cel-schema-before.json').exists() else before
+
+            with mock.patch.object(ADDONS, 'cel_payload_schema', side_effect=schema) as db, \
+                    mock.patch.object(ADDONS, 'run', side_effect=[status, b"Module 'cel_odbc.so' reloaded successfully.\n", status]) as cli:
+                self.assertEqual(ADDONS.enable_cel_payload(creds, backup),
+                                 {'extra_column': 'present', 'added': True, 'odbc_reloaded': True})
+            self.assertEqual(db.call_args_list, [mock.call(creds), mock.call(creds, create=True), mock.call(creds)])
+            self.assertEqual(cli.call_args_list[1], mock.call(['/usr/sbin/asterisk', '-rx', 'module reload cel_odbc.so'], capture=True))
 
 
 class NativeSnapshotTests(unittest.TestCase):

@@ -14,8 +14,9 @@ import unittest
 from unittest import mock
 
 ROOT = Path(__file__).resolve().parents[1]
-VERSION = '1.1.3'
-TREE = '8f0aa8200cba7437556281b8fddaed17a2d9ae89'
+VERSION = '1.1.4'
+TREE = '181c7ccb767215cfa31e50ef56d7167fb8f05144'
+TREE_113 = '8f0aa8200cba7437556281b8fddaed17a2d9ae89'
 TREE_112 = '8fb715ccb2810994bb6c721b5352d699bb1867b6'
 TREE_111 = '237315df5b8f2f5168b3c01a6423daa912dfd784'
 TREE_110 = '59c96ab9ad25cf54161d198b1202cd1f28ea79ad'
@@ -93,7 +94,10 @@ class RealDeskReleaseWorkflow(unittest.TestCase):
     def test_ready_reviewed_112_may_upgrade_and_keep_operator_data(self):
         self.assert_ready_workflow('1.1.2', TREE_112)
 
-    def test_ready_reviewed_113_delegates_same_release_and_doctor(self):
+    def test_ready_published_113_may_upgrade_and_keep_operator_data(self):
+        self.assert_ready_workflow('1.1.3', TREE_113)
+
+    def test_ready_reviewed_114_delegates_same_release_and_doctor(self):
         self.assert_ready_workflow(VERSION, TREE)
 
     def test_unknown_110_newer_or_equal_wrong_tree_cannot_adopt_files(self):
@@ -118,9 +122,9 @@ class RealDeskReleaseWorkflow(unittest.TestCase):
 
     def test_reviewed_archive_and_git_commit_are_bound_to_the_release(self):
         self.assertEqual(self.pin['version'], VERSION)
-        self.assertEqual(self.pin['archive'], 'myteldesk-1.1.3.tar.gz')
-        self.assertEqual(self.pin['sha256'], 'b48f7ddc495c3f69cb6c53542550d7e8d6c19fe4e2e40061c1473bffc3bdb19e')
-        self.assertEqual(self.pin['source_commit'], 'b45e3394ee6da56f810b384f57996ab2203b49a4')
+        self.assertEqual(self.pin['archive'], 'myteldesk-1.1.4.tar.gz')
+        self.assertEqual(self.pin['sha256'], '8bd8687507d106365357a47decc575f60ba371c5d0a812e4af59f36c90a0d998')
+        self.assertEqual(self.pin['source_commit'], '9c6adf58c2c3663960bd5ab6155f6fde45d9bb2a')
         self.assertEqual(self.pin['source_tree'], TREE)
 
 
