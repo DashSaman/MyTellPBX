@@ -4,24 +4,28 @@
 
 وب‌سایت: [Mytel.one](https://mytel.one)
 
-نسخهٔ **۷٫۷٫۰، نامزد انتشار** از نصاب بومی Issabel برای نصب روی
+نسخهٔ **۷٫۷٫۰ بازبینی ۲** از نصاب بومی Issabel برای نصب روی
 **Rocky Linux 8.10 Minimal تازه، x86_64** استفاده می‌کند. پس از تکمیل
 راه‌اندازی بومی مرکز تلفن و رمزها، لایهٔ MytelPBX و **MytelDesk 1.1.3**
 با بستهٔ قفل‌شده و محیط VAD روی CPU نصب می‌شوند.
 
-وضعیت نصب نهایی و انتشار هنوز به [رسید نهایی نسخهٔ ۷٫۷٫۰](docs/releases/7.7.0/verification.md)
-وابسته است؛ متن و فرمان زیر، انتشار عمومی یا قبولی آزمون تماس را اعلام نمی‌کنند.
+دارایی‌های ثابت `v7.7.0-r2`، نصب آنلاین تازه و راه‌اندازی پس از reboot تأیید شده‌اند.
+آزمون‌های محدود آزمایشگاه برای تماس و صدای دوطرفه، hold/mute، ضبط بومی، VAD خودکار
+و یکسانی بایت‌های پخش و دانلود نیز قبول شده‌اند. پاک‌سازی واقعی آزمون و یک
+reboot عادی ISO با حفظ وضعیت و جلوگیری از تکرار نصب تأیید شده‌اند.
+[رسید نسخهٔ ۷٫۷٫۰](docs/releases/7.7.0/verification.md) پذیرش در دامنهٔ نصب و
+مدیای آزموده‌شده و محدودیت‌های ثبت‌شده را مشخص می‌کند.
 
 ## نصب آنلاین با یک خط
 
-پس از انتشار دارایی نهایی `v7.7.0`، در ترمینال تعاملی سرور تازه و با دسترسی
+برای نسخهٔ منتشرشدهٔ `v7.7.0-r2`، در ترمینال تعاملی سرور تازه و با دسترسی
 root اجرا کنید. فایل ابتدا دریافت و سپس با Bash اجرا می‌شود؛ ترمینال برای
 پنجره‌های بومی در دسترس می‌ماند:
 
 </div>
 
 ```bash
-curl -fsSL -o install-mytellpbx.sh https://github.com/DashSaman/MyTellPBX/releases/download/v7.7.0/install-mytellpbx.sh && bash install-mytellpbx.sh
+curl -fsSL -o install-mytellpbx.sh https://github.com/DashSaman/MyTellPBX/releases/download/v7.7.0-r2/install-mytellpbx.sh && bash install-mytellpbx.sh
 ```
 
 <div dir="rtl">
@@ -29,8 +33,12 @@ curl -fsSL -o install-mytellpbx.sh https://github.com/DashSaman/MyTellPBX/releas
 نصاب، هش بسته را بررسی می‌کند و ترتیب بومی انتخاب زبان، نصب
 **استریسک ۲۰**، بسته‌های اختیاری، نصب و راه‌اندازی
 رمزها را اجرا می‌کند. پنجره‌های بومی، رمز MariaDB را همراه تأیید و سپس رمز
-مدیر پنل را همراه تأیید می‌پرسند. پس از موفقیت لایهٔ Mytel، مسیر آنلاین طبق
+مدیر پنل را همراه تأیید می‌پرسند. پس از موفقیت لایهٔ Mytel و doctor پس از پاک‌سازی بومی، مسیر آنلاین طبق
 رفتار بومی سرور را خودکار reboot می‌کند. خطای مرحله، ادامه و reboot خودکار را متوقف می‌کند.
+
+لایهٔ افزوده تا ۱۲۰ ثانیه برای CLI استریسک ۲۰ و فعال‌شدن MariaDB، httpd و
+Asterisk صبر می‌کند؛ نسخهٔ اشتباه یا پایان مهلت، خطاست و ادامه را متوقف می‌کند.
+انتخاب زبان بومی حفظ می‌شود و لایهٔ مای‌تل آن را به فارسی بازنویسی نمی‌کند.
 
 این مسیر برای نصب تازه است. نصب موجود یا نیمه‌تمام به بررسی و بازیابی محدود
 نیاز دارد؛ اجرای دوبارهٔ نصاب پایه، روش ارتقای یک PBX عملیاتی نیست.
@@ -51,14 +59,18 @@ curl -fsSL -o install-mytellpbx.sh https://github.com/DashSaman/MyTellPBX/releas
 
 - [نصب فارسی](docs/INSTALL.fa.md) · [Installation guide](docs/INSTALL.en.md)
 - [میز کار و VAD](docs/MYTELDESK_INSTALL_FA.md)
-- [وضعیت نامزد ۷٫۷٫۰](docs/releases/7.7.0/verification.md)
+- [دامنهٔ تأیید نسخهٔ ۷٫۷٫۰](docs/releases/7.7.0/verification.md)
 - [روش آزمون و محدودیت‌ها](docs/TESTING.md)
 - [شفافیت اجزای نرم‌افزاری](THIRD_PARTY_NOTICES.md)
 
 نسخهٔ بومی ISO از تصویر اصلی Issabel بازسازی می‌شود. در صفحهٔ بومی
 **Software Selection**، فقط MytelPBX با **استریسک ۲۰** ارائه می‌شود.
 فرایند بومی اولین راه‌اندازی و انتخاب زبان حفظ می‌شود. این ISO خروجی آزمایشگاه مالک
-است و در گیت‌هاب بارگذاری نمی‌شود. مسیر نصب، ساخت و محدودیت‌های آن در راهنما آمده است.
+است و در گیت‌هاب بارگذاری نمی‌شود. نصب سردِ تصویر دقیق R4 در UEFI، راه‌اندازی
+بومی و افزونه، چهار سرویس، doctor، حفظ فارسی بومی و TLS/پنل بررسی شده‌اند.
+نشانگر خصوصی تکمیل به‌طور طبیعی پس از موفقیت ساخته شده است؛ یک reboot عادی،
+حفظ وضعیت و تکرارنشدن راه‌اندازی بومی و افزونه را تأیید کرد.
+نتیجهٔ قدیمی R3 و مهاجرت محافظ، شواهد تاریخی جداگانه‌اند.
 
 نام‌های فنی بالادستی، مانند بسته‌ها، سرویس‌ها، مسیرهای `issabel` و شناسه‌های
 پایگاه داده برای سازگاری حفظ می‌شوند؛ برند قابل مشاهده MytelPBX / Mytel.one است.
@@ -72,18 +84,24 @@ curl -fsSL -o install-mytellpbx.sh https://github.com/DashSaman/MyTellPBX/releas
 
 ---
 
-# MytelPBX 7.7.0 candidate
+# MytelPBX 7.7.0 revision 2
 
 The online installer runs the pinned native Issabel flow on **fresh Rocky Linux
 8.10 Minimal x86_64**. It keeps the native language/package dialogs, installs
 **Asterisk 20 only**, and retains the native four-screen password
 setup. Mytel branding and checksum-pinned **MytelDesk 1.1.3** with CPU VAD follow
-successful native initialization. The online flow reboots automatically after
-successful completion.
+successful native initialization. A bounded 120-second readiness gate waits for
+the Asterisk 20 CLI and MariaDB/httpd/Asterisk services; a wrong version or timeout
+stops the add-on. Native language choice is retained. The online flow reboots
+automatically after native cleanup and the final Desk doctor check succeed.
 
 The one-line command above downloads the script to a file before running Bash,
-preserving the interactive terminal. Its `v7.7.0` URL is the intended release URL;
-this candidate remains pending the [final release receipt](docs/releases/7.7.0/verification.md).
+preserving the interactive terminal. The three frozen `v7.7.0-r2` assets passed
+anonymous checksum/manifest readback. Fresh R2 installation/postboot and the bounded
+lab core, speech, native recording, automatic CPU VAD and same-call playback/download
+checks passed. Independent fixture-cleanup/preservation and the ordinary R4 reboot
+checks also passed. The [release record](docs/releases/7.7.0/verification.md) defines
+the accepted installation/media scope and its recorded limitations.
 
 MytelDesk is served at `/MytellDesk/`. **Panel account** uses authorized panel
 credentials; the independent Desk administrator record is root-only at
@@ -93,7 +111,12 @@ recording policy for the intended use.
 The separate owner-lab ISO remasters the original vendor ISO, retaining its
 native firstboot/password and language flows. Its native **Software Selection** screen offers
 **MytelPBX with Asterisk 20 only**. The ISO binary is
-not uploaded to GitHub. Upstream technical package/service/database identifiers
+not uploaded to GitHub. A cold UEFI installation of the exact R4 image passed its
+native/add-on baseline, services, doctor, native Persian, automatic protected success
+marker and TLS/panel checks. One ordinary post-install reboot preserved state and
+skipped native initialization/add-on replay;
+the earlier R3 installation/guard migration retains its historical scope.
+Upstream technical package/service/database identifiers
 remain intact. See the [English installation guide](docs/INSTALL.en.md) for both paths,
 network policy and current acceptance limits. Older release records cover their
 own versions only.

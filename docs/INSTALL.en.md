@@ -1,18 +1,21 @@
-# MytelPBX 7.7.0 candidate installation
+# MytelPBX 7.7.0 revision 2 installation
 
-This is a **release candidate**. The final bundle pin, published release assets
-and lab acceptance must be recorded in the [7.7.0 verification receipt](releases/7.7.0/verification.md)
-before this guide describes an accepted release. Commands below name the intended
-`v7.7.0` assets; their presence here does not claim publication or runtime success.
+This is **revision 2**, published as `v7.7.0-r2`. Its three frozen online
+assets passed anonymous public checksum and all-123-file manifest
+readback. A fresh R2 installation and postboot checks passed, followed by seven core
+cases, four speech cases and four same-call recording/playback/download cases with
+native WAV/CDR and automatic CPU VAD proof. Independent cleanup/preservation and
+the ordinary R4 post-reboot checks passed. Acceptance is limited to the tested
+installation/media scope and recorded limitations in the
+[7.7.0 verification record](releases/7.7.0/verification.md).
 
 ## Online installation
 
 Use a **fresh Rocky Linux 8.10 Minimal x86_64 server**, root access, an interactive
-console or SSH terminal, and working Internet access. After the final release asset
-is available, run:
+console or SSH terminal, and working Internet access. To install the published revision, run:
 
 ```bash
-curl -fsSL -o install-mytellpbx.sh https://github.com/DashSaman/MyTellPBX/releases/download/v7.7.0/install-mytellpbx.sh && bash install-mytellpbx.sh
+curl -fsSL -o install-mytellpbx.sh https://github.com/DashSaman/MyTellPBX/releases/download/v7.7.0-r2/install-mytellpbx.sh && bash install-mytellpbx.sh
 ```
 
 The script is downloaded to a file before Bash starts, so native dialogs retain
@@ -22,14 +25,20 @@ for an installed or partly initialized server.
 
 The native sequence includes:
 
-1. Native language selection.
+1. Native language selection; the saved choice is retained by the Mytel layer.
 2. Asterisk **20**, installed automatically without a version-selection dialog.
 3. Native optional package selection. Vendor licensed modules remain optional;
    choosing them is not a Mytel license or paid activation.
 4. Native repositories, packages and post-install setup.
 5. Native password dialogs through `issabel-admin-passwords --init`.
 6. The shared Mytel branding/Desk add-on after native setup succeeds.
-7. Native cleanup, completion and **automatic reboot** on online success.
+7. Native cleanup, an independent Desk doctor check, completion and **automatic
+   reboot** on online success.
+
+Before changing the add-on state, a bounded 120-second wait checks the actual
+Asterisk 20 CLI and MariaDB, httpd and Asterisk services. It neither restarts the
+core nor replays initialization. An observed different Asterisk major is rejected;
+unready services or CLI time out and stop the stage.
 
 A failed checked stage stops subsequent stages and automatic reboot. Both
 installation paths support Asterisk 20 only. Installation and call acceptance
@@ -53,9 +62,13 @@ or call-acceptance result.
 ## Panel, Desk and CPU VAD
 
 After successful completion and reboot, open `https://<server-ip>/` and sign in as
-`admin` with the password chosen in the native wizard. Web TLS follows the native
-base; prepare trusted domain TLS for the deployment. The Mytel add-on does not
-replace the base TLS policy.
+`admin` with the password chosen in the native wizard. The pinned native generator
+retains its existing-certificate guard and key/lifetime policy. When it generates
+a new default certificate, its Organization is MytelPBX - Mytel.one and its SANs
+include validated native DNS and assigned global-scope IPv4 addresses (including
+LAN addresses). A self-signed default still needs explicit trust; prepare trusted
+TLS for the deployment. Existing configured/custom certificates follow the unchanged native generation
+guard.
 
 MytelDesk is at `/MytellDesk/`. Choose **Panel account** to use an authorized native
 panel account. The separate Desk administrator record is described above.
@@ -109,6 +122,17 @@ usual ports below are planning references, not a claim that rules were installed
 | 10000–20000 UDP | RTP, according to Asterisk configuration |
 
 Online package/release sources and Desk dependencies require network access.
+The imported upstream installer was supplied from an HTTP origin and originally
+used HTTP mirror/key URLs. This derivative uses the official US Issabel HTTPS
+repository definitions, removes the global yum `--nogpg` switch and retains each
+vendor repository signature policy. In particular, the two enabled legacy Issabel
+4 repositories retain `gpgcheck=0`; the source-repository definition is disabled.
+Bootstrap/bundle hashes do not imply that every upstream RPM has signature checking.
+An observed R6 native primary-metadata response contained absolute HTTP RPM URLs,
+even with HTTPS base/key definitions. Package transfers therefore cannot be
+described as uniformly TLS-protected. The GitHub bootstrap/bundle verified-HTTPS
+and SHA256 chain is separate from this native repository/payload policy.
+The original source bytes and technical/legal identities remain unchanged.
 GeoIP uses the native upstream installation/data state; the Mytel page reports
 that state without installing a separate GeoIP engine. Package, service, path and
 database identifiers such as `issabel-*` remain unchanged for compatibility.
@@ -123,15 +147,28 @@ command. The native **Software Selection** screen offers **MytelPBX with Asteris
 20 only**. Language selection remains available. Asterisk 16 and 18 groups and
 their selectable environments are omitted from the derived installer metadata;
 the original RPM bytes and optional `rbl`/`guru` choices remain intact.
-Only group/environment metadata, human labels and its repository index are updated.
-The native firstboot success hook runs only the shared Mytel add-on after native
-setup; it does not run another PBX core installer.
+Within **native repo metadata**, only group/environment metadata, human labels
+and its repository index are updated; non-group records and RPM bytes are
+preserved. The ISO also includes Mytel boot/Anaconda presentation assets, the
+sealed add-on depot and the native firstboot success hook. That hook runs the
+shared Mytel add-on after native setup, not another PBX core installer. Its
+Root-protected completion marker is written only after successful add-on exit;
+`ConditionPathExists=!/var/lib/mytelpbx-native-addons/offline-complete` prevents
+later firstboot invocations from rerunning native initialization and the add-on.
 
 The ISO retains the vendor Kickstart storage policy, including `clearpart --all
 --initlabel` and automatic ext4 partitioning. It is for the designated fresh lab
-VM with dedicated disks. Its BIOS/UEFI boot and offline acceptance remain pending
-the final receipt. The ISO binary stays in the owner's lab and is **not uploaded
-to GitHub**.
+VM with dedicated disks. A cold UEFI installation of the exact incremental R4 ISO
+completed native/password/add-on setup and passed its baseline: all four services,
+Desk doctor, retained native Persian, normal CA/IP/date TLS and panel HTTP 200.
+The real root-owned mode-0600 completion marker was created by the success hook;
+no migration or manually created marker was used. One ordinary reboot passed:
+native setup and add-ons were skipped, the single completion receipt remained,
+and services, credentials, keys/certificates and owned metadata were preserved.
+The earlier R3 guard migration/systemd-239 reboot proof and
+BIOS20 media results retain their historical artifact/source scope. The
+ISO binary stays in the owner's lab and is **not uploaded to GitHub**; exact pins
+and the private R4 path are in the verification record.
 
 The current builder is `scripts/remaster-vendor-iso.py`. On the authorized Linux
 lab host, use the pinned original ISO and a verified sealed supplemental depot:
