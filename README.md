@@ -4,28 +4,26 @@
 
 وب‌سایت: [Mytel.one](https://mytel.one)
 
-نسخهٔ **۷٫۷٫۰ بازبینی ۲** از نصاب بومی Issabel برای نصب روی
+نسخهٔ **۷٫۷٫۰ بازبینی ۳** از نصاب بومی Issabel برای نصب روی
 **Rocky Linux 8.10 Minimal تازه، x86_64** استفاده می‌کند. پس از تکمیل
-راه‌اندازی بومی مرکز تلفن و رمزها، لایهٔ MytelPBX و **MytelDesk 1.1.3**
+راه‌اندازی بومی مرکز تلفن و رمزها، لایهٔ MytelPBX و **MytelDesk 1.1.4**
 با بستهٔ قفل‌شده و محیط VAD روی CPU نصب می‌شوند.
 
-دارایی‌های ثابت `v7.7.0-r2`، نصب آنلاین تازه و راه‌اندازی پس از reboot تأیید شده‌اند.
-آزمون‌های محدود آزمایشگاه برای تماس و صدای دوطرفه، hold/mute، ضبط بومی، VAD خودکار
-و یکسانی بایت‌های پخش و دانلود نیز قبول شده‌اند. پاک‌سازی واقعی آزمون و یک
-reboot عادی ISO با حفظ وضعیت و جلوگیری از تکرار نصب تأیید شده‌اند.
-[رسید نسخهٔ ۷٫۷٫۰](docs/releases/7.7.0/verification.md) پذیرش در دامنهٔ نصب و
-مدیای آزموده‌شده و محدودیت‌های ثبت‌شده را مشخص می‌کند.
+بازبینی ۳ ثبت جزئیات قطع تماس در CEL و پیام پاک‌سازی پنل را اصلاح می‌کند.
+در دو تماس داخلی آزمایشگاهی، میز کار قطع‌کنندهٔ تماس را هم برای تماس‌گیرنده
+و هم برای طرف مقابل درست نشان داد. نصب تمیز آنلاین و آفلاین تا پاسخ HTTPS پنل
+تأیید شدند. جزئیات در [گزارش بازبینی ۳](docs/releases/7.7.0/revision-3.md) آمده است.
 
 ## نصب آنلاین با یک خط
 
-برای نسخهٔ منتشرشدهٔ `v7.7.0-r2`، در ترمینال تعاملی سرور تازه و با دسترسی
+برای نسخهٔ `v7.7.0-r3`، در ترمینال تعاملی سرور تازه و با دسترسی
 root اجرا کنید. فایل ابتدا دریافت و سپس با Bash اجرا می‌شود؛ ترمینال برای
 پنجره‌های بومی در دسترس می‌ماند:
 
 </div>
 
 ```bash
-curl -fsSL -o install-mytellpbx.sh https://github.com/DashSaman/MyTellPBX/releases/download/v7.7.0-r2/install-mytellpbx.sh && bash install-mytellpbx.sh
+curl -fsSL -o install-mytellpbx.sh https://github.com/DashSaman/MyTellPBX/releases/download/v7.7.0-r3/install-mytellpbx.sh && bash install-mytellpbx.sh
 ```
 
 <div dir="rtl">
@@ -59,18 +57,15 @@ Asterisk صبر می‌کند؛ نسخهٔ اشتباه یا پایان مهلت
 
 - [نصب فارسی](docs/INSTALL.fa.md) · [Installation guide](docs/INSTALL.en.md)
 - [میز کار و VAD](docs/MYTELDESK_INSTALL_FA.md)
-- [دامنهٔ تأیید نسخهٔ ۷٫۷٫۰](docs/releases/7.7.0/verification.md)
-- [روش آزمون و محدودیت‌ها](docs/TESTING.md)
+- [تغییرات و آزمون‌های بازبینی ۳](docs/releases/7.7.0/revision-3.md)
+- [شواهد و محدودیت‌های بازبینی ۲](docs/releases/7.7.0/verification.md)
 - [شفافیت اجزای نرم‌افزاری](THIRD_PARTY_NOTICES.md)
 
 نسخهٔ بومی ISO از تصویر اصلی Issabel بازسازی می‌شود. در صفحهٔ بومی
 **Software Selection**، فقط MytelPBX با **استریسک ۲۰** ارائه می‌شود.
 فرایند بومی اولین راه‌اندازی و انتخاب زبان حفظ می‌شود. این ISO خروجی آزمایشگاه مالک
-است و در گیت‌هاب بارگذاری نمی‌شود. نصب سردِ تصویر دقیق R4 در UEFI، راه‌اندازی
-بومی و افزونه، چهار سرویس، doctor، حفظ فارسی بومی و TLS/پنل بررسی شده‌اند.
-نشانگر خصوصی تکمیل به‌طور طبیعی پس از موفقیت ساخته شده است؛ یک reboot عادی،
-حفظ وضعیت و تکرارنشدن راه‌اندازی بومی و افزونه را تأیید کرد.
-نتیجهٔ قدیمی R3 و مهاجرت محافظ، شواهد تاریخی جداگانه‌اند.
+است و روی سرور آزمایشگاه می‌ماند. نصب سرد تصویر نهایی R6 روی دیسک خالی و پاسخ
+پنل در [گزارش بازبینی ۳](docs/releases/7.7.0/revision-3.md) ثبت شده‌اند.
 
 نام‌های فنی بالادستی، مانند بسته‌ها، سرویس‌ها، مسیرهای `issabel` و شناسه‌های
 پایگاه داده برای سازگاری حفظ می‌شوند؛ برند قابل مشاهده MytelPBX / Mytel.one است.
@@ -84,24 +79,21 @@ Asterisk صبر می‌کند؛ نسخهٔ اشتباه یا پایان مهلت
 
 ---
 
-# MytelPBX 7.7.0 revision 2
+# MytelPBX 7.7.0 revision 3
 
 The online installer runs the pinned native Issabel flow on **fresh Rocky Linux
 8.10 Minimal x86_64**. It keeps the native language/package dialogs, installs
 **Asterisk 20 only**, and retains the native four-screen password
-setup. Mytel branding and checksum-pinned **MytelDesk 1.1.3** with CPU VAD follow
+setup. Mytel branding and checksum-pinned **MytelDesk 1.1.4** with CPU VAD follow
 successful native initialization. A bounded 120-second readiness gate waits for
 the Asterisk 20 CLI and MariaDB/httpd/Asterisk services; a wrong version or timeout
 stops the add-on. Native language choice is retained. The online flow reboots
 automatically after native cleanup and the final Desk doctor check succeed.
 
 The one-line command above downloads the script to a file before running Bash,
-preserving the interactive terminal. The three frozen `v7.7.0-r2` assets passed
-anonymous checksum/manifest readback. Fresh R2 installation/postboot and the bounded
-lab core, speech, native recording, automatic CPU VAD and same-call playback/download
-checks passed. Independent fixture-cleanup/preservation and the ordinary R4 reboot
-checks also passed. The [release record](docs/releases/7.7.0/verification.md) defines
-the accepted installation/media scope and its recorded limitations.
+preserving the interactive terminal. Revision 3 records CEL hangup details and
+fixes the native cleanup notification. The [revision 3 record](docs/releases/7.7.0/revision-3.md)
+describes the two live internal hangup tests, the verified cleanup, and installation status.
 
 MytelDesk is served at `/MytellDesk/`. **Panel account** uses authorized panel
 credentials; the independent Desk administrator record is root-only at
@@ -110,12 +102,9 @@ recording policy for the intended use.
 
 The separate owner-lab ISO remasters the original vendor ISO, retaining its
 native firstboot/password and language flows. Its native **Software Selection** screen offers
-**MytelPBX with Asterisk 20 only**. The ISO binary is
-not uploaded to GitHub. A cold UEFI installation of the exact R4 image passed its
-native/add-on baseline, services, doctor, native Persian, automatic protected success
-marker and TLS/panel checks. One ordinary post-install reboot preserved state and
-skipped native initialization/add-on replay;
-the earlier R3 installation/guard migration retains its historical scope.
+**MytelPBX with Asterisk 20 only**. The ISO binary remains on the owner's lab
+server. Cold installation and reboot results for the earlier R4 image are in the
+[revision 2 record](docs/releases/7.7.0/verification.md).
 Upstream technical package/service/database identifiers
 remain intact. See the [English installation guide](docs/INSTALL.en.md) for both paths,
 network policy and current acceptance limits. Older release records cover their

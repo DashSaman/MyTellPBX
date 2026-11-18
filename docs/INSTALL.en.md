@@ -1,13 +1,8 @@
-# MytelPBX 7.7.0 revision 2 installation
+# MytelPBX 7.7.0 revision 3 installation
 
-This is **revision 2**, published as `v7.7.0-r2`. Its three frozen online
-assets passed anonymous public checksum and all-123-file manifest
-readback. A fresh R2 installation and postboot checks passed, followed by seven core
-cases, four speech cases and four same-call recording/playback/download cases with
-native WAV/CDR and automatic CPU VAD proof. Independent cleanup/preservation and
-the ordinary R4 post-reboot checks passed. Acceptance is limited to the tested
-installation/media scope and recorded limitations in the
-[7.7.0 verification record](releases/7.7.0/verification.md).
+Revision 3 uses tag `v7.7.0-r3` and includes MytelDesk 1.1.4, CEL hangup
+details and a fix for the native cleanup notification. The current
+[revision 3 record](releases/7.7.0/revision-3.md) tracks the exact scope of verification.
 
 ## Online installation
 
@@ -15,7 +10,7 @@ Use a **fresh Rocky Linux 8.10 Minimal x86_64 server**, root access, an interact
 console or SSH terminal, and working Internet access. To install the published revision, run:
 
 ```bash
-curl -fsSL -o install-mytellpbx.sh https://github.com/DashSaman/MyTellPBX/releases/download/v7.7.0-r2/install-mytellpbx.sh && bash install-mytellpbx.sh
+curl -fsSL -o install-mytellpbx.sh https://github.com/DashSaman/MyTellPBX/releases/download/v7.7.0-r3/install-mytellpbx.sh && bash install-mytellpbx.sh
 ```
 
 The script is downloaded to a file before Bash starts, so native dialogs retain
@@ -73,12 +68,14 @@ guard.
 MytelDesk is at `/MytellDesk/`. Choose **Panel account** to use an authorized native
 panel account. The separate Desk administrator record is described above.
 
-The add-on delegates to the pinned **MytelDesk 1.1.3** installer. The exact archive
+The add-on delegates to the pinned **MytelDesk 1.1.4** installer. The exact archive
 hash and source identifiers are in [myteldesk-release.json](../installer/myteldesk-release.json).
 Its dedicated runtime and CPU VAD dependencies are verified by the Desk installer
 and `myteldesk doctor`; a service/model check does not establish SIP registration,
 two-way audio or VAD on a recorded call. Configure valid SIP/WebRTC extensions,
-trunks and recording/retention policy separately.
+trunks and recording/retention policy separately. New CEL HANGUP records can
+provide the cause, dial status and source channel to Call History. Historical
+calls without recorded CEL metadata continue to use CDR data.
 
 Optional `MYTELL_DESK_PUBLIC_URL=https://pbx.example.com` selects the Desk origin
 when set for the installation. It does not issue certificates or provision trunks.
@@ -158,7 +155,7 @@ later firstboot invocations from rerunning native initialization and the add-on.
 
 The ISO retains the vendor Kickstart storage policy, including `clearpart --all
 --initlabel` and automatic ext4 partitioning. It is for the designated fresh lab
-VM with dedicated disks. A cold UEFI installation of the exact incremental R4 ISO
+VM with dedicated disks. The historical cold UEFI installation of the earlier R4 ISO
 completed native/password/add-on setup and passed its baseline: all four services,
 Desk doctor, retained native Persian, normal CA/IP/date TLS and panel HTTP 200.
 The real root-owned mode-0600 completion marker was created by the success hook;
@@ -166,9 +163,9 @@ no migration or manually created marker was used. One ordinary reboot passed:
 native setup and add-ons were skipped, the single completion receipt remained,
 and services, credentials, keys/certificates and owned metadata were preserved.
 The earlier R3 guard migration/systemd-239 reboot proof and
-BIOS20 media results retain their historical artifact/source scope. The
-ISO binary stays in the owner's lab and is **not uploaded to GitHub**; exact pins
-and the private R4 path are in the verification record.
+BIOS20 media results retain their historical artifact/source scope. The ISO binary
+stays on the owner's lab server. See the current [revision 3 record](releases/7.7.0/revision-3.md)
+for the new image's acceptance status.
 
 The current builder is `scripts/remaster-vendor-iso.py`. On the authorized Linux
 lab host, use the pinned original ISO and a verified sealed supplemental depot:
