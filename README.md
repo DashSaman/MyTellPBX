@@ -4,7 +4,7 @@
 
 وب‌سایت: [Mytel.one](https://mytel.one)
 
-نسخهٔ **۷٫۷٫۰ بازبینی ۳** از نصاب بومی Issabel برای نصب روی
+نسخهٔ **۷٫۷٫۰ بازبینی ۴** از نصاب بومی Issabel برای نصب روی
 **Rocky Linux 8.10 Minimal تازه، x86_64** استفاده می‌کند. پس از تکمیل
 راه‌اندازی بومی مرکز تلفن و رمزها، لایهٔ MytelPBX و **MytelDesk 1.1.4**
 با بستهٔ قفل‌شده و محیط VAD روی CPU نصب می‌شوند.
@@ -16,19 +16,19 @@
 
 ## نصب آنلاین با یک خط
 
-برای نسخهٔ `v7.7.0-r3`، در ترمینال تعاملی سرور تازه و با دسترسی
+برای نسخهٔ `v7.7.0-r4`، در ترمینال تعاملی سرور تازه و با دسترسی
 root اجرا کنید. فایل ابتدا دریافت و سپس با Bash اجرا می‌شود؛ ترمینال برای
 پنجره‌های بومی در دسترس می‌ماند:
 
 </div>
 
 ```bash
-curl -fsSL -o install-mytellpbx.sh https://github.com/DashSaman/MyTellPBX/releases/download/v7.7.0-r3/install-mytellpbx.sh && bash install-mytellpbx.sh
+curl -fsSL -o install-mytellpbx.sh https://github.com/DashSaman/MyTellPBX/releases/download/v7.7.0-r4/install-mytellpbx.sh && bash install-mytellpbx.sh
 ```
 
 <div dir="rtl">
 
-نصاب، هش بسته را بررسی می‌کند و ترتیب بومی انتخاب زبان، نصب
+نصاب، هش بسته را بررسی می‌کند و ترتیب بومی انتخاب زبان پیام‌های صوتی، نصب
 **استریسک ۲۰**، بسته‌های اختیاری، نصب و راه‌اندازی
 رمزها را اجرا می‌کند. پنجره‌های بومی، رمز MariaDB را همراه تأیید و سپس رمز
 مدیر پنل را همراه تأیید می‌پرسند. پس از موفقیت لایهٔ Mytel و doctor پس از پاک‌سازی بومی، مسیر آنلاین طبق
@@ -36,7 +36,8 @@ curl -fsSL -o install-mytellpbx.sh https://github.com/DashSaman/MyTellPBX/releas
 
 لایهٔ افزوده تا ۱۲۰ ثانیه برای CLI استریسک ۲۰ و فعال‌شدن MariaDB، httpd و
 Asterisk صبر می‌کند؛ نسخهٔ اشتباه یا پایان مهلت، خطاست و ادامه را متوقف می‌کند.
-انتخاب زبان بومی حفظ می‌شود و لایهٔ مای‌تل آن را به فارسی بازنویسی نمی‌کند.
+پنل وب از اولین ورود فارسی است و گزینهٔ تغییر زبان ندارد. زبان پیام‌های صوتی
+استریسک جداگانه در مرحلهٔ بومی نصب انتخاب می‌شود.
 
 این مسیر برای نصب تازه است. نصب موجود یا نیمه‌تمام به بررسی و بازیابی محدود
 نیاز دارد؛ اجرای دوبارهٔ نصاب پایه، روش ارتقای یک PBX عملیاتی نیست.
@@ -63,7 +64,7 @@ Asterisk صبر می‌کند؛ نسخهٔ اشتباه یا پایان مهلت
 
 نسخهٔ بومی ISO از تصویر اصلی Issabel بازسازی می‌شود. در صفحهٔ بومی
 **Software Selection**، فقط MytelPBX با **استریسک ۲۰** ارائه می‌شود.
-فرایند بومی اولین راه‌اندازی و انتخاب زبان حفظ می‌شود. این ISO خروجی آزمایشگاه مالک
+فرایند بومی اولین راه‌اندازی و انتخاب زبان پیام‌های صوتی حفظ می‌شود. این ISO خروجی آزمایشگاه مالک
 است و روی سرور آزمایشگاه می‌ماند. نصب سرد تصویر نهایی R6 روی دیسک خالی و پاسخ
 پنل در [گزارش بازبینی ۳](docs/releases/7.7.0/revision-3.md) ثبت شده‌اند.
 
@@ -79,15 +80,16 @@ Asterisk صبر می‌کند؛ نسخهٔ اشتباه یا پایان مهلت
 
 ---
 
-# MytelPBX 7.7.0 revision 3
+# MytelPBX 7.7.0 revision 4
 
 The online installer runs the pinned native Issabel flow on **fresh Rocky Linux
-8.10 Minimal x86_64**. It keeps the native language/package dialogs, installs
+8.10 Minimal x86_64**. It keeps the native voice-prompt and package dialogs, installs
 **Asterisk 20 only**, and retains the native four-screen password
 setup. Mytel branding and checksum-pinned **MytelDesk 1.1.4** with CPU VAD follow
 successful native initialization. A bounded 120-second readiness gate waits for
 the Asterisk 20 CLI and MariaDB/httpd/Asterisk services; a wrong version or timeout
-stops the add-on. Native language choice is retained. The online flow reboots
+stops the add-on. The web panel opens in Persian and has no language selector.
+The online flow reboots
 automatically after native cleanup and the final Desk doctor check succeed.
 
 The one-line command above downloads the script to a file before running Bash,
@@ -101,7 +103,7 @@ credentials; the independent Desk administrator record is root-only at
 recording policy for the intended use.
 
 The separate owner-lab ISO remasters the original vendor ISO, retaining its
-native firstboot/password and language flows. Its native **Software Selection** screen offers
+native firstboot/password and voice-prompt language flows. Its native **Software Selection** screen offers
 **MytelPBX with Asterisk 20 only**. The ISO binary remains on the owner's lab
 server. Cold installation and reboot results for the earlier R4 image are in the
 [revision 2 record](docs/releases/7.7.0/verification.md).

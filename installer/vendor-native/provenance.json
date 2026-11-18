@@ -44,7 +44,7 @@
     "issabel-change-language": {
       "url": "https://github.com/IssabelFoundation/config_helpers/blob/94d6b7cfe1b60b0fe5f364d97d5b285d6a2319dd/issabel-change-language",
       "sha256": "c92b4c14ea2d37c1728a08da4741839b111e65f32ce8fdf897ed3b03777b13b6",
-      "change": "Hash-bound display labels plus one startup presence guard around the native source /etc/issabel.conf. Genuine pre-install absence is quiet; existing invalid files, directories and broken symlinks retain native diagnostics. No configuration or credentials are created, and native options, selection, auth and late password flow remain unchanged."
+      "change": "Hash-bound branding and voice-prompt labels plus one startup presence guard around the native source /etc/issabel.conf. Genuine pre-install absence is quiet; existing invalid files, directories and broken symlinks retain native diagnostics. No configuration or credentials are created, and native options, selection, auth and late password flow remain unchanged."
     }
   },
   "derivation_changes": [

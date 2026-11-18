@@ -310,33 +310,38 @@ def copy_assets(source, destination):
             shutil.copyfile(str(path), str(target))
 
 
+PANEL_SETTINGS = (('language', 'fa'), ('theme', 'mytel'))
+PANEL_KEYS = tuple(key for key, value in PANEL_SETTINGS)
+PANEL_ROWS_SQL = 'SELECT key,value FROM settings WHERE key IN (?,?) ORDER BY key'
+DELETE_PANEL_SETTINGS_SQL = 'DELETE FROM settings WHERE key IN (?,?)'
+
+
 def snapshot_settings(settings, backup):
     # Connection.backup was introduced after Python 3.6. A read transaction and
     # iterdump keep this hook compatible with Rocky's platform-python as well.
     with closing(sqlite3.connect(str(settings))) as source:
         source.execute('BEGIN')
-        rows = list(source.execute('SELECT key,value FROM settings WHERE key=?', ('theme',)))
+        rows = source.execute(PANEL_ROWS_SQL, PANEL_KEYS).fetchall()
         (backup / 'settings.sql').write_text('\n'.join(source.iterdump()) + '\n', encoding='utf-8')
     return rows
 
 
 def restore_settings(settings, rows):
-    # Own only the theme. Native language selection may change independently,
-    # including while another addon stage fails; never restore that choice.
-    if any(key != 'theme' for key, value in rows):
+    if any(key not in PANEL_KEYS for key, value in rows):
         raise ValueError('Rollback settings contain a key not owned by this addon')
     with closing(sqlite3.connect(str(settings))) as database, database:
-        database.execute('DELETE FROM settings WHERE key=?', ('theme',))
+        database.execute(DELETE_PANEL_SETTINGS_SQL, PANEL_KEYS)
         database.executemany('INSERT INTO settings (key,value) VALUES (?,?)', rows)
 
 
-def activate_theme(settings):
-    # Preserve the language chosen by the original native language wizard.
+def activate_panel_settings(settings):
+    # This is the web panel's SQLite settings database. Asterisk prompt
+    # language is stored separately by the native installer.
     with closing(sqlite3.connect(str(settings))) as database, database:
-        database.execute('DELETE FROM settings WHERE key=?', ('theme',))
-        database.execute('INSERT INTO settings (key,value) VALUES (?,?)', ('theme', 'mytel'))
-        if database.execute('SELECT value FROM settings WHERE key=?', ('theme',)).fetchall() != [('mytel',)]:
-            raise ValueError('Native theme activation verification failed')
+        database.execute(DELETE_PANEL_SETTINGS_SQL, PANEL_KEYS)
+        database.executemany('INSERT INTO settings (key,value) VALUES (?,?)', PANEL_SETTINGS)
+        if database.execute(PANEL_ROWS_SQL, PANEL_KEYS).fetchall() != list(PANEL_SETTINGS):
+            raise ValueError('Persian panel settings activation verification failed')
 
 
 def optional_asternic_plan(bundle, web):
@@ -415,6 +420,7 @@ def prepare_files(bundle, root, staging):
     sub.write_text(theme.transform_subtitle(sub.read_text(encoding='utf-8')), encoding='utf-8')
     # Optional exact-version Asternic patch; absence is explicit and harmless.
     external = dict(optional_asternic_plan(bundle, web))
+    external.update(load('native_panel_locale', bundle / 'admin-theme/patch-panel-locale.py').plan(web))
     external[root / 'etc/amportal.conf'] = replace_brand_config(regular(root / 'etc/amportal.conf').read_text(encoding='utf-8'))
     for path, before, after in load('native_login', bundle / 'admin-theme/patch-login-branding.py').plan(root):
         external[path] = after.decode('utf-8')
@@ -661,19 +667,22 @@ def install(bundle, backup_root, requested=None, media=None, public_url=None, ch
         # Every original above is secured before the first installed-file write.
         import pwd
         account = pwd.getpwnam('asterisk')
+        settings_activated = False
         try:
             print('Mytel addons: activating the validated presentation layer.', flush=True)
             for path, data in changes.items():
                 web_asset = root / 'var/www/html' in path.parents
                 atomic_write(path, data, account.pw_uid if web_asset else 0, account.pw_gid if web_asset else 0)
             brand_database(credentials, 'apply')
-            activate_theme(settings)
+            activate_panel_settings(settings)
+            settings_activated = True
             run(['httpd', '-t'])
             run(['systemctl', 'reload', 'httpd'])
         except BaseException:
             rollback_files(records, backup, root)
             brand_database(credentials, 'restore', rows)
-            restore_settings(settings, settings_before)
+            if settings_activated:
+                restore_settings(settings, settings_before)
             state['phase'] = 'ui-rolled-back'
             receipt.write_text(json.dumps(state, indent=2), encoding='utf-8')
             raise

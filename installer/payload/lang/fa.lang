@@ -74,6 +74,10 @@ $arrLang=array(
 "Password"=>"رمز عبور",
 "Submit"=>"ورود",
 "Login page"=>"صفحه ورود",
+"Incorrect username or password. Please try again." => "شناسهٔ کاربری یا رمز عبور اشتباه است. دوباره تلاش کنید.",
+"Two Factor Authentication" => "احراز هویت دومرحله‌ای",
+"Code" => "کد تأیید",
+"Your session has expired. If you want to do a login please press the button 'Accept'." => "نشست شما به پایان رسیده است. برای ورود دوباره، دکمهٔ «تأیید» را بزنید.",
 /*end Login to Issabel*/
 
 

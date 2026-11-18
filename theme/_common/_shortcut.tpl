@@ -7,11 +7,13 @@
         </a>
         <ul>
             {foreach from=$SHORTCUT_BOOKMARKS item=shortcut name=shortcut}
+                {if $shortcut.namemenu != 'language'}
                 <li>
                     <a href="index.php?menu={$shortcut.namemenu}">
                         <span>{$shortcut.name}</span>
                     </a>
                 </li>
+                {/if}
             {/foreach}
         </ul>
     {/if}
@@ -23,11 +25,13 @@
     </a>
     <ul>
         {foreach from=$SHORTCUT_HISTORY item=shortcut}
+            {if $shortcut.namemenu != 'language'}
             <li>
                 <a href="index.php?menu={$shortcut.namemenu}">
                     <span>{$shortcut.name}</span>
                 </a>
             </li>
+            {/if}
         {/foreach}
     </ul>
 </li>

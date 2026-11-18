@@ -1,8 +1,9 @@
-# MytelPBX 7.7.0 revision 3 installation
+# MytelPBX 7.7.0 revision 4 installation
 
-Revision 3 uses tag `v7.7.0-r3` and includes MytelDesk 1.1.4, CEL hangup
-details and a fix for the native cleanup notification. The current
-[revision 3 record](releases/7.7.0/revision-3.md) tracks the exact scope of verification.
+Revision 4 uses tag `v7.7.0-r4`. Both installers set the web panel to Persian
+from the first sign-in and remove its language selector. The web panel locale
+is independent of the native Asterisk voice-prompt selection. The
+[revision 3 record](releases/7.7.0/revision-3.md) covers the earlier release.
 
 ## Online installation
 
@@ -10,7 +11,7 @@ Use a **fresh Rocky Linux 8.10 Minimal x86_64 server**, root access, an interact
 console or SSH terminal, and working Internet access. To install the published revision, run:
 
 ```bash
-curl -fsSL -o install-mytellpbx.sh https://github.com/DashSaman/MyTellPBX/releases/download/v7.7.0-r3/install-mytellpbx.sh && bash install-mytellpbx.sh
+curl -fsSL -o install-mytellpbx.sh https://github.com/DashSaman/MyTellPBX/releases/download/v7.7.0-r4/install-mytellpbx.sh && bash install-mytellpbx.sh
 ```
 
 The script is downloaded to a file before Bash starts, so native dialogs retain
@@ -20,7 +21,7 @@ for an installed or partly initialized server.
 
 The native sequence includes:
 
-1. Native language selection; the saved choice is retained by the Mytel layer.
+1. Native Asterisk voice-prompt language selection.
 2. Asterisk **20**, installed automatically without a version-selection dialog.
 3. Native optional package selection. Vendor licensed modules remain optional;
    choosing them is not a Mytel license or paid activation.
@@ -141,7 +142,7 @@ see [the third-party notices](../THIRD_PARTY_NOTICES.md).
 The separate ISO remasters the original **Issabel 5 ISO**, retaining its RPM bytes,
 non-group repository metadata, `/installamp` trigger and native firstboot/password
 command. The native **Software Selection** screen offers **MytelPBX with Asterisk
-20 only**. Language selection remains available. Asterisk 16 and 18 groups and
+20 only**. Voice-prompt language selection remains available. Asterisk 16 and 18 groups and
 their selectable environments are omitted from the derived installer metadata;
 the original RPM bytes and optional `rbl`/`guru` choices remain intact.
 Within **native repo metadata**, only group/environment metadata, human labels

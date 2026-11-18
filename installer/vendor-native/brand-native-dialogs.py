@@ -58,6 +58,8 @@ TOOLS = {
     'language': ('issabel-change-language',
                  'c92b4c14ea2d37c1728a08da4741839b111e65f32ce8fdf897ed3b03777b13b6', (
         (b'--backtitle "Issabel"', b'--backtitle "MytelPBX / Mytel.one"', 1),
+        (b'--radiolist "Select PBX language:" 15 40 10',
+         b'--radiolist "Asterisk voice prompts (web panel: Persian)" 15 58 10', 1),
         (br'\nIssabel"', br'\nMytelPBX\nMytel.one"', 1),
         (b'        7 11\n', b'        8 15\n', 1),
         (b'source /etc/issabel.conf\n',
