@@ -52,6 +52,10 @@ BRAND_KEYS = {
 SUPPLEMENTAL_PACKAGES = ('python3.11', 'python3.11-libs', 'python3.11-pip',
                          'python3.11-pip-wheel', 'python3.11-setuptools',
                          'python3.11-setuptools-wheel', 'mpdecimal')
+NATIVE_READY_SECONDS = 120.0
+NATIVE_PROBE_SECONDS = 5.0
+NATIVE_POLL_SECONDS = 2.0
+NATIVE_SERVICES = ('mariadb', 'httpd', 'asterisk')
 
 
 def load(name, path):
@@ -125,6 +129,61 @@ def run(argv, capture=False, data=None):
         # Never echo captured database diagnostics: they may contain credentials.
         raise ValueError('Native addon command failed: ' + Path(argv[0]).name)
     return result.stdout if capture else b''
+
+
+def wait_native_ready(requested=None):
+    """Allow the native asynchronous restart to settle, without modifying it."""
+    if requested is not None and str(requested) != '20':
+        raise ValueError('Native Asterisk version differs from the selected version')
+    deadline = time.monotonic() + NATIVE_READY_SECONDS
+    announced = False
+
+    def probe(argv, label):
+        remaining = deadline - time.monotonic()
+        if remaining <= 0:
+            return None
+        try:
+            return subprocess.run(argv, stdout=subprocess.PIPE, stderr=subprocess.PIPE,
+                                  timeout=min(NATIVE_PROBE_SECONDS, remaining))
+        except subprocess.TimeoutExpired:
+            return None
+        except OSError:
+            # Captured diagnostics and exception text are never presentation data.
+            raise ValueError('Native readiness probe unavailable: ' + label) from None
+
+    while True:
+        pending = []
+        major = None
+        version = probe(['/usr/sbin/asterisk', '-rx', 'core show version'], 'asterisk')
+        if version is not None and version.returncode == 0:
+            output = version.stdout.decode('utf-8', errors='replace')
+            match = re.search(r'\bAsterisk\s+([0-9]+)(?:\.|\s)', output)
+            if match and match.group(1) != '20':
+                raise ValueError('A running native Asterisk 20 is required')
+            try:
+                major = asterisk_major(output, requested)
+            except ValueError:
+                pass
+        if major is None:
+            pending.append('Asterisk 20 CLI')
+        for service in NATIVE_SERVICES:
+            # Multiple units can return success when only one is active.
+            active = probe(['systemctl', 'is-active', '--quiet', service], service)
+            if active is None or active.returncode != 0:
+                pending.append(service)
+        now = time.monotonic()
+        if not pending and now < deadline:
+            return major
+        if now >= deadline:
+            raise ValueError('Native startup timed out after ' + str(int(NATIVE_READY_SECONDS))
+                             + ' seconds; waiting for: ' + ', '.join(pending or ['readiness confirmation']))
+        if not announced:
+            print('Mytel addons: waiting up to ' + str(int(NATIVE_READY_SECONDS))
+                  + ' seconds for native startup; pending: ' + ', '.join(pending) + '.', flush=True)
+            announced = True
+        remaining = deadline - time.monotonic()
+        if remaining > 0:
+            time.sleep(min(NATIVE_POLL_SECONDS, remaining))
 
 
 def brand_database(credentials, action, rows=None):
@@ -500,9 +559,7 @@ def install(bundle, backup_root, requested=None, media=None, public_url=None, ch
         if item.is_symlink() or item.stat().st_uid != 0 or item.stat().st_mode & 0o022:
             raise ValueError('Addon bundle must be root owned, immutable to other users, without symlinks')
     credentials = native_credentials(root / 'etc/issabel.conf', root / 'etc/amportal.conf')
-    major = asterisk_major(run(['/usr/sbin/asterisk', '-rx', 'core show version'], capture=True).decode('utf-8'), requested)
-    for service in ('mariadb', 'httpd', 'asterisk'):
-        run(['systemctl', 'is-active', '--quiet', service])
+    major = wait_native_ready(requested)
     run(['httpd', '-t'])
     desk = load('native_desk', bundle / 'installer/install-myteldesk.py')
     pin = desk.validate_pin(json.loads(regular(bundle / 'installer/myteldesk-release.json').read_text(encoding='utf-8')))

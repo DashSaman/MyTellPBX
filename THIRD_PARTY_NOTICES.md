@@ -31,8 +31,8 @@ are preserved verbatim.
 
 ## Separately installed operator workspace
 
-- **MytelDesk 1.1.0**, a GPLv3 derivative of OpDesk, is installed as an independent
-  service from its checksum-pinned [public release](https://github.com/DashSaman/MytelDesk/releases/tag/v1.1.0).
+- **MytelDesk 1.1.3**, a GPLv3 derivative of OpDesk, is installed as an independent
+  service from its checksum-pinned [public release](https://github.com/DashSaman/MytelDesk/releases/tag/v1.1.3).
   That release includes its complete corresponding source and dependency notices.
 - Its CPU VAD component retains the Silero model's MIT notice and the notices of
   the locked NumPy, ONNXRuntime, WebRTC VAD and other Python wheels. The model and
@@ -50,19 +50,21 @@ are preserved verbatim.
   customized module and any production records are not bundled here. The
   integration does not change the license of the separately maintained theme.
 
-## Automatically downloaded IP country data
+## Native IP country data and legacy GeoIP assets
 
-- **DB-IP Country Lite** is downloaded monthly over HTTPS during installation
-  and subsequent updates. It needs no account or license key. The data is
+- The 7.7.0 native installation uses the upstream GeoIP installation/data state.
+  The Mytel page reports that state; it does not run the legacy DB-IP downloader
+  or range converter.
+- Retained legacy GeoIP tools support **DB-IP Country Lite**. The data is
   licensed under [CC BY 4.0](https://creativecommons.org/licenses/by/4.0/),
   with attribution to [DB-IP](https://db-ip.com). Free data has reduced
   coverage and accuracy; an IP location is approximate.
-- MyTellPBX validates and converts the ranges into the network-byte-order files
-  required by the installed xtables module. Each installed dataset retains its
-  source URL, SHA-256, conversion manifest and attribution notice. Security pages
-  that use these country results display a DB-IP attribution link.
+- When used separately, those legacy tools validate and convert ranges into the
+  network-byte-order files required by xtables. Their dataset provenance includes
+  the source URL, SHA-256, conversion manifest and attribution notice. Retain the
+  DB-IP attribution link on pages using those country results.
 - The existing xtables builder and consumer retain their upstream GPL notices.
-  The updater does not add, remove or reload firewall rules.
+  The legacy updater does not add, remove or reload firewall rules.
 
 ## Fonts
 

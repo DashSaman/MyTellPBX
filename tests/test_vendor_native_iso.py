@@ -5,6 +5,7 @@ import hashlib
 import os
 from pathlib import Path
 import re
+import shlex
 import shutil
 import subprocess
 import tempfile
@@ -145,7 +146,8 @@ class NativeIsoStructureTests(unittest.TestCase):
         self.assertNotRegex(dropin, r'(?m)^ExecStart=')
         self.assertNotIn('ExecStartPre=', dropin)
         self.assertIn('ExecStartPost=', dropin)
-        self.assertIn('chvt 2 && /bin/bash /usr/local/libexec/mytelpbx/run-offline.sh && chvt 1', dropin)
+        self.assertIn('chvt 2 && /bin/bash /usr/local/libexec/mytelpbx/run-offline.sh && ', dropin)
+        self.assertRegex(dropin, r'&& chvt 1"\n$')
         runner = (ROOT / 'installer/vendor-native/run-offline.sh').read_text()
         for forbidden in ['issabel-admin-passwords --init', 'install_amp', 'prepare-native-start',
                           'geoip_install.sh', 'dnf ', 'yum ']:
@@ -251,6 +253,172 @@ class NativeIsoStructureTests(unittest.TestCase):
                                         capture_output=True, timeout=20)
                 self.assertEqual(result.returncode, 0 if major == '20' else 79, result.stderr)
                 self.assertEqual(b'HOOK_ASTVER=20' in result.stdout, major == '20')
+
+
+@unittest.skipUnless(BASH and Path(BASH).is_file(), 'Bash is required')
+class NativeOfflineCompletionTests(unittest.TestCase):
+    """Execute the generated shell with external stubs and temporary paths only."""
+    def setUp(self):
+        temporary = tempfile.TemporaryDirectory(prefix='mytel-offline-completion-')
+        self.addCleanup(temporary.cleanup)
+        self.root = Path(temporary.name)
+        self.bin = self.root / 'bin'
+        self.bin.mkdir()
+        self.trace = self.root / 'trace'
+        self.state = self.root / 'state'
+        self.state.mkdir(mode=0o755)
+        self.marker = self.state / 'offline-complete'
+        self.runner = self.root / 'run-offline.sh'
+        scripts = {
+            self.bin / 'chvt': 'printf "chvt:%s\\n" "$1" >>"$TRACE"\n',
+            self.runner: 'printf "run-offline\\n" >>"$TRACE"\nexit "$RUNNER_RESULT"\n',
+            self.bin / 'stat': '''[ "$1" = -c ] && [ "$#" = 3 ] && [ "$3" = "$FIXTURE_STATE" ] || exit 85
+case "$2" in
+    %u) printf '%s\\n' "$PARENT_UID" ;;
+    %a) printf '%s\\n' "$PARENT_MODE" ;;
+    *) exit 86 ;;
+esac
+''',
+            self.bin / 'install': '''{
+    printf install
+    printf ' %s' "$@"
+    printf '\\n'
+} >>"$TRACE"
+directory=0
+mode=
+while [ "$#" -gt 0 ]; do
+    case "$1" in
+        -d) directory=1; shift ;;
+        -o|-g) [ "$2" = root ] || exit 81; shift 2 ;;
+        -m) mode="$2"; shift 2 ;;
+        *) break ;;
+    esac
+done
+if [ "$directory" = 1 ]; then
+    [ "$#" = 1 ] || exit 82
+    target="$1"
+else
+    [ "$#" = 2 ] && [ "$1" = /dev/null ] || exit 83
+    target="$2"
+    [ "$INSTALL_RESULT" = 0 ] || exit "$INSTALL_RESULT"
+fi
+case "$target" in "$FIXTURE_ROOT"/*) ;; *) exit 84 ;; esac
+if [ "$directory" = 1 ]; then mkdir -p "$target"; else : >"$target"; fi
+chmod "$mode" "$target"
+''',
+        }
+        for path, script in scripts.items():
+            path.write_bytes(('#!/bin/bash\nset -eu\n' + script).encode('utf-8'))
+            path.chmod(0o755)
+
+    def shell_path(self, path):
+        text = path.as_posix()
+        return '/' + text[0].lower() + text[2:] if os.name == 'nt' else text
+
+    def boot(self, runner_result=0, install_result=0, parent_uid=0, parent_mode='755', before_command=None):
+        config = configparser.ConfigParser(interpolation=None)
+        config.read_string(builder().firstboot_dropin())
+        condition = config.get('Unit', 'ConditionPathExists', fallback=None)
+        if condition is not None:
+            self.assertEqual(condition, '!/var/lib/mytelpbx-native-addons/offline-complete')
+            if self.marker.exists():
+                return None  # systemd skips the entire unit when this condition fails.
+        command = shlex.split(config['Service']['ExecStartPost'])
+        self.assertEqual(command[:2], ['/bin/bash', '-c'])
+        # systemd expands %% to a literal % before the command reaches Bash.
+        self.assertNotRegex(command[2].replace('%%', ''), r'%[a-zA-Z]',
+                            'All stat formats must escape systemd specifiers')
+        script = command[2].replace('%%', '%')
+        script = script.replace('/usr/local/libexec/mytelpbx/run-offline.sh',
+                                shlex.quote(self.shell_path(self.runner)))
+        script = script.replace('/var/lib/mytelpbx-native-addons',
+                                shlex.quote(self.shell_path(self.state)))
+        script = 'PATH=' + shlex.quote(self.shell_path(self.bin)) + ':/usr/bin:/bin\n' + script
+        environment = dict(os.environ, TRACE=self.shell_path(self.trace),
+                           FIXTURE_ROOT=self.shell_path(self.root),
+                           FIXTURE_STATE=self.shell_path(self.state),
+                           PARENT_UID=str(parent_uid), PARENT_MODE=parent_mode,
+                           RUNNER_RESULT=str(runner_result), INSTALL_RESULT=str(install_result))
+        if before_command is not None:
+            before_command()
+        return subprocess.run([BASH, '--noprofile', '--norc', '-c', script],
+                              env=environment, capture_output=True, timeout=20)
+
+    def events(self):
+        return self.trace.read_text().splitlines() if self.trace.exists() else []
+
+    def test_success_marks_private_completion_after_addons_before_returning_to_vt1(self):
+        result = self.boot()
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertTrue(self.marker.is_file(), 'Successful offline add-ons must prevent next-boot replay')
+        self.assertFalse(self.marker.is_symlink())
+        self.assertEqual(self.marker.stat().st_nlink, 1)
+        events = self.events()
+        self.assertEqual(events[:2], ['chvt:2', 'run-offline'])
+        self.assertIn('install -d -o root -g root -m 0700 ', events[2])
+        self.assertIn('install -o root -g root -m 0600 /dev/null ', events[3])
+        self.assertEqual(events[4:], ['chvt:1'])
+        if os.name != 'nt':
+            self.assertEqual(self.state.stat().st_mode & 0o777, 0o700)
+            self.assertEqual(self.marker.stat().st_mode & 0o777, 0o600)
+
+    def test_failed_addons_leave_no_completion_and_preserve_failure_on_vt2(self):
+        result = self.boot(runner_result=71)
+        self.assertEqual(result.returncode, 71, result.stderr)
+        self.assertFalse(self.marker.exists())
+        self.assertEqual(self.events(), ['chvt:2', 'run-offline'])
+
+    def test_completed_previous_boot_skips_even_when_addons_would_now_fail(self):
+        self.marker.write_bytes(b'')
+        self.marker.chmod(0o600)
+        self.assertIsNone(self.boot(runner_result=71), 'Completed installation must skip native unit on reboot')
+        self.assertEqual(self.events(), [])
+
+    def test_failed_completion_write_is_not_hidden_or_marked_successful(self):
+        result = self.boot(install_result=74)
+        self.assertEqual(result.returncode, 74, result.stderr)
+        self.assertFalse(self.marker.exists())
+        events = self.events()
+        self.assertEqual(events[:2], ['chvt:2', 'run-offline'])
+        self.assertEqual(len(events), 4)
+        self.assertTrue(events[2].startswith('install -d '))
+        self.assertTrue(events[3].startswith('install -o '))
+
+    def test_unsafe_existing_parent_is_rejected_before_metadata_changes(self):
+        for uid, mode in ((99, '755'), (0, '775'), (0, '757')):
+            with self.subTest(uid=uid, mode=mode):
+                if self.trace.exists():
+                    self.trace.unlink()
+                result = self.boot(parent_uid=uid, parent_mode=mode)
+                self.assertNotEqual(result.returncode, 0, result.stderr)
+                self.assertFalse(self.marker.exists())
+                self.assertEqual(self.events(), ['chvt:2', 'run-offline'])
+
+    def symlink(self, path, target, directory=False):
+        try:
+            path.symlink_to(target, target_is_directory=directory)
+        except OSError as error:
+            if os.name == 'nt' and getattr(error, 'winerror', None) == 1314:
+                self.skipTest('Windows symlink privilege is unavailable')
+            raise
+
+    def test_symlinked_parent_is_rejected_without_touching_its_target(self):
+        target = self.root / 'other'
+        target.mkdir()
+        self.state.rmdir()
+        self.symlink(self.state, target, directory=True)
+        result = self.boot()
+        self.assertNotEqual(result.returncode, 0, result.stderr)
+        self.assertEqual(list(target.iterdir()), [])
+        self.assertEqual(self.events(), ['chvt:2', 'run-offline'])
+
+    def test_dangling_marker_link_after_unit_condition_is_rejected(self):
+        target = self.root / 'missing-target'
+        result = self.boot(before_command=lambda: self.symlink(self.marker, target))
+        self.assertNotEqual(result.returncode, 0, result.stderr)
+        self.assertTrue(self.marker.is_symlink())
+        self.assertFalse(target.exists())
+        self.assertEqual(self.events(), ['chvt:2', 'run-offline'])
 
 
 if __name__ == '__main__':

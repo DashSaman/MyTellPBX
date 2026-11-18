@@ -109,9 +109,25 @@ chroot "$target" /bin/bash /usr/local/libexec/mytelpbx/run-offline.sh --verify-m
 
 def firstboot_dropin():
     # Native ExecStart changes back to VT1. Show add-on progress on its existing
-    # TTY2 and retain that screen on failure. systemd runs this only after success.
-    return ('[Service]\n'
-            'ExecStartPost=/bin/bash -c "chvt 2 && /bin/bash /usr/local/libexec/mytelpbx/run-offline.sh && chvt 1"\n')
+    # TTY2 and retain that screen on failure. Mark only completed offline add-ons;
+    # the enabled native unit must not replay them on the next boot.
+    state = '/var/lib/mytelpbx-native-addons'
+    marker = state + '/offline-complete'
+    commands = [
+        'chvt 2',
+        '/bin/bash /usr/local/libexec/mytelpbx/run-offline.sh',
+        'test -d ' + state,
+        r'test \"$(readlink -e ' + state + r')\" = ' + state,
+        r'test \"$(stat -c %%u ' + state + r')\" = 0',
+        r'test \"$((8#$(stat -c %%a ' + state + r') & 8#022))\" = 0',
+        'test ! -e ' + marker,
+        'test ! -L ' + marker,
+        'install -d -o root -g root -m 0700 ' + state,
+        'install -o root -g root -m 0600 /dev/null ' + marker,
+        'chvt 1',
+    ]
+    return ('[Unit]\nConditionPathExists=!' + marker + '\n\n[Service]\n'
+            'ExecStartPost=/bin/bash -c "' + ' && '.join(commands) + '"\n')
 
 
 def boot_config(source, label, version):

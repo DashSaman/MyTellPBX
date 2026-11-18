@@ -1,7 +1,8 @@
 """Native addon boundary regressions. No PBX connection or runtime claim."""
 import importlib.util
 import hashlib
-from contextlib import closing
+from contextlib import closing, redirect_stdout
+import io
 import json
 import os
 from pathlib import Path
@@ -202,6 +203,214 @@ class NativeIdentityTests(unittest.TestCase):
         self.assertIn('BRAND_TITLE=MytelPBX\n', result)
         with self.assertRaises(ValueError):
             ADDONS.replace_brand_config(original + 'BRAND_TITLE=duplicate\n')
+
+
+class NativeReadinessTests(unittest.TestCase):
+    class NextValidation(Exception):
+        pass
+
+    def setUp(self):
+        self.now = 0.0
+        self.sleeps = []
+        self.calls = []
+        self.cli_after = 0.0
+        self.unready_returncode = 0
+        self.services_after = dict.fromkeys(('mariadb', 'httpd', 'asterisk'), 0.0)
+        self.version = b'Asterisk 20.12.0 built by vendor\n'
+        self.command_seconds = 0.0
+        self.command_timeouts = False
+        self.command_error = None
+        self.output = io.StringIO()
+        patches = [
+            mock.patch.object(ADDONS.time, 'monotonic', side_effect=lambda: self.now),
+            mock.patch.object(ADDONS.time, 'sleep', side_effect=self.sleep),
+            mock.patch.object(ADDONS, 'NATIVE_READY_SECONDS', 6.0, create=True),
+            mock.patch.object(ADDONS, 'NATIVE_PROBE_SECONDS', 2.0, create=True),
+            mock.patch.object(ADDONS, 'NATIVE_POLL_SECONDS', 1.0, create=True),
+            mock.patch.object(ADDONS.subprocess, 'run', side_effect=self.command),
+        ]
+        for patch in patches:
+            patch.start()
+            self.addCleanup(patch.stop)
+
+    def sleep(self, seconds):
+        self.assertGreater(seconds, 0)
+        self.sleeps.append(seconds)
+        self.now += seconds
+
+    def command(self, argv, **kwargs):
+        self.calls.append((list(argv), dict(kwargs), self.now))
+        if self.command_error:
+            raise self.command_error
+        if self.command_timeouts:
+            self.now += kwargs['timeout']
+            raise subprocess.TimeoutExpired(argv, kwargs['timeout'], output=b'private-output', stderr=b'private-diagnostic')
+        self.now += self.command_seconds
+        if argv == ['/usr/sbin/asterisk', '-rx', 'core show version']:
+            ready = self.now >= self.cli_after
+            return subprocess.CompletedProcess(argv, 0 if ready else self.unready_returncode,
+                                               self.version if ready else b'Unable to connect to remote asterisk',
+                                               b'' if ready else b'private-diagnostic')
+        if argv[:3] == ['systemctl', 'is-active', '--quiet']:
+            self.assertEqual(len(argv), 4, 'Each native service must be checked independently')
+            self.assertIn(argv[3], self.services_after)
+            ready = self.now >= self.services_after[argv[3]]
+            return subprocess.CompletedProcess(argv, 0 if ready else 3, b'', b'private-diagnostic')
+        if argv == ['httpd', '-t']:
+            return subprocess.CompletedProcess(argv, 0, b'', b'')
+        self.fail('Readiness must only run native read-only probes: ' + repr(argv))
+
+    def bundle(self):
+        bundle = mock.MagicMock(spec=Path)
+        bundle.rglob.return_value = []
+        bundle.is_symlink.return_value = False
+        bundle.stat.return_value.st_uid = 0
+        bundle.stat.return_value.st_mode = 0o40755
+        return bundle
+
+    def wait(self, requested='20'):
+        with redirect_stdout(self.output):
+            return ADDONS.wait_native_ready(requested)
+
+    def test_install_waits_for_delayed_cli_and_every_service_before_next_validation(self):
+        self.cli_after = 2.0
+        self.services_after['httpd'] = 3.0
+        with mock.patch.object(ADDONS, 'native_credentials', return_value={'user': 'root', 'password': 'fixture-only'}), \
+                mock.patch.object(ADDONS, 'load', side_effect=self.NextValidation), \
+                mock.patch.object(ADDONS, 'private_directory') as backup, \
+                mock.patch.object(ADDONS, 'brand_database') as database, \
+                mock.patch.object(ADDONS, 'atomic_write') as write, redirect_stdout(self.output):
+            with self.assertRaises(self.NextValidation):
+                ADDONS.install(self.bundle(), Path('/unused-backup'), requested='20')
+        self.assertGreaterEqual(self.now, 3.0)
+        self.assertTrue(self.sleeps)
+        self.assertIn('waiting', self.output.getvalue().lower())
+        backup.assert_not_called()
+        database.assert_not_called()
+        write.assert_not_called()
+
+    def test_ready_native_twenty_requires_all_three_individual_services_without_sleep(self):
+        self.assertEqual(self.wait(), '20')
+        self.assertEqual(self.sleeps, [])
+        self.assertEqual([a for a, unused, when in self.calls], [
+            ['/usr/sbin/asterisk', '-rx', 'core show version'],
+            ['systemctl', 'is-active', '--quiet', 'mariadb'],
+            ['systemctl', 'is-active', '--quiet', 'httpd'],
+            ['systemctl', 'is-active', '--quiet', 'asterisk'],
+        ])
+
+    def test_unready_cli_with_nonzero_exit_is_also_retried_until_ready(self):
+        self.unready_returncode = 1
+        self.cli_after = 2.0
+        self.assertEqual(self.wait(), '20')
+        self.assertEqual(self.now, 2.0)
+        self.assertTrue(self.sleeps)
+
+    def test_unsupported_requested_version_fails_before_any_probe(self):
+        with self.assertRaises(ValueError):
+            self.wait('18')
+        self.assertEqual(self.calls, [])
+        self.assertEqual(self.sleeps, [])
+
+    def test_each_unready_native_service_prevents_success_until_the_deadline(self):
+        for missing in ('mariadb', 'httpd', 'asterisk'):
+            with self.subTest(service=missing):
+                self.now = 0.0
+                self.calls.clear()
+                self.services_after = dict.fromkeys(('mariadb', 'httpd', 'asterisk'), 0.0)
+                self.services_after[missing] = float('inf')
+                with self.assertRaisesRegex(ValueError, 'timed out'):
+                    self.wait()
+                self.assertEqual(self.now, 6.0)
+                self.assertIn(missing, self.output.getvalue())
+                checked = {a[3] for a, unused, when in self.calls if a[0] == 'systemctl'}
+                self.assertEqual(checked, {'mariadb', 'httpd', 'asterisk'})
+
+    def test_valid_wrong_native_versions_fail_without_waiting_or_service_probes(self):
+        for version in (b'Asterisk 16.30.1', b'Asterisk 18.26.0', b'Asterisk 22.0.0'):
+            with self.subTest(version=version):
+                self.now = 0.0
+                self.calls.clear()
+                self.version = version
+                with self.assertRaises(ValueError):
+                    self.wait()
+                self.assertEqual(self.now, 0.0)
+                self.assertEqual(self.sleeps, [])
+                self.assertEqual(len(self.calls), 1)
+
+    def test_command_timeouts_share_one_deadline_and_never_use_the_long_run_wrapper(self):
+        self.command_timeouts = True
+        with mock.patch.object(ADDONS, 'run') as long_command:
+            with self.assertRaisesRegex(ValueError, 'timed out') as failure:
+                self.wait()
+        self.assertEqual(self.now, 6.0)
+        for unused, kwargs, started in self.calls:
+            self.assertGreater(kwargs['timeout'], 0)
+            self.assertLessEqual(kwargs['timeout'], 2.0)
+            self.assertLessEqual(kwargs['timeout'], 6.0 - started)
+        self.assertNotIn('private-output', str(failure.exception) + self.output.getvalue())
+        self.assertNotIn('private-diagnostic', str(failure.exception) + self.output.getvalue())
+        long_command.assert_not_called()
+
+    def test_probe_timeout_shrinks_to_the_remaining_budget(self):
+        self.command_seconds = 1.4
+        self.cli_after = float('inf')
+        with self.assertRaisesRegex(ValueError, 'timed out'):
+            self.wait()
+        self.assertTrue(any(0 < kwargs['timeout'] < 2.0 for unused, kwargs, when in self.calls))
+        self.assertLessEqual(max(started for unused, kwargs, started in self.calls), 6.0)
+        for unused, kwargs, started in self.calls:
+            self.assertLessEqual(kwargs['timeout'], 6.0 - started)
+
+    def test_a_successful_probe_that_finishes_past_the_deadline_is_not_accepted(self):
+        self.command_seconds = 1.6
+        with self.assertRaisesRegex(ValueError, 'timed out'):
+            self.wait()
+        self.assertEqual(len(self.calls), 4)
+        self.assertEqual(self.sleeps, [])
+
+    def test_wait_feedback_cannot_make_the_next_sleep_exceed_the_remaining_budget(self):
+        owner = self
+        class SlowFeedback(io.StringIO):
+            def write(self, text):
+                if text.startswith('Mytel addons: waiting'):
+                    owner.now += 5.5
+                return super().write(text)
+        self.output = SlowFeedback()
+        self.cli_after = float('inf')
+        with self.assertRaisesRegex(ValueError, 'timed out'):
+            self.wait()
+        self.assertEqual(self.now, 6.0)
+        self.assertEqual(self.sleeps, [0.5])
+
+    def test_missing_probe_fails_immediately_with_sanitized_error(self):
+        self.command_error = OSError('private-diagnostic')
+        with self.assertRaises(ValueError) as failure:
+            self.wait()
+        self.assertEqual(len(self.calls), 1)
+        self.assertEqual(self.sleeps, [])
+        self.assertNotIn('private-diagnostic', str(failure.exception))
+
+    def test_timeout_stops_install_before_backups_ui_database_or_desk_work(self):
+        self.cli_after = float('inf')
+        with mock.patch.object(ADDONS, 'native_credentials', return_value={'user': 'root', 'password': 'fixture-only'}), \
+                mock.patch.object(ADDONS, 'private_directory') as backup, \
+                mock.patch.object(ADDONS, 'load') as desk, \
+                mock.patch.object(ADDONS, 'prepare_files') as ui, \
+                mock.patch.object(ADDONS, 'brand_database') as database, \
+                mock.patch.object(ADDONS, 'atomic_write') as write, redirect_stdout(self.output):
+            with self.assertRaisesRegex(ValueError, 'timed out'):
+                ADDONS.install(self.bundle(), Path('/unused-backup'), requested='20')
+        for action in (backup, desk, ui, database, write):
+            action.assert_not_called()
+
+    def test_native_credentials_are_still_validated_before_any_readiness_probe(self):
+        with mock.patch.object(ADDONS, 'native_credentials', side_effect=ValueError('native credentials missing')), \
+                mock.patch.object(ADDONS, 'private_directory') as backup, redirect_stdout(self.output):
+            with self.assertRaisesRegex(ValueError, 'native credentials missing'):
+                ADDONS.install(self.bundle(), Path('/unused-backup'), requested='20')
+        self.assertEqual(self.calls, [])
+        backup.assert_not_called()
 
 
 class NativeSnapshotTests(unittest.TestCase):
