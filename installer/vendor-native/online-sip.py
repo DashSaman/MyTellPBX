@@ -70,6 +70,16 @@ def derive_language(source):
     if settings.count(client) != 4:
         raise ValueError('Unexpected native locale SQL boundary')
     settings = settings.replace(client, b'mytel_native_mysql -uroot asterisk')
+    # The IAX module's normal locale row uses seq=0 and type=0. Strict
+    # MariaDB rejects the vendor write because seq has no default.
+    iax_language = b"REPLACE INTO iaxsettings(keyword,data) VALUES('iax_language','$selLang');"
+    if settings.count(iax_language) != 1:
+        raise ValueError('Unexpected native IAX language SQL boundary')
+    settings = settings.replace(
+        iax_language,
+        b"INSERT INTO iaxsettings(keyword,data,seq,type) VALUES('iax_language','$selLang',0,0)"
+        b" ON DUPLICATE KEY UPDATE data=VALUES(data);",
+    )
     writes = (b'sqlite3 ', b'mytel_native_mysql ')
     lines = settings.split(b'\n')
     if sum(line.lstrip().startswith(writes) for line in lines) != 6:

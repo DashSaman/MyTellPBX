@@ -57,6 +57,12 @@ class OnlineCredentialsTest(unittest.TestCase):
             setup = 'EVENTS=' + shlex.quote(events.as_posix()) + '\n' + '''sqlite3(){ printf '%s\\n' "$*" >> "$EVENTS"; }
 mysql(){
     [ "$1" = '--defaults-extra-file=/dev/fd/3' ] && grep -qx 'password="Example.9081"' <&3 || exit 81
+    # Issabel's strict IAX schema has no default for its seq primary-key field.
+    case "$*" in
+        *iaxsettings*)
+            [[ "$*" == *"INSERT INTO iaxsettings(keyword,data,seq,type) VALUES('iax_language','pr',0,0) ON DUPLICATE KEY UPDATE data=VALUES(data)"* ]] || return 136
+            ;;
+    esac
     printf '%s\\n' "$*" >> "$EVENTS"
 }
 amportal(){ printf 'amportal %s\\n' "$*" >> "$EVENTS"; return 37; }
