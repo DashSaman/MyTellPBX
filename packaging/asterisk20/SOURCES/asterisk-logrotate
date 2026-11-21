@@ -1,5 +1,5 @@
-/var/log/asterisk/messages
-/var/log/asterisk/full {
+/var/log/asterisk/messages /var/log/asterisk/full /var/log/asterisk/security {
+   su asterisk asterisk
    missingok
    rotate 5
    daily

@@ -190,7 +190,7 @@ cp %{SOURCE10} %{SOURCE11} %{SOURCE12} .build-cache/
 %build
 echo %{version} > .version
 export AST_DOWNLOAD_CACHE="$PWD/.build-cache"
-./configure --libdir=%{_libdir} --with-pjproject-bundled --with-jansson-bundled
+./configure --libdir=%{_libdir} --with-pjproject-bundled --with-jansson-bundled --with-libjwt-bundled
 make menuselect.makeopts
 python3 %{SOURCE8} select %{SOURCE7}
 make OPT=-fPIC %{?_smp_mflags}
