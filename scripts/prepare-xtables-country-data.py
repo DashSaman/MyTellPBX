@@ -31,7 +31,7 @@ def digest(path):
 
 def query(rpm, *arguments):
     return subprocess.check_output(['rpm', '-qp', *arguments, str(rpm)],
-                                   stderr=subprocess.DEVNULL, text=True)
+                                   stderr=subprocess.DEVNULL, universal_newlines=True)
 
 
 def payload_inventory(rpm):

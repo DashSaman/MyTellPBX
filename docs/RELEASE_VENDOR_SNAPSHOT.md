@@ -49,3 +49,10 @@ Run `rpmbuild -ba` on `xtables-build/SPECS/xtables-addons.spec` with
 `_topdir` set to the absolute path of `xtables-build`. The binary RPM retains
 the vendor code and kernel-module scriptlets and ships the updated country
 database with the DB-IP attribution. The source RPM carries the build inputs.
+
+Use `scripts/prepare-legacy-geoip-country-data.py` with the reviewed
+`issabel-geoip-1.6.12-3.x86_64.rpm` and the same DB-IP source to prepare the
+legacy C library's package. Add
+`geoip-vendor-source-without-legacy-data.tar.gz` to its `SOURCES` and build
+`SPECS/issabel-geoip.spec` in the same way. The original converter and C
+library verify IPv4 and IPv6 lookups before the package is built.
