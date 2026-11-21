@@ -436,6 +436,29 @@ class NativeReadinessTests(unittest.TestCase):
 
 
 class NativeCelTests(unittest.TestCase):
+    def test_fresh_idle_install_recovers_once_when_res_odbc_was_declined(self):
+        core = b'CEL Logging: Enabled\nCEL Tracking Event: HANGUP\n'
+        declined = b'res_odbc.so ODBC resource 0 Not Running core\n'
+        idle = b'0 active channels\n0 active calls\n0 calls processed\n'
+        active = core + b'CEL Event Subscriber: ODBC CEL backend\n'
+        with mock.patch.object(ADDONS, 'run', side_effect=[core, declined, idle, b'', active]) as run, \
+                mock.patch.object(ADDONS, 'wait_native_ready') as wait, redirect_stdout(io.StringIO()):
+            ADDONS.require_native_cel_writer(recover_firstboot=True)
+            wait.assert_called_once_with('20')
+            restart = [entry for entry in run.call_args_list if entry.args[0][0] == 'systemctl']
+            self.assertEqual(restart, [mock.call(['systemctl', 'restart', 'asterisk.service'], timeout=45)])
+
+    def test_no_recovery_for_existing_install_or_nonidle_asterisk(self):
+        core = b'CEL Logging: Enabled\nCEL Tracking Event: HANGUP\n'
+        declined = b'res_odbc.so ODBC resource 0 Not Running core\n'
+        for firstboot, reply in ((False, core), (True, b'1 active channel\n0 active calls\n'),
+                                 (True, b'Unknown CLI command\n')):
+            with self.subTest(firstboot=firstboot, reply=reply):
+                with mock.patch.object(ADDONS, 'run', side_effect=[core, declined, reply]) as run:
+                    with self.assertRaises(ValueError):
+                        ADDONS.require_native_cel_writer(recover_firstboot=firstboot)
+                self.assertFalse(any(entry.args[0][0] == 'systemctl' for entry in run.call_args_list))
+
     def test_adds_missing_payload_then_confirms_actual_odbc_reload(self):
         creds = {'user': 'root', 'password': 'fixture'}
         before = {'has_payload': False, 'table_sql': 'vendor definition'}

@@ -92,7 +92,7 @@ guided_offline_setup() {
     printf '    Native phone system configured.\n'
 
     mytel_terminal_offline_phase 3 4 'Install MytelPBX and Desk'
-    bash "$MYTEL_BUNDLE_ROOT/installer/install-mytel-addons.sh" \
+    MYTEL_NATIVE_FRESH_SETUP=1 bash "$MYTEL_BUNDLE_ROOT/installer/install-mytel-addons.sh" \
         || fail 'Add-ons incomplete; native credentials and PBX state retained. Review the private recovery receipt.'
     mytel_terminal_offline_ready
 }

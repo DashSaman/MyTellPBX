@@ -278,18 +278,41 @@ try {
     return json.loads(run(['php', '-r', code], capture=True, data=payload).decode('utf-8'))
 
 
-def enable_cel_payload(credentials, backup):
+def require_native_cel_writer(recover_firstboot=False):
+    cli = ['/usr/sbin/asterisk', '-rx']
+    required = {'CEL Logging: Enabled', 'CEL Tracking Event: HANGUP'}
+    writer = 'CEL Event Subscriber: ODBC CEL backend'
+
+    def read_status():
+        status = run(cli + ['cel show status'], capture=True, timeout=NATIVE_PROBE_SECONDS)
+        return set(status.decode('utf-8', errors='replace').splitlines())
+
+    status = read_status()
+    if required.issubset(status) and writer in status:
+        return
+    if not recover_firstboot or not required.issubset(status):
+        raise ValueError('Native CEL ODBC and HANGUP tracking are required')
+
+    # Asterisk may have started before fresh native setup created the ODBC
+    # configuration. Reload cannot activate a resource that declined to start.
+    modules = run(cli + ['module show like res_odbc.so'], capture=True, timeout=NATIVE_PROBE_SECONDS)
+    if not re.search(rb'(?m)^res_odbc\.so[ \t]+[^\r\n]*\bNot Running\b', modules):
+        raise ValueError('Native CEL ODBC subscriber is missing')
+    activity = run(cli + ['core show channels count'], capture=True, timeout=NATIVE_PROBE_SECONDS)
+    if not {b'0 active channels', b'0 active calls'}.issubset(set(activity.splitlines())):
+        raise ValueError('Cannot recover ODBC during fresh setup while Asterisk is busy or its state is unknown')
+    print('Mytel addons: activating native ODBC on the idle first-boot Asterisk service.', flush=True)
+    run(['systemctl', 'restart', 'asterisk.service'], timeout=45)
+    wait_native_ready('20')
+    status = read_status()
+    if not required.issubset(status) or writer not in status:
+        raise ValueError('Native CEL ODBC did not become ready after the first-boot restart')
+
+
+def enable_cel_payload(credentials, backup, recover_firstboot=False):
     """Enable recording of new hangup details without rewriting historical CEL rows."""
     cli = ['/usr/sbin/asterisk', '-rx']
-
-    def require_cel_writer():
-        status = run(cli + ['cel show status'], capture=True).decode('utf-8', errors='replace')
-        required = {'CEL Logging: Enabled', 'CEL Tracking Event: HANGUP',
-                    'CEL Event Subscriber: ODBC CEL backend'}
-        if not required.issubset(set(status.splitlines())):
-            raise ValueError('Native CEL ODBC and HANGUP tracking are required')
-
-    require_cel_writer()
+    require_native_cel_writer(recover_firstboot)
     before = cel_payload_schema(credentials)
     (backup / 'cel-schema-before.json').write_text(json.dumps(before, indent=2), encoding='utf-8')
     if not before['has_payload']:
@@ -303,7 +326,7 @@ def enable_cel_payload(credentials, backup):
     reload_result = run(cli + ['module reload cel_odbc.so'], capture=True).decode('utf-8', errors='replace')
     if "Module 'cel_odbc.so' reloaded successfully." not in reload_result.splitlines():
         raise ValueError('Native CEL ODBC reload was not confirmed')
-    require_cel_writer()
+    require_native_cel_writer()
     return {'extra_column': 'present', 'added': not before['has_payload'], 'odbc_reloaded': True}
 
 
@@ -721,7 +744,8 @@ def install(bundle, backup_root, requested=None, media=None, public_url=None, ch
     state['phase'] = 'ui-ready-desk-pending'
     receipt.write_text(json.dumps(state, indent=2), encoding='utf-8')
     progress('Enabling call hangup details')
-    state['cel'] = enable_cel_payload(credentials, backup)
+    state['cel'] = enable_cel_payload(credentials, backup,
+                                      recover_firstboot=os.environ.get('MYTEL_NATIVE_FRESH_SETUP') == '1')
     receipt.write_text(json.dumps(state, indent=2), encoding='utf-8')
     if offline:
         progress('Installing the MytelDesk runtime from ISO')

@@ -213,7 +213,7 @@ function mytel_addons()
 {
   [ "${ASTVER:-}" = 20 ] || { printf 'MytelPBX requires native Asterisk 20.\\n' >&2; return 1; }
   export ASTVER
-  bash "${MYTEL_BUNDLE_ROOT}/installer/install-mytel-addons.sh"
+  MYTEL_NATIVE_FRESH_SETUP=1 bash "${MYTEL_BUNDLE_ROOT}/installer/install-mytel-addons.sh"
 }
 
 function mytel_verify_addons()
