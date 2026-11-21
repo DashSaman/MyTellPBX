@@ -71,8 +71,17 @@ class NativeSourceTests(unittest.TestCase):
         self.assertNotIn('prepare-native-start', source)
         self.assertNotIn('prepare-native-geoip', source)
         self.assertNotIn('geoip-update.py', source)
-        self.assertIn('gpgcheck=1', source)
-        self.assertIn('https://repo.us.issabel.org/issabel/5/base/\\$basearch/', source)
+        self.assertIn('vendor-mirror.py', source)
+        self.assertNotIn('repo.us.issabel.org', source)
+        self.assertNotIn('repo.issabel.org', source)
+        self.assertNotIn('mirror.issabel.org', source)
+        self.assertNotIn('\nfop2\n', source)
+        self.assertNotIn('\nasterisk-codec-g729\n', source)
+        self.assertIn('\nasterisk-pr-sounds\nasterisk-sounds-en-gsm\n', source)
+        for other_voice in ('asterisk-es-sounds', 'asterisk-fr-sounds', 'asterisk-pt_BR-sounds'):
+            self.assertNotIn('\n' + other_voice + '\n', source)
+        initializer = module('online-passwords').render((ROOT / 'tests/fixtures/vendor-native/issabel-admin-passwords').read_bytes())
+        self.assertNotIn(b'action_changeFop2();', initializer)
 
     def test_online_language_setup_does_not_open_the_native_choice_dialog(self):
         derived = (NATIVE / 'mytelpbx-netinstall.sh').read_text(encoding='utf-8')

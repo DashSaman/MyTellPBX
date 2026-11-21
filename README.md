@@ -4,8 +4,8 @@
 
 وب‌سایت: [Mytel.one](https://mytel.one)
 
-نسخهٔ **۷٫۷٫۰ بازبینی ۷** از نصاب بومی Issabel برای نصب روی
-**Rocky Linux 8.10 Minimal تازه، x86_64** استفاده می‌کند. پس از تکمیل
+نسخهٔ **۷٫۷٫۰ بازبینی ۸** بسته‌های مرکز تماس را از ریلیز همین مخزن می‌گیرد و روی
+**Rocky Linux 8.10 Minimal تازه، x86_64** نصب می‌شود. پس از تکمیل
 راه‌اندازی بومی مرکز تلفن و رمزها، لایهٔ MytelPBX و **MytelDesk 1.1.4**
 با بستهٔ قفل‌شده و محیط VAD روی CPU نصب می‌شوند.
 
@@ -16,14 +16,14 @@
 
 ## نصب آنلاین با یک خط
 
-برای نسخهٔ `v7.7.0-r7`، در ترمینال تعاملی سرور تازه و با دسترسی
+برای نسخهٔ `v7.7.0-r8`، در ترمینال تعاملی سرور تازه و با دسترسی
 root اجرا کنید. فایل ابتدا دریافت و سپس با Bash اجرا می‌شود؛ ترمینال برای
 پنجره‌های بومی در دسترس می‌ماند:
 
 </div>
 
 ```bash
-curl -fsSL -o install-mytellpbx.sh https://github.com/DashSaman/MyTellPBX/releases/download/v7.7.0-r7/install-mytellpbx.sh && bash install-mytellpbx.sh
+curl -fsSL -o install-mytellpbx.sh https://github.com/DashSaman/MyTellPBX/releases/download/v7.7.0-r8/install-mytellpbx.sh && bash install-mytellpbx.sh
 ```
 
 <div dir="rtl">
@@ -80,9 +80,9 @@ Asterisk صبر می‌کند؛ نسخهٔ اشتباه یا پایان مهلت
 
 ---
 
-# MytelPBX 7.7.0 revision 7
+# MytelPBX 7.7.0 revision 8
 
-The online installer runs the pinned native Issabel flow on **fresh Rocky Linux
+The online installer downloads the signed PBX packages from this GitHub release on **fresh Rocky Linux
 8.10 Minimal x86_64**. Its English terminal prompts once for each password and
 confirmation, then asks which driver should use the primary SIP port. PJSIP is
 the default. It reports package progress as it installs **Asterisk 20** and the

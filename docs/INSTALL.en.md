@@ -1,6 +1,6 @@
-# MytelPBX 7.7.0 revision 7 installation
+# MytelPBX 7.7.0 revision 8 installation
 
-Revision 7 uses tag `v7.7.0-r7`. The online installer runs in English and sets the
+Revision 8 uses tag `v7.7.0-r8`. The online installer runs in English and sets the
 web panel to Persian from the first sign-in. The
 [revision 3 record](releases/7.7.0/revision-3.md) covers the earlier release.
 
@@ -10,7 +10,7 @@ Use a **fresh Rocky Linux 8.10 Minimal x86_64 server**, root access, an interact
 console or SSH terminal, and working Internet access. To install the published revision, run:
 
 ```bash
-curl -fsSL -o install-mytellpbx.sh https://github.com/DashSaman/MyTellPBX/releases/download/v7.7.0-r7/install-mytellpbx.sh && bash install-mytellpbx.sh
+curl -fsSL -o install-mytellpbx.sh https://github.com/DashSaman/MyTellPBX/releases/download/v7.7.0-r8/install-mytellpbx.sh && bash install-mytellpbx.sh
 ```
 
 The script is downloaded to a file before Bash starts, so setup retains
@@ -143,18 +143,21 @@ usual ports below are planning references, not a claim that rules were installed
 | 5060 TCP/UDP, 5061 TCP | SIP signaling, according to transport configuration |
 | 10000–20000 UDP | RTP, according to Asterisk configuration |
 
-Online package/release sources and Desk dependencies require network access.
-The imported upstream installer was supplied from an HTTP origin and originally
-used HTTP mirror/key URLs. This derivative uses the official US Issabel HTTPS
-repository definitions, removes the global yum `--nogpg` switch and retains each
-vendor repository signature policy. In particular, the two enabled legacy Issabel
-4 repositories retain `gpgcheck=0`; the source-repository definition is disabled.
-Bootstrap/bundle hashes do not imply that every upstream RPM has signature checking.
-An observed R6 native primary-metadata response contained absolute HTTP RPM URLs,
-even with HTTPS base/key definitions. Package transfers therefore cannot be
-described as uniformly TLS-protected. The GitHub bootstrap/bundle verified-HTTPS
-and SHA256 chain is separate from this native repository/payload policy.
-The original source bytes and technical/legal identities remain unchanged.
+The installer downloads the PBX package snapshot from the versioned release in
+DashSaman/MyTellPBX. It checks the archive size and SHA-256 before configuring
+a local package source. DNF verifies the publisher signatures. Asterisk
+20.12.0-2.mytel.el8 and framework 5.0.0-6 are included. Rocky Linux, EPEL, Remi
+and the MytelDesk runtime dependencies still require Internet access.
+
+The software installation includes MytelDesk and selects PJSIP by default.
+Asterisk is built from the 20.12.0 sources and the distribution's module changes.
+Third-party binary transcoders for Opus, SILK, Siren7 and Siren14 are optional
+manufacturer downloads. Systems using the same supported codec on both legs
+can pass through audio without transcoding. For a supported DAHDI card, obtain
+its firmware archive from the manufacturer and run
+`mytel-dahdi-firmware-install --install /path/to/original-archive.tar.gz` as root.
+The importer checks the firmware against the packaged digest before writing it.
+
 GeoIP uses the native upstream installation/data state; the Mytel page reports
 that state without installing a separate GeoIP engine. Package, service, path and
 database identifiers such as `issabel-*` remain unchanged for compatibility.

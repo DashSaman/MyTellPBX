@@ -6,9 +6,10 @@ import subprocess
 import os
 import shlex
 import shutil
+import sys
 import tempfile
 import unittest
-from contextlib import redirect_stdout
+from contextlib import redirect_stderr, redirect_stdout
 from pathlib import Path
 from unittest.mock import Mock, patch
 
@@ -80,7 +81,9 @@ class RepositoryPreflightTests(unittest.TestCase):
             label, _args, logfile = task
             seen.add(label)
             failed = label == 'issabel-base'
-            return label, int(failed), 'Curl error (35)' if failed else '', logfile
+            if failed:
+                logfile.write_text('Curl error (35) from https://repo.issabel.example/', encoding='utf-8')
+            return label, int(failed), 'secure connection failed' if failed else '', logfile
 
         with tempfile.TemporaryDirectory() as root, \
                 patch.object(preflight, 'repository_inventory', return_value=inventory), \
@@ -88,18 +91,61 @@ class RepositoryPreflightTests(unittest.TestCase):
                 redirect_stdout(io.StringIO()) as output:
             self.assertEqual(preflight.run(Path(root), None, [], [expected_url]), 1)
             self.assertEqual(seen, {'baseos', 'issabel-base', expected_url})
-            self.assertIn('FAIL issabel-base', output.getvalue())
-            self.assertIn('FAIL powertools', output.getvalue())
-            self.assertIn('2 passed, 2 failed', output.getvalue())
+            view = output.getvalue()
+            self.assertIn('Checking 4 package sources', view)
+            self.assertIn('2 passed, 2 failed', view)
+            self.assertIn('secure connection failed', view)
+            self.assertIn('required source missing', view)
+            for private in ('issabel', 'powertools', 'baseos', 'Curl', 'https:'):
+                self.assertNotIn(private, view)
             self.assertEqual([p.name for p in Path(root).iterdir()], ['repository-checks'])
+            logs = next((Path(root) / 'repository-checks').iterdir())
+            self.assertIn('Curl error (35)', (logs / 'repo-issabel-base.log').read_text(encoding='utf-8'))
+            self.assertIn('powertools', (logs / 'missing-sources.log').read_text(encoding='utf-8'))
 
-    def test_diagnostics_keep_hostname_and_reason_but_remove_url_credentials(self):
-        raw = '  - Curl error (35) for https://name:pass@example.org/meta?token=private [SSL error]'
-        result = preflight.diagnostic(raw)
-        self.assertIn('https://example.org/meta', result)
-        self.assertIn('Curl error (35)', result)
-        self.assertNotIn('pass', result)
-        self.assertNotIn('private', result)
+    def test_failure_category_contains_no_upstream_text(self):
+        cases = (
+            ('Curl error (35) for https://repo.issabel.example', 1, 'secure connection failed'),
+            ('curl: (28) operation timed out', 28, 'connection timed out'),
+            ('Bad metadata checksum for issabel', 1, 'source integrity check failed'),
+            ('arbitrary upstream details', 1, 'source unavailable'),
+            ('arbitrary upstream details', 124, 'source check timed out'),
+        )
+        for raw, status, category in cases:
+            with self.subTest(status=status, category=category):
+                self.assertEqual(preflight.failure_category(raw, status), category)
+
+    def test_reports_real_counts_when_a_source_is_slow(self):
+        inventory = (['/work/overlay'], ['baseos', 'issabel-base'], [])
+
+        def wait_one(pending, **_):
+            done = {next(iter(pending))}
+            return done, pending - done
+
+        with tempfile.TemporaryDirectory() as root, \
+                patch.object(preflight, 'repository_inventory', return_value=inventory), \
+                patch.object(preflight, 'probe', side_effect=lambda job: (job[0], 0, '', job[2])), \
+                patch.object(preflight, 'wait', side_effect=wait_one), \
+                patch.object(preflight.time, 'monotonic', side_effect=[0, 0, 45, 46, 46]), \
+                redirect_stdout(io.StringIO()) as output:
+            self.assertEqual(preflight.run(Path(root), None, [], []), 0)
+            view = output.getvalue()
+            self.assertIn('1/2 checked · 0 failed · 1 remaining', view)
+            self.assertIn('2 passed, 0 failed', view)
+            self.assertNotIn('issabel', view)
+
+    def test_inventory_failure_keeps_details_in_private_log(self):
+        detail = 'Invalid Issabel.repo at https://repo.issabel.example'
+        with tempfile.TemporaryDirectory() as root, \
+                patch.object(sys, 'argv', [str(SOURCE), root]), \
+                patch.object(preflight, 'run', side_effect=ValueError(detail)), \
+                redirect_stderr(io.StringIO()) as output:
+            self.assertEqual(preflight.main(), 1)
+            self.assertIn('Could not prepare package source checks', output.getvalue())
+            self.assertNotIn('Issabel', output.getvalue())
+            self.assertNotIn('https:', output.getvalue())
+            audit, = (Path(root) / 'repository-checks').glob('inventory-*.log')
+            self.assertIn(detail, audit.read_text(encoding='utf-8'))
 
     def test_bootstrap_download_and_redirects_require_https(self):
         args = preflight.curl_command('https://repo.example/r.rpm')

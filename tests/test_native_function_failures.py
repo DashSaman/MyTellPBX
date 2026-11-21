@@ -129,7 +129,7 @@ mytel_unmet_package_floors(){
   if [[ ! -e $MYTEL_NATIVE_WORK/installed || $BAD_POST == 1 ]]; then printf '%s\\n' 'beta >= 2.12.0-1'; fi
 }
 yum(){
-  [[ $# == 5 && $1 == --exclude=issabel-license && $2 == -y && $3 == install && $4 == other && $5 == 'beta >= 2.12.0-1' ]] || return 82
+  [[ $# == 6 && $1 == --exclude=issabel-license && $2 == --exclude=fop2 && $3 == -y && $4 == install && $5 == other && $6 == 'beta >= 2.12.0-1' ]] || return 82
   touch "$MYTEL_NATIVE_WORK/installed"
 }
 mytel_package_batch 'alpha>=5.0.0-1 beta>=2.12.0-1 other' product

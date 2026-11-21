@@ -1,0 +1,87 @@
+{
+  "schema": 1,
+  "rpm_signing_key": {
+    "sha256": "f7eb76b75127d29c5e5aa33ca2b7504680592e0882af7aeea185eeffcd8b4a0d",
+    "fingerprint": "40D9EB22406CA314E78AC1015C0137F11762DF3D",
+    "rpm_key_id": "1762DF3D"
+  },
+  "packages": [
+    {
+      "name": "dahdi-devel",
+      "nevra": "dahdi-devel-2.11.1-1.el7.centos.x86_64",
+      "filename": "dahdi-devel-2.11.1-1.el7.centos.x86_64.rpm",
+      "sha256": "60405603b0ef76e4938c243854158f2c3cea49f602f4fe4bdea86511b5f6b16b",
+      "bytes": 33532,
+      "urls": [
+        "https://repo.us.issabel.org/issabel/4/updates/x86_64/RPMS/dahdi-devel-2.11.1-1.el7.centos.x86_64.rpm",
+        "http://repo.issabel.org/issabel/4/updates/x86_64/RPMS/dahdi-devel-2.11.1-1.el7.centos.x86_64.rpm"
+      ]
+    },
+    {
+      "name": "iksemel",
+      "nevra": "iksemel-1.4-6.el8.x86_64",
+      "filename": "iksemel-1.4-6.el8.x86_64.rpm",
+      "sha256": "30bc136cb07d5810e0fc26cc9fa8b7a91cf2d57d0c5beb3d72b40753b3d1024a",
+      "bytes": 55364,
+      "urls": [
+        "https://repo.us.issabel.org/issabel/5/base/x86_64/RPMS/iksemel-1.4-6.el8.x86_64.rpm",
+        "http://repo.issabel.org/issabel/5/base/x86_64/RPMS/iksemel-1.4-6.el8.x86_64.rpm"
+      ]
+    },
+    {
+      "name": "iksemel-devel",
+      "nevra": "iksemel-devel-1.4-6.el8.x86_64",
+      "filename": "iksemel-devel-1.4-6.el8.x86_64.rpm",
+      "sha256": "e1b8fa954dfb19b7e370cef3ce932d22aa4ba3b7e48afa17f17091abab7442b4",
+      "bytes": 40084,
+      "urls": [
+        "https://repo.us.issabel.org/issabel/5/base/x86_64/RPMS/iksemel-devel-1.4-6.el8.x86_64.rpm",
+        "http://repo.issabel.org/issabel/5/base/x86_64/RPMS/iksemel-devel-1.4-6.el8.x86_64.rpm"
+      ]
+    },
+    {
+      "name": "libopenr2",
+      "nevra": "libopenr2-1.3.3-1.el7.centos.x86_64",
+      "filename": "libopenr2-1.3.3-1.el7.centos.x86_64.rpm",
+      "sha256": "b0b5e375352450bbbec17c8343755fb77d27d9d17bf33fc271c1dc25738881c4",
+      "bytes": 284704,
+      "urls": [
+        "https://repo.us.issabel.org/issabel/4/updates/x86_64/RPMS/libopenr2-1.3.3-1.el7.centos.x86_64.rpm",
+        "http://repo.issabel.org/issabel/4/updates/x86_64/RPMS/libopenr2-1.3.3-1.el7.centos.x86_64.rpm"
+      ]
+    },
+    {
+      "name": "libopenr2-devel",
+      "nevra": "libopenr2-devel-1.3.3-1.el7.centos.x86_64",
+      "filename": "libopenr2-devel-1.3.3-1.el7.centos.x86_64.rpm",
+      "sha256": "5f190e5ec33ea0e27b60bfde03910498149df515b68fd365de8b337ad67b470c",
+      "bytes": 32632,
+      "urls": [
+        "https://repo.us.issabel.org/issabel/4/updates/x86_64/RPMS/libopenr2-devel-1.3.3-1.el7.centos.x86_64.rpm",
+        "http://repo.issabel.org/issabel/4/updates/x86_64/RPMS/libopenr2-devel-1.3.3-1.el7.centos.x86_64.rpm"
+      ]
+    },
+    {
+      "name": "libtonezone",
+      "nevra": "libtonezone-2.11.1-32.x86_64",
+      "filename": "libtonezone-2.11.1-32.x86_64.rpm",
+      "sha256": "0e289d3417e3d6b41220b321660b22acf7f061c2c1da0cc06f2aa567bd75d28f",
+      "bytes": 17864,
+      "urls": [
+        "https://repo.us.issabel.org/issabel/5/base/x86_64/RPMS/libtonezone-2.11.1-32.x86_64.rpm",
+        "http://repo.issabel.org/issabel/5/base/x86_64/RPMS/libtonezone-2.11.1-32.x86_64.rpm"
+      ]
+    },
+    {
+      "name": "libtonezone-devel",
+      "nevra": "libtonezone-devel-2.11.1-32.x86_64",
+      "filename": "libtonezone-devel-2.11.1-32.x86_64.rpm",
+      "sha256": "9fd4dd6dc60cfc854947c6aef2710839d69a2ce5bf637d829768de5fb4603eea",
+      "bytes": 16024,
+      "urls": [
+        "https://repo.us.issabel.org/issabel/5/base/x86_64/RPMS/libtonezone-devel-2.11.1-32.x86_64.rpm",
+        "http://repo.issabel.org/issabel/5/base/x86_64/RPMS/libtonezone-devel-2.11.1-32.x86_64.rpm"
+      ]
+    }
+  ]
+}

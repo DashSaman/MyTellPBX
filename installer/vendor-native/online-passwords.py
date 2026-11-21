@@ -63,7 +63,6 @@ if(file_exists("/tmp/ipbx.lang")) {
         action_changeSip();
         system("/usr/bin/issabel-patreon > /dev/null 2>&1");''', b'''        unset($mytelOnlinePasswords);
         if (!action_changeLanguage()) error_exit("Asterisk language setup failed.\n");
-        action_changeFop2();
         if (!action_changeSip()) error_exit("SIP channel setup failed.\n");''')
     source = replace(source, b'''function action_initPasswords($opt)
 {

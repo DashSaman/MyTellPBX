@@ -166,6 +166,23 @@ class DnfProgressTests(unittest.TestCase):
         self.assertIn('Transaction  1/2  dep-1.2-3.el8.noarch', lines[2])
         self.assertNotIn('RedactMe', output.getvalue())
 
+    def test_detailed_view_uses_product_name_for_upstream_rpms(self):
+        for kind, download_label in (('packages', 'Download'), ('iso', 'Read from ISO')):
+            with self.subTest(kind=kind):
+                output = io.StringIO()
+                reporter = self.module.ProgressReporter(output, kind, english=True, detail=True)
+                stream = (b'(1/2): issabel-packetbl-1.0-3.x86_64.rpm 1 MB/s\n'
+                          b'  Installing : IssabelPBX-5.0.0-4.noarch 1/2\n'
+                          b'  Verifying : httpd-2.4.37-62.el8.x86_64 2/2\n')
+                log = io.BytesIO()
+                self.assertTrue(self.module.copy_progress(io.BytesIO(stream), log, reporter))
+                self.assertEqual(log.getvalue(), stream)
+                view = output.getvalue()
+                self.assertNotIn('issabel', view.lower())
+                self.assertIn(download_label + '  1/2  MytelPBX-packetbl-1.0-3.x86_64.rpm', view)
+                self.assertIn('Transaction  1/2  MytelPBX-5.0.0-4.noarch', view)
+                self.assertIn('Verification  2/2  httpd-2.4.37-62.el8.x86_64', view)
+
     def test_offline_package_rows_describe_local_iso_reads(self):
         output = io.StringIO()
         reporter = self.module.ProgressReporter(output, 'iso', english=True, detail=True)
@@ -200,13 +217,14 @@ class DnfProgressTests(unittest.TestCase):
         with patch.dict(os.environ, {'TERM': 'xterm'}):
             reporter = self.module.ProgressReporter(output, 'packages', english=True, detail=True)
         raw = (b'  - Curl error (28): Timeout https://user:secret@host.invalid\n'
-               b'  - Curl error (28): Timeout https://other.invalid?token=private\n'
+               b'  - Curl error (35): TLS https://other.invalid?token=private\n'
                b'  Verifying : good-2.0-1.el8.x86_64 1/1\n')
         log = io.BytesIO()
         self.assertTrue(self.module.copy_progress(io.BytesIO(raw), log, reporter))
         self.assertEqual(log.getvalue(), raw)
         view = output.getvalue()
-        self.assertEqual(view.count('Curl error (28)'), 1)
+        self.assertEqual(view.count('Package source is having connection problems'), 1)
+        self.assertNotIn('Curl error', view)
         self.assertIn('1/1', view)
         self.assertIn('100%  good-2.0-1.el8.x86_64', view)
         self.assertGreaterEqual(view.count('\r'), 2)

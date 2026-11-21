@@ -1,0 +1,45 @@
+[Unit]
+Description=LSB: Asterisk PBX
+Before=runlevel2.target
+Before=runlevel3.target
+Before=runlevel4.target
+Before=runlevel5.target
+Before=shutdown.target
+Before=iaxmodem.service
+Before=issabel-updaterd.service
+Before=issabel-portknock.service
+After=network-online.target
+After=nss-lookup.target
+After=remote-fs.target
+After=dahdi.service
+After=misdn.service
+After=lcr.service
+After=wanrouter.service
+After=mysql.service
+After=postgresql.service
+After=network-online.target
+Wants=network-online.target
+Conflicts=shutdown.target
+
+[Service]
+Type=simple
+Environment=HOME=/var/lib/asterisk
+WorkingDirectory=/var/lib/asterisk
+ExecStart=/usr/sbin/asterisk -U asterisk -G asterisk -mqf -C /etc/asterisk/asterisk.conf
+ExecReload=/usr/sbin/asterisk -rx 'core reload'
+LimitCORE=infinity
+LimitNOFILE=infinity
+LimitNPROC=infinity
+LimitMEMLOCK=infinity
+Restart=on-failure
+RestartSec=4
+# Prevent duplication of logs with color codes to /var/log/messages
+StandardOutput=null
+PrivateTmp=true
+
+#Nice=0
+#UMask=0002
+#LimitNOFILE=
+
+[Install]
+WantedBy=multi-user.target

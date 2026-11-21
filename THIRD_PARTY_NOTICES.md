@@ -13,8 +13,9 @@ are preserved verbatim.
 - **Issabel 5 (IssabelPBX)** — open-source unified communications platform
   (GPLv2), used as the telephony web framework underneath the MyTellPBX
   theme and branding layer. Project site: issabel.org. The MyTellPBX
-  installer configures the upstream package repositories and RPM identities
-  unchanged so that dependency resolution and updates keep working.
+  online installer uses a release snapshot of signed RPMs. The Asterisk source build,
+  DAHDI firmware importer and xtables country data package carry the Mytel package signature.
+  The snapshot preserves original package identities and embedded notices.
 - **FreePBX modules** (framework, core, queues, IVR, ...) — GPLv3+,
   distributed by the Issabel 5 framework.
 - **MariaDB 10.3** — GPLv2, database engine.
@@ -24,15 +25,15 @@ are preserved verbatim.
   the telephony framework requires it. See docs/INSTALL.en.md for the
   security implications.
 - **FOP2** — Flash Operator Panel 2 (commercial license; free/demo mode exposes
-  up to 15 configured buttons), installed as part of the base platform.
+  up to 15 configured buttons), included on earlier installation media. The R8 online package set omits FOP2.
   [Vendor licensing/installation reference](https://www.fop2.com/docs/installation.php).
 - **Roundcube** — GPLv3+, webmail included with the base platform.
 - **certbot** — Apache/GPLv2, for Let's Encrypt certificates.
 
 ## Separately installed operator workspace
 
-- **MytelDesk 1.1.3**, a GPLv3 derivative of OpDesk, is installed as an independent
-  service from its checksum-pinned [public release](https://github.com/DashSaman/MytelDesk/releases/tag/v1.1.3).
+- **MytelDesk 1.1.4**, a GPLv3 derivative of OpDesk, is installed as an independent
+  service from its checksum-pinned [public release](https://github.com/DashSaman/MytelDesk/releases/tag/v1.1.4).
   That release includes its complete corresponding source and dependency notices.
 - Its CPU VAD component retains the Silero model's MIT notice and the notices of
   the locked NumPy, ONNXRuntime, WebRTC VAD and other Python wheels. The model and

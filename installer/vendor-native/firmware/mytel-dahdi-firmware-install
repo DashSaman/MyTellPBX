@@ -1,0 +1,104 @@
+#!/usr/libexec/platform-python -s
+# SPDX-License-Identifier: GPL-2.0-or-later
+"""Import a verified manufacturer firmware archive for an optional DAHDI card."""
+
+import argparse
+import hashlib
+import json
+import os
+from pathlib import Path
+import stat
+import sys
+import tarfile
+import tempfile
+
+
+MANIFEST = Path('/usr/share/mytelpbx/dahdi/firmware-map.json')
+DESTINATION = Path('/usr/lib/firmware/updates')
+MAX_BYTES = 4 * 1024 * 1024
+
+
+def read_regular(path):
+    descriptor = os.open(str(path), os.O_RDONLY | os.O_NOFOLLOW | os.O_NONBLOCK)
+    with os.fdopen(descriptor, 'rb') as stream:
+        info = os.fstat(stream.fileno())
+        if not stat.S_ISREG(info.st_mode) or not 0 < info.st_size <= MAX_BYTES:
+            raise ValueError('Expected a regular firmware file within the supported size')
+        return stream.read(MAX_BYTES + 1)
+
+
+def read_firmware(archive_path, manifest):
+    record = manifest.get(archive_path.name)
+    if record is None:
+        raise ValueError('This archive name does not match a supported manufacturer release')
+    member_name, expected = record
+    descriptor = os.open(str(archive_path), os.O_RDONLY | os.O_NOFOLLOW | os.O_NONBLOCK)
+    with os.fdopen(descriptor, 'rb') as raw:
+        info = os.fstat(raw.fileno())
+        if not stat.S_ISREG(info.st_mode) or not 0 < info.st_size <= MAX_BYTES:
+            raise ValueError('Expected a regular manufacturer archive within the supported size')
+        with tarfile.open(fileobj=raw, mode='r|gz') as archive:
+            member = archive.next()
+            if (member is None or member.name != member_name or not member.isfile()
+                    or not 0 < member.size <= MAX_BYTES):
+                raise ValueError('The manufacturer archive does not contain the expected firmware')
+            data = archive.extractfile(member).read()
+            if archive.next() is not None or hashlib.sha256(data).hexdigest() != expected:
+                raise ValueError('The firmware archive differs from the verified manufacturer release')
+    return member_name, data
+
+
+def trusted_directory(directory):
+    for parent in reversed((directory,) + tuple(directory.parents)):
+        info = parent.lstat()
+        if not stat.S_ISDIR(info.st_mode) or info.st_uid != 0 or info.st_mode & 0o022:
+            raise ValueError('The firmware destination must be a trusted root-owned directory')
+
+
+def install_firmware(directory, member_name, data):
+    trusted_directory(directory.parent)
+    directory.mkdir(mode=0o755, exist_ok=True)
+    trusted_directory(directory)
+    destination = directory / member_name
+    fd, temporary = tempfile.mkstemp(dir=str(directory))
+    try:
+        with os.fdopen(fd, 'wb') as target:
+            target.write(data)
+            target.flush()
+            os.fchmod(target.fileno(), 0o644)
+            os.fsync(target.fileno())
+        try:
+            os.link(temporary, str(destination))
+        except FileExistsError:
+            if read_regular(destination) != data:
+                raise ValueError('A different firmware file is already installed at this path')
+    finally:
+        os.unlink(temporary)
+    return destination
+
+
+def main():
+    parser = argparse.ArgumentParser(description=__doc__)
+    mode = parser.add_mutually_exclusive_group(required=True)
+    mode.add_argument('--list', action='store_true', help='List supported manufacturer archives')
+    mode.add_argument('--install', type=Path, metavar='ARCHIVE',
+                      help='Install firmware from a manufacturer archive already downloaded locally')
+    args = parser.parse_args()
+    with MANIFEST.open(encoding='utf-8') as manifest_file:
+        manifest = json.load(manifest_file)
+    if args.list:
+        print('\n'.join(sorted(manifest)))
+        return
+    if os.geteuid() != 0:
+        raise ValueError('Root privileges are required to install firmware')
+    member_name, data = read_firmware(args.install, manifest)
+    destination = install_firmware(DESTINATION, member_name, data)
+    print('Verified firmware installed at {}. Activate the card during scheduled maintenance.'.format(destination))
+
+
+if __name__ == '__main__':
+    try:
+        main()
+    except (OSError, tarfile.TarError, ValueError) as error:
+        print('MytelPBX firmware setup: {}'.format(error), file=sys.stderr)
+        sys.exit(1)

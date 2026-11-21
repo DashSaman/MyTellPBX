@@ -1,0 +1,45 @@
+name: Build Asterisk 20 on Rocky Linux 8.10
+
+on:
+  workflow_dispatch:
+  push:
+    branches: ['build/asterisk20-r8-20261122']
+    paths:
+      - 'packaging/asterisk20/**'
+      - '.github/workflows/build-asterisk20.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 120
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          persist-credentials: false
+      - name: Compile release RPMs and source RPM
+        shell: bash
+        run: |
+          mkdir -p "$RUNNER_TEMP/rpm-results"
+          docker run --rm \
+            -v "$GITHUB_WORKSPACE:/src:ro" \
+            -v "$RUNNER_TEMP/rpm-results:/results" \
+            rockylinux/rockylinux@sha256:f5529992e67440c1a4ae7788244d4381c6909159a88eacd95b7523ae47ced82e \
+            /bin/bash -euo pipefail -c '
+              grep -Fx "Rocky Linux release 8.10 (Green Obsidian)" /etc/rocky-release
+              dnf -y install dnf-plugins-core epel-release rpm-build redhat-rpm-config
+              dnf config-manager --set-enabled powertools
+              bash /src/packaging/asterisk20/build-dependencies.sh
+              dnf -y builddep /src/packaging/asterisk20/asterisk20.spec
+              bash /src/packaging/asterisk20/build.sh /var/tmp/rpmbuild
+              cp /var/tmp/rpmbuild/RPMS/*/*.rpm /var/tmp/rpmbuild/SRPMS/*.rpm /results/
+            '
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: asterisk20-rocky8-rpms
+          path: ${{ runner.temp }}/rpm-results/*.rpm
+          if-no-files-found: error
+          compression-level: 0
+          retention-days: 7

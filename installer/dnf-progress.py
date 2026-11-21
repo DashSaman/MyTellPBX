@@ -23,6 +23,7 @@ DOWNLOAD = re.compile(rb'^\(\s*([0-9]{1,9})\s*/\s*([0-9]{1,9})\s*\):\s+')
 TRANSACTION = re.compile(rb'^\s*(Installing|Upgrading|Updating|Downgrading|Reinstalling|Erasing|Cleanup|Verifying|Running scriptlet|Preparing)\s*:\s+(.*?)\s+([0-9]{1,9})\s*/\s*([0-9]{1,9})\s*$')
 RPM_DOWNLOAD_NAME = re.compile(rb'([A-Za-z0-9][A-Za-z0-9_.+%-]{0,179}\.rpm)\s')
 RPM_TRANSACTION_NAME = re.compile(rb'([A-Za-z0-9][A-Za-z0-9_.+%-]{0,179}\.(?:x86_64|noarch|i[3-6]86))')
+UPSTREAM_PACKAGE = re.compile(r'^issabel(?:pbx)?', re.IGNORECASE)
 TRANSFER_ERROR = re.compile(rb'^\s*(?:-\s*|\[MIRROR\]\s+[^\s:]+:\s*)?(Curl error \([0-9]{1,3}\)|Status code: [45][0-9]{2}):?\s')
 
 
@@ -38,7 +39,7 @@ class ProgressReporter:
         self.live = detail and getattr(output, 'isatty', lambda: False)() and os.environ.get('TERM') != 'dumb'
         self.line_length = 0
         self.last_idle = None
-        self.last_transfer_error = None
+        self.transfer_problem_shown = False
 
     def detail_line(self, label):
         text = '      · ' + label
@@ -78,12 +79,12 @@ class ProgressReporter:
             major = 'verify' if operation == b'Verifying' else 'transaction'
             label = 'بررسی بسته' if major == 'verify' else 'عملیات بسته'
         else:
-            if self.detail and self.english:
-                error = TRANSFER_ERROR.match(record)
-                if error and error.group(1) != self.last_transfer_error:
-                    self.last_transfer_error = error.group(1)
-                    # Keep URLs, credentials and the remote server's text private.
-                    self.detail_line('Repository transfer · ' + error.group(1).decode('ascii'))
+            if self.detail and not self.transfer_problem_shown and TRANSFER_ERROR.match(record):
+                self.transfer_problem_shown = True
+                # Detailed retry and transport diagnostics are in the private log.
+                message = ('Package source is having connection problems' if self.english else
+                           'اتصال به منبع بسته با مشکل روبه‌رو است')
+                self.detail_line(message)
             return
         if self.kind == 'iso' and major == 'download':
             label = 'خواندن بسته از ISO'
@@ -107,7 +108,7 @@ class ProgressReporter:
         if self.detail:
             match = (RPM_DOWNLOAD_NAME.match(record, download.end()) if download is not None
                      else RPM_TRANSACTION_NAME.fullmatch(target))
-            package = '  ' + match.group(1).decode('ascii') if match is not None else ''
+            package = '  ' + UPSTREAM_PACKAGE.sub('MytelPBX', match.group(1).decode('ascii')) if match else ''
             if self.english:
                 label = self.english_label(major)
             progress = '{}  {}/{}'.format(label, current, total)

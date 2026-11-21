@@ -39,12 +39,9 @@ php-xml
 asterisk$ASTVER
 asterisk$ASTVER-devel
 asterisk$ASTVER-curl
-asterisk-codec-g729
 asterisk-perl
-asterisk-es-sounds
-asterisk-fr-sounds
+asterisk-pr-sounds
 asterisk-sounds-en-gsm
-asterisk-pt_BR-sounds
 certbot
 vim
 jq
@@ -80,7 +77,6 @@ xtables-addons
 RoundCubeMail
 php-ioncubeloader
 libnsl
-fop2
 EOF
 }
 
@@ -120,112 +116,10 @@ function add_repos
   local state_dir="$repo_dir/.mytel-vendor"
   if [ "$#" = 0 ]; then
     mkdir -m 0700 "$repo_dir" || return 1
-    state_dir=/var/lib/mytelpbx/repository-snapshots/r7
+    state_dir=/var/lib/mytelpbx/repository-snapshots/r8
   fi
-cat > "$repo_dir/Issabel.repo" <<EOF || return 1
-[issabel-base]
-name=Base RPM Repository for MytelPBX
-baseurl=https://repo.us.issabel.org/issabel/4/base/\$basearch/
-#baseurl=https://repo.us.issabel.org/issabel/4/base/\$basearch/
-gpgcheck=0
-enabled=1
-gpgkey=https://repo.us.issabel.org/issabel/RPM-GPG-KEY-Issabel
-
-[issabel-updates]
-name=Updates RPM Repository for MytelPBX
-baseurl=https://repo.us.issabel.org/issabel/4/updates/\$basearch/
-#baseurl=https://repo.us.issabel.org/issabel/4/updates/\$basearch/
-gpgcheck=0
-enabled=1
-gpgkey=https://repo.us.issabel.org/issabel/RPM-GPG-KEY-Issabel
-
-[issabel-updates-sources]
-name=Updates RPM Repository for MytelPBX
-baseurl=https://repo.us.issabel.org/issabel/4/updates/\$basearch/
-#baseurl=https://repo.us.issabel.org/issabel/4/updates/SRPMS/
-gpgcheck=0
-enabled=0
-gpgkey=https://repo.us.issabel.org/issabel/RPM-GPG-KEY-Issabel
-
-[issabel-beta]
-name=Beta RPM Repository for MytelPBX
-# Native mirrorlist replaced by the HTTPS baseurl below.
-baseurl=https://repo.us.issabel.org/issabel/4/beta/\$basearch/
-#gpgcheck=1
-enabled=0
-#gpgkey=https://repo.us.issabel.org/issabel/RPM-GPG-KEY-Issabel
-
-[issabel-extras]
-name=Extras RPM Repository for MytelPBX
-baseurl=https://repo.us.issabel.org/issabel/4/extras/\$basearch/
-#baseurl=https://repo.us.issabel.org/issabel/4/extras/\$basearch/
-gpgcheck=1
-enabled=0
-gpgkey=https://repo.us.issabel.org/issabel/RPM-GPG-KEY-Issabel
-EOF
-
-cat > "$repo_dir/Issabel5.repo" <<EOF || return 1
-[issabel-cinco]
-name=Base RPM Repository for MytelPBX 5
-baseurl=https://repo.us.issabel.org/issabel/5/base/\$basearch/
-gpgcheck=1
-enabled=1
-gpgkey=https://repo.us.issabel.org/issabel/RPM-GPG-KEY-Issabel
-
-[issabel-cinco-noarch]
-name=Base RPM Repository for MytelPBX 5 (noarch)
-baseurl=https://repo.us.issabel.org/issabel/5/base/noarch/
-gpgcheck=1
-enabled=1
-gpgkey=https://repo.us.issabel.org/issabel/RPM-GPG-KEY-Issabel
-
-[issabel-cinco-updates]
-name=Updates RPM Repository for MytelPBX 5
-baseurl=https://repo.us.issabel.org/issabel/5/updates/\$basearch/
-gpgcheck=1
-enabled=1
-gpgkey=https://repo.us.issabel.org/issabel/RPM-GPG-KEY-Issabel
-
-[issabel-cinco-updates-noarch]
-name=Updates RPM Repository for MytelPBX 5 (noarch)
-baseurl=https://repo.us.issabel.org/issabel/5/updates/noarch/
-gpgcheck=1
-enabled=1
-gpgkey=https://repo.us.issabel.org/issabel/RPM-GPG-KEY-Issabel
-
-[issabel-cinco-extras]
-name=Extras RPM Repository for MytelPBX 5
-baseurl=https://repo.us.issabel.org/issabel/5/extras/\$basearch/
-gpgcheck=1
-enabled=1
-gpgkey=https://repo.us.issabel.org/issabel/RPM-GPG-KEY-Issabel
-
-[issabel-cinco-extras-noarch]
-name=Extras RPM Repository for MytelPBX 5 (noarch)
-baseurl=https://repo.us.issabel.org/issabel/5/extras/noarch/
-gpgcheck=1
-enabled=1
-gpgkey=https://repo.us.issabel.org/issabel/RPM-GPG-KEY-Issabel
-
-[issabel-cinco-beta]
-name=Beta RPM Repository for MytelPBX 5
-baseurl=https://repo.us.issabel.org/issabel/5/beta/\$basearch/
-#gpgcheck=1
-enabled=0
-gpgkey=https://repo.us.issabel.org/issabel/RPM-GPG-KEY-Issabel
-EOF
-
-cat > "$repo_dir/commercial-addons.repo" <<EOF || return 1
-[commercial-addons]
-name=Commercial-Addons RPM Repository for MytelPBX
-baseurl=https://repo.us.issabel.org/issabel/5/commercial_addons/\$basearch/
-gpgcheck=1
-enabled=1
-gpgkey=https://repo.us.issabel.org/issabel/RPM-GPG-KEY-Issabel
-EOF
-
   "$MYTEL_PYTHON" -I -B "$MYTEL_BUNDLE_ROOT/installer/vendor-native/vendor-mirror.py" \
-    --repo-dir "$repo_dir" --state-dir "$state_dir" || return $?
+    --repo-dir "$repo_dir" --state-dir "$state_dir" --workdir "$MYTEL_NATIVE_WORK" || return $?
   if [ "$#" = 0 ]; then
     local backup="$MYTEL_NATIVE_WORK/vendor-repos-before" file
     mkdir -m 0700 "$backup" || return 1

@@ -3,7 +3,7 @@
 
 The vendor functions, package lists and password initialization remain the
 installation engine, with the product fixed to Asterisk 20. Changes are intentionally
-reviewable: display text, reachable official HTTPS transport, removal of global
+reviewable: display text, verified GitHub packages, removal of global
 signature bypass, private temporary files, checked failures and the add-on hook.
 Python 3.6 compatible.
 """
@@ -41,50 +41,38 @@ def derive(original):
                      'BACKTITLE="MytelPBX netinstall - Mytel.one"')
     source = replace(source, 'Issabel Network Licensed modules(http://issabel.guru)',
                      'Optional upstream licensed add-ons')
-    source = re.sub(r'(?m)^name=(.*)Issabel(.*)$', r'name=\1MytelPBX\2', source)
 
-    # Use the canonical vendor layout as input to the checked snapshot renderer.
-    def mirror(match):
-        release, arch, repo = match.groups()
-        if release == '4' and repo == 'beta':
-            return '# Native mirrorlist replaced by the HTTPS baseurl below.'
-        return 'baseurl=https://repo.us.issabel.org/issabel/' + release + '/' + repo + '/' + arch + '/'
-    source, count = re.subn(r'mirrorlist=http://mirror\.issabel\.org/\?release=(4|5)&arch=(\\\$basearch|noarch)&repo=([a-z_]+)', mirror, source)
-    if count != 13:
-        raise ValueError('Unexpected native repository set')
-    source = source.replace('http://repo.issabel.org/', 'https://repo.us.issabel.org/')
     animation = source[source.index('BLA_metro='):source.index('function generate_files')]
     source = replace(source, animation, '')
     modules = [name + '>=5.0.0-1' for name in NATIVE_MODULES] + ['issabelPBX>=2.12.0-1']
     source = replace(source, '\nissabel-geoip\nissabel\nissabel-prosody-auth\n',
                      '\nissabel-geoip\n' + '\n'.join(modules) + '\nissabel-prosody-auth\n')
 
+    source = replace(source, '\nlibnsl\nfop2\nEOF', '\nlibnsl\nEOF')
+    source = replace(source, '\nasterisk-es-sounds\nasterisk-fr-sounds\nasterisk-sounds-en-gsm\nasterisk-pt_BR-sounds\n',
+                     '\nasterisk-pr-sounds\nasterisk-sounds-en-gsm\n')
+    # The upstream G.729 binary package contains no Asterisk 20 module.
+    source = replace(source, '\nasterisk-codec-g729\n', '\n')
+
     for filename in ('inst1.txt', 'inst2.txt', 'netinstall.log', 'netinstall_errors.txt'):
         source = source.replace('/tmp/' + filename, '"${MYTEL_NATIVE_WORK}/' + filename + '"')
     for command in ('cat > "${MYTEL_NATIVE_WORK}/inst1.txt" <<EOF',
-                    'cat > "${MYTEL_NATIVE_WORK}/inst2.txt" <<EOF',
-                    'cat > /etc/yum.repos.d/Issabel.repo <<EOF',
-                    'cat > /etc/yum.repos.d/Issabel5.repo <<EOF',
-                    'cat > /etc/yum.repos.d/commercial-addons.repo <<EOF'):
+                    'cat > "${MYTEL_NATIVE_WORK}/inst2.txt" <<EOF'):
         source = replace(source, command, command + ' || return 1')
-    source = replace(source, 'function add_repos\n{\n',
+    # Replace the vendor repository writer as a unit. Both source checks and
+    # native RPM transactions use only the pinned MytelPBX GitHub asset.
+    repo_writer = source[source.index('function add_repos\n'):source.index('function centos8_tweaks {')]
+    source = replace(source, repo_writer,
                      '''function add_repos
 {
   local repo_dir="${1:-$MYTEL_NATIVE_WORK/approved-vendor-repos}"
   local state_dir="$repo_dir/.mytel-vendor"
   if [ "$#" = 0 ]; then
     mkdir -m 0700 "$repo_dir" || return 1
-    state_dir=/var/lib/mytelpbx/repository-snapshots/r7
+    state_dir=/var/lib/mytelpbx/repository-snapshots/r8
   fi
-''')
-    for repo_file in ('Issabel.repo', 'Issabel5.repo', 'commercial-addons.repo'):
-        source = replace(source, 'cat > /etc/yum.repos.d/' + repo_file,
-                         'cat > "$repo_dir/' + repo_file + '"')
-    source = replace(source, '\nEOF\n\n\n}\n\nfunction centos8_tweaks', '''
-EOF
-
   "$MYTEL_PYTHON" -I -B "$MYTEL_BUNDLE_ROOT/installer/vendor-native/vendor-mirror.py" \\
-    --repo-dir "$repo_dir" --state-dir "$state_dir" || return $?
+    --repo-dir "$repo_dir" --state-dir "$state_dir" --workdir "$MYTEL_NATIVE_WORK" || return $?
   if [ "$#" = 0 ]; then
     local backup="$MYTEL_NATIVE_WORK/vendor-repos-before" file
     mkdir -m 0700 "$backup" || return 1
@@ -99,7 +87,7 @@ EOF
   fi
 }
 
-function centos8_tweaks''')
+''')
     settings_tail = source[source.index('  echo -en "        Installing base packages '):source.index('\nfunction sel_astver')]
     source = replace(source, settings_tail,
                      '  mytel_run_dnf repositories yum -y install issabel-config_helpers dialog\n}\n')

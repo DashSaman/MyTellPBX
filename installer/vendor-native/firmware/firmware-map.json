@@ -1,0 +1,18 @@
+{
+  "dahdi-fw-a4a-a0017.tar.gz": ["dahdi-fw-a4a.bin", "ea290e7114f4ff208f37aef109f134eabfae3d2e65d3cabeec5182f63f4c8e8f"],
+  "dahdi-fw-a4b-d001e.tar.gz": ["dahdi-fw-a4b.bin", "9bfc74e32f23b38c696b356fe14c3f7c998b07c70d3cbb3df815ee8a7873e5fe"],
+  "dahdi-fw-a8a-1d0017.tar.gz": ["dahdi-fw-a8a.bin", "c44be3128a266769b7865952996c126258b988eedd691f4a53e9eb21f66a901a"],
+  "dahdi-fw-a8b-1f001e.tar.gz": ["dahdi-fw-a8b.bin", "6d1b653ec97e4183000aefb0245beb7c5d820eea212987b23097f44798d7d69f"],
+  "dahdi-fw-hx8-2.06.tar.gz": ["dahdi-fw-hx8.bin", "29d515e0ee07a2dc05625b5e40ba1ed27fc5024d045d171454b3dd1ae5e28033"],
+  "dahdi-fw-oct6114-032-1.05.01.tar.gz": ["dahdi-fw-oct6114-032.bin", "c8d9ee67244c48c0042db06e521bb6a97a2c61f2e2be848dd7491b5a9b7f8736"],
+  "dahdi-fw-oct6114-064-1.05.01.tar.gz": ["dahdi-fw-oct6114-064.bin", "11495d9af6e54f9f87124a02cb80854cd20e9252911dadaa251ebce0d2613ff9"],
+  "dahdi-fw-oct6114-128-1.05.01.tar.gz": ["dahdi-fw-oct6114-128.bin", "ede44e578e82f8de237dbe0266a7722caa72ecfebfa7c90926bb9c6257c64284"],
+  "dahdi-fw-oct6114-256-1.05.01.tar.gz": ["dahdi-fw-oct6114-256.bin", "39e6838e0bf976c2d733eafd907c7a24515a7c6e0d36d5803d21b40fd28e529e"],
+  "dahdi-fw-tc400m-MR6.12.tar.gz": ["dahdi-fw-tc400m.bin", "5624a4dfc4d75b51be778ce89800fe62e0515d5f672691411dbb4c3e22d564c9"],
+  "dahdi-fw-te133-7a001e.tar.gz": ["dahdi-fw-te133.bin", "51f1eab9ce85af94e5b8fa96987cbdd35183230a1bb4112bd9819665ceffe491"],
+  "dahdi-fw-te134-780017.tar.gz": ["dahdi-fw-te134.bin", "501c182244b6d27abe0f1c60d9bb6ca75714c9ffbea562f840a2565ccf8c8b56"],
+  "dahdi-fw-te435-13001e.tar.gz": ["dahdi-fw-te435.bin", "97d2572ce4f839759c1df9edc1a7dfa531d34c9fe9070cbb19d8c20c720f604a"],
+  "dahdi-fw-te436-10017.tar.gz": ["dahdi-fw-te436.bin", "e93f0d5fa7c14a89432929ef7cd3d1a93bab24d7945f1adb58d5f7c247555527"],
+  "dahdi-fw-te820-1.76.tar.gz": ["dahdi-fw-te820.bin", "23c25b183064ba5bf87f27e2447c68f825670ea640f02e7c7cb88b3381c51558"],
+  "dahdi-fw-vpmoct032-1.12.0.tar.gz": ["dahdi-fw-vpmoct032.bin", "63d55b6468282ece0f6b5b1e6cc9e38c277dd1d5cf4d707f1ab8add7fafddd46"]
+}

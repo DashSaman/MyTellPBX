@@ -144,7 +144,7 @@ mytel_package_batch() {
   IFS=$' \t\n' read -r -a repository_options <<< "${BETAREPO:-}" || :
   case "$2" in
     core) title='Base packages' ;;
-    product) title='Product packages'; repository_options+=(--exclude=issabel-license) ;;
+    product) title='Product packages'; repository_options+=(--exclude=issabel-license --exclude=fop2) ;;
     *) return 2 ;;
   esac
   for package in "${packages[@]}"; do

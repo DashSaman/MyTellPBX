@@ -9,13 +9,16 @@ import subprocess
 import sys
 import tempfile
 import time
+from collections import Counter
 from concurrent.futures import FIRST_COMPLETED, ThreadPoolExecutor, wait
 from pathlib import Path
 from urllib.parse import urlsplit, urlunsplit
 
 REPO_DIRECTORY = '/etc/yum.repos.d'
 REPO_ID = re.compile(r'[A-Za-z0-9_][A-Za-z0-9_.:-]*')
-URL = re.compile(r'https?://[^\s<>\]]+')
+CURL_ERROR = re.compile(r'(?:Curl error\s*|curl:\s*)\(([0-9]{1,3})\)')
+BAD_CHECKSUM = re.compile(r"\bbad [^\n]*checksum|\bchecksum[^\n]*(?:mismatch|does not match|doesn't match|failed)", re.I)
+PROGRESS_INTERVAL = 45
 
 
 def public_url(raw):
@@ -82,14 +85,22 @@ def curl_command(url):
     ]
 
 
-def diagnostic(message):
-    lines = message.splitlines()
-    for indicators in (('Curl error', 'curl: ('), ('Check exceeded', 'Error:')):
-        for line in lines:
-            if any(marker in line for marker in indicators):
-                line = ''.join(char for char in line if char.isprintable()).strip()
-                return URL.sub(lambda match: public_url(match[0]), line)[:320]
-    return 'See the diagnostic log.'
+def failure_category(message, code):
+    """Report only known categories to the console. Raw details stay in the log."""
+    if code == 124:
+        return 'source check timed out'
+    match = CURL_ERROR.search(message)
+    if match:
+        detail = int(match.group(1))
+        if detail in (35, 51, 58, 60, 77, 83, 90, 91):
+            return 'secure connection failed'
+        if detail == 28:
+            return 'connection timed out'
+        if detail in (5, 6):
+            return 'source name could not be resolved'
+    if BAD_CHECKSUM.search(message):
+        return 'source integrity check failed'
+    return 'source unavailable'
 
 
 def process_activity(pid):
@@ -138,7 +149,8 @@ def probe(job):
         except OSError:
             output.write('\nError: cannot launch the repository check.\n')
             code = 1
-    return label, code, diagnostic(logfile.read_text(encoding='utf-8', errors='replace')), logfile
+    reason = failure_category(logfile.read_text(encoding='utf-8', errors='replace'), code) if code else ''
+    return label, code, reason, logfile
 
 
 def move_repo_metadata(repo, source, target):
@@ -172,27 +184,35 @@ def run(workdir, staged, enabled, urls, keep_cache=False):
             jobs.append((repo, dnf_command(repo, dirs, private), result_dir / ('repo-' + repo + '.log')))
         for i, url in enumerate(urls, 1):
             jobs.append((public_url(url), curl_command(url), result_dir / ('rpm-' + str(i) + '.log')))
-        print(f'  Checking {len(jobs) + len(unknown)} repository and download source(s)…', flush=True)
-        for repo in unknown:
-            print(f'    FAIL {repo} — required repository is missing from the DNF configuration', flush=True)
+        total = len(jobs) + len(unknown)
+        print(f'  Checking {total} package sources…', flush=True)
         failed = len(unknown)
+        reasons = Counter()
+        if unknown:
+            (result_dir / 'missing-sources.log').write_text('\n'.join(unknown) + '\n', encoding='utf-8')
+            reasons['required source missing'] = failed
         with ThreadPoolExecutor(max_workers=6) as pool:
-            pending = {pool.submit(probe, job): job[0] for job in jobs}
+            pending = {pool.submit(probe, job) for job in jobs}
+            next_update = time.monotonic() + PROGRESS_INTERVAL
             while pending:
-                completed, _ = wait(pending, timeout=45, return_when=FIRST_COMPLETED)
-                if not completed:
-                    print('    Checking: ' + ', '.join(pending.values()), flush=True)
+                timeout = max(0, next_update - time.monotonic())
+                completed, pending = wait(pending, timeout=timeout, return_when=FIRST_COMPLETED)
                 for ready in completed:
-                    pending.pop(ready)
-                    label, code, detail, logfile = ready.result()
+                    label, code, reason, _ = ready.result()
                     if code:
                         failed += 1
-                        print(f'    FAIL {label} — {detail} ({logfile.name})', flush=True)
-                    else:
-                        if label in repo_caches:
-                            move_repo_metadata(label, repo_caches[label], workdir / 'dnf-cache')
-                        print('    OK   ' + label, flush=True)
-    print(f'  Repository checks: {len(jobs) + len(unknown) - failed} passed, {failed} failed. Logs: {result_dir}', flush=True)
+                        reasons[reason] += 1
+                    elif label in repo_caches:
+                        move_repo_metadata(label, repo_caches[label], workdir / 'dnf-cache')
+                now = time.monotonic()
+                if pending and now >= next_update:
+                    print(f'    {total - len(pending)}/{total} checked · {failed} failed · {len(pending)} remaining',
+                          flush=True)
+                    next_update = now + PROGRESS_INTERVAL
+    print(f'  Package sources: {total - failed} passed, {failed} failed.', flush=True)
+    if failed:
+        print('    ' + ' · '.join('{} ({})'.format(reason, reasons[reason]) for reason in sorted(reasons)), flush=True)
+        print(f'    Private logs: {result_dir}', flush=True)
     return int(bool(failed))
 
 
@@ -214,8 +234,16 @@ def main():
     try:
         return run(args.workdir, args.staged_repos, args.enable, args.package_url, args.keep_cache)
     except (ImportError, OSError, ValueError) as error:
-        message = URL.sub(lambda match: public_url(match[0]), str(error))
-        print('Repository inventory failed: ' + message, file=sys.stderr)
+        print('  Could not prepare package source checks.', file=sys.stderr)
+        report = args.workdir / 'repository-checks'
+        try:
+            report.mkdir(mode=0o700, exist_ok=True)
+            with tempfile.NamedTemporaryFile(mode='w', encoding='utf-8', dir=str(report),
+                                             prefix='inventory-', suffix='.log', delete=False) as log:
+                log.write(str(error) + '\n')
+                print(f'    Private log: {log.name}', file=sys.stderr)
+        except OSError:
+            print('    Could not write the private source check log.', file=sys.stderr)
         return 1
 
 
