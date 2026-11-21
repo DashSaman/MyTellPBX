@@ -105,7 +105,8 @@ function sel_astver
 
 function add_repos
 {
-cat > /etc/yum.repos.d/Issabel.repo <<EOF || return 1
+  local repo_dir="${1:-/etc/yum.repos.d}"
+cat > "$repo_dir/Issabel.repo" <<EOF || return 1
 [issabel-base]
 name=Base RPM Repository for MytelPBX
 baseurl=https://repo.us.issabel.org/issabel/4/base/\$basearch/
@@ -147,7 +148,7 @@ enabled=0
 gpgkey=https://repo.us.issabel.org/issabel/RPM-GPG-KEY-Issabel
 EOF
 
-cat > /etc/yum.repos.d/Issabel5.repo <<EOF || return 1
+cat > "$repo_dir/Issabel5.repo" <<EOF || return 1
 [issabel-cinco]
 name=Base RPM Repository for MytelPBX 5
 baseurl=https://repo.us.issabel.org/issabel/5/base/\$basearch/
@@ -198,7 +199,7 @@ enabled=0
 gpgkey=https://repo.us.issabel.org/issabel/RPM-GPG-KEY-Issabel
 EOF
 
-cat > /etc/yum.repos.d/commercial-addons.repo <<EOF || return 1
+cat > "$repo_dir/commercial-addons.repo" <<EOF || return 1
 [commercial-addons]
 name=Commercial-Addons RPM Repository for MytelPBX
 baseurl=https://repo.us.issabel.org/issabel/5/commercial_addons/\$basearch/
@@ -218,6 +219,7 @@ echo "centos $ROCKY_VERSION tweaks start" >>"${MYTEL_NATIVE_WORK}/netinstall.log
 grep -qxF 'fastestmirror=True' /etc/dnf/dnf.conf || echo "fastestmirror=True" >> /etc/dnf/dnf.conf
 mytel_run_dnf repositories dnf install -y https://rpms.remirepo.net/enterprise/remi-release-${ROCKY_VERSION}.rpm || return $?
 "${MYTEL_PYTHON}" -B "${MYTEL_BUNDLE_ROOT}/installer/repair-repository-transport.py" || return 1
+mytel_check_repository_sources --enable remi --enable powertools --enable devel || return $?
 mytel_run_dnf repositories dnf module enable php:remi-7.4 -y || return $?
 dnf config-manager --set-enabled remi &>>"${MYTEL_NATIVE_WORK}/netinstall.log" || return 1
 dnf config-manager --set-enabled powertools &>>"${MYTEL_NATIVE_WORK}/netinstall.log" || return 1
@@ -334,6 +336,22 @@ function bye()
   mytel_terminal_success
 }
 
+function mytel_check_repository_sources()
+{
+  local dnf_python=/usr/libexec/platform-python
+  [ -x "$dnf_python" ] || dnf_python="$MYTEL_PYTHON"
+  "$dnf_python" -I -B "${MYTEL_BUNDLE_ROOT}/installer/vendor-native/repository-preflight.py" "${MYTEL_NATIVE_WORK}" "$@"
+}
+
+function mytel_check_install_repositories()
+{
+  local staged
+  check_tools || return 1
+  staged=$(mktemp -d "${MYTEL_NATIVE_WORK}/planned-repos.XXXXXXXX") || return 1
+  add_repos "$staged" || return $?
+  mytel_check_repository_sources --staged-repos "$staged" --enable powertools --enable devel     --package-url https://rpms.remirepo.net/enterprise/remi-release-8.rpm
+}
+
 function mytel_addons()
 {
   [ "${ASTVER:-}" = 20 ] || { printf 'MytelPBX requires native Asterisk 20.\n' >&2; return 1; }
@@ -362,6 +380,11 @@ function mytel_native_step()
 }
 
 # MYTEL_NATIVE_FLOW
+if [ "$#" = 1 ] && [ "$1" = --check-repositories ]; then
+  mytel_check_install_repositories
+  exit $?
+fi
+[ "$#" = 0 ] || exit 1
 source "${MYTEL_BUNDLE_ROOT}/installer/vendor-native/terminal-ui.sh" || exit 1
 source "${MYTEL_BUNDLE_ROOT}/installer/vendor-native/online-credentials.sh" || exit 1
 mytel_receive_online_passwords || exit 1

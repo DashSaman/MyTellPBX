@@ -11,7 +11,7 @@ from native_bootstrap_fixture import BASH, BootstrapFixture
 
 @unittest.skipUnless(BASH and Path(BASH).is_file(), 'Bash is required')
 class InstallerWorkspaceTests(BootstrapFixture, unittest.TestCase):
-    def main_fixture(self, child_status=0, lock_probe=False):
+    def main_fixture(self, child_status=0, lock_probe=False, repo_status=0, check_only=False):
         # Keep main's real flock, umask and mktemp operations inside this fixture.
         # Preflight and native execution are replaced; no target provisioning runs.
         path = self.base / 'main-definitions.sh'
@@ -36,14 +36,17 @@ extract_bundle(){
         > "$native/online-credentials.sh"
 }
 bash(){
+  if [[ "${2:-}" == --check-repositories ]]; then
+    printf 'REPOSITORIES_CHECKED'
+    return ''' + str(repo_status) + '''
+  fi
   local db admin driver
   IFS= read -r -u 3 db && IFS= read -r -u 3 admin && IFS= read -r -u 3 driver || return 98
   [[ "$db" == Fixture-DB && "$admin" == Fixture-Panel && "$driver" == pjsip ]] || return 98
 ''' + probe + '''printf 'WORK=%s\\n' "$MYTEL_NATIVE_WORK" >> "$EVENTS"
 return ''' + str(child_status) + '''
 }
-main
-'''
+main ''' + ('--check-repositories' if check_only else '') + '\n'
         result = self.shell(body, {'MYTEL_MEDIA_ROOT': ''}, path)
         return result
 
@@ -95,6 +98,18 @@ main
         self.assertEqual(self.archive.read_bytes(), original)
         self.assertEqual(hashlib.sha256(original).hexdigest(),
                          hashlib.sha256((self.work / 'bundle.tgz').read_bytes()).hexdigest())
+
+    def test_failed_repository_check_stops_before_installation(self):
+        result = self.main_fixture(repo_status=1)
+        self.assertNotEqual(result.returncode, 0)
+        self.assertIn(b'REPOSITORIES_CHECKED', result.stdout)
+        self.assertFalse(self.events.exists())
+
+    def test_discovery_mode_performs_only_the_repository_check(self):
+        result = self.main_fixture(check_only=True)
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertIn(b'REPOSITORIES_CHECKED', result.stdout)
+        self.assertFalse(self.events.exists())
 
     @unittest.skipUnless(os.name == 'posix', 'Native POSIX source-symlink boundary')
     def test_symlinked_local_bundle_is_refused_without_copy_or_source_change(self):

@@ -1,8 +1,8 @@
 #!/bin/bash
 # MytelPBX / Mytel.one - verified native Issabel installer bootstrap.
 # Run in an interactive root terminal on fresh Rocky Linux 8.10 x86_64.
-# Installs Asterisk 20 only. Collects and confirms passwords in the terminal
-# before native package setup. Native completion reboots the server.
+# Installs Asterisk 20 only. Checks repositories before asking for passwords.
+# Native completion reboots the server.
 # Verified source and logs remain in the printed private workspace.
 set -u
 set -o pipefail
@@ -18,9 +18,13 @@ MYTELLPBX_BUNDLE_URL="${MYTELL_BUNDLE_URL:-${MYTELLPBX_GITHUB}/releases/download
 die() { printf '\nMytelPBX: %s\n' "$*" >&2; exit 1; }
 
 preflight() {
-    [ "$#" = 0 ] || die 'This installer accepts no command arguments.'
-    [ "$(id -u)" = 0 ] || die 'Run from an interactive root terminal.'
-    [ -t 0 ] && [ -t 1 ] || die 'Native dialogs require a terminal; download this script, then run bash install-mytellpbx.sh.'
+    [ "$#" = 0 ] || { [ "$#" = 1 ] && [ "$1" = --check-repositories ]; } \
+        || die 'The only supported argument is --check-repositories.'
+    [ "$(id -u)" = 0 ] || die 'Run as root.'
+    if [ "$#" = 0 ]; then
+        [ -t 0 ] && [ -t 1 ] \
+            || die 'Native dialogs require a terminal; download this script, then run bash install-mytellpbx.sh.'
+    fi
     grep -qx 'Rocky Linux release 8.10 (Green Obsidian)' /etc/redhat-release \
         || die 'Fresh Rocky Linux 8.10 is required.'
     [ "$(uname -m)" = x86_64 ] || die 'x86_64 is required.'
@@ -141,6 +145,11 @@ main() {
     download_bundle
     extract_bundle
     export MYTEL_BUNDLE_ROOT MYTEL_NATIVE_WORK MYTEL_PYTHON
+    if [ -z "${MYTEL_MEDIA_ROOT:-}" ] || [ "$#" = 1 ]; then
+        bash "$MYTEL_BUNDLE_ROOT/installer/vendor-native/mytelpbx-netinstall.sh" --check-repositories \
+            || die "Repository checks failed. See $MYTEL_NATIVE_WORK/repository-checks."
+        [ "$#" = 0 ] || return 0
+    fi
     if [ -n "${MYTEL_MEDIA_ROOT:-}" ]; then
         bash "$MYTEL_BUNDLE_ROOT/installer/vendor-native/run-offline.sh"
     else

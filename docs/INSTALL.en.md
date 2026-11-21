@@ -84,6 +84,19 @@ See the [Desk/VAD guide](MYTELDESK_INSTALL_FA.md).
 
 ## Diagnosis and recovery
 
+The online installer checks enabled DNF repositories and the Issabel
+repositories it plans to configure before asking for passwords. It also
+checks the Rocky repositories used later and the HTTPS download of the Remi
+release RPM. After Remi is configured, the installer checks its repositories
+before enabling PHP and installing packages.
+
+Run the same initial checks on a fresh server without starting installation
+with `sudo bash install-mytellpbx.sh --check-repositories`. The console
+lists each check and its result. Detailed DNF and download diagnostics are
+under `repository-checks/` in the printed private workspace. A failed
+required check stops the current stage. Retry once the reported repository
+can serve valid metadata or packages again.
+
 The bootstrap prints a private workspace such as:
 
 ```text

@@ -53,6 +53,7 @@ copy_path() {
 copy_path "installer/vendor-native/issabel5-netinstall.sh"
 copy_path "installer/vendor-native/mytelpbx-netinstall.sh"
 copy_path "installer/vendor-native/derive-native.py"
+copy_path "installer/vendor-native/repository-preflight.py"
 copy_path "installer/vendor-native/brand-native-dialogs.py"
 copy_path "installer/vendor-native/terminal-ui.sh"
 copy_path "installer/vendor-native/online-credentials.sh"

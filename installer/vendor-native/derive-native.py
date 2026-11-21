@@ -57,6 +57,11 @@ def derive(original):
                     'cat > /etc/yum.repos.d/Issabel5.repo <<EOF',
                     'cat > /etc/yum.repos.d/commercial-addons.repo <<EOF'):
         source = replace(source, command, command + ' || return 1')
+    source = replace(source, 'function add_repos\n{\n',
+                     'function add_repos\n{\n  local repo_dir="${1:-/etc/yum.repos.d}"\n')
+    for repo_file in ('Issabel.repo', 'Issabel5.repo', 'commercial-addons.repo'):
+        source = replace(source, 'cat > /etc/yum.repos.d/' + repo_file,
+                         'cat > "$repo_dir/' + repo_file + '"')
     settings_tail = source[source.index('  echo -en "        Installing base packages '):source.index('\nfunction sel_astver')]
     source = replace(source, settings_tail,
                      '  mytel_run_dnf repositories yum -y install issabel-config_helpers dialog\n}\n')
@@ -97,6 +102,7 @@ def derive(original):
     remi_progress = 'mytel_run_dnf repositories ' + remi
     source = replace(source, remi_progress,
                      '"${MYTEL_PYTHON}" -B "${MYTEL_BUNDLE_ROOT}/installer/repair-repository-transport.py" || return 1\n'
+                     'mytel_check_repository_sources --enable remi --enable powertools --enable devel || return $?\n'
                      + remi_progress)
     source = replace(source, 'dnf -y check-upgrade &>>"${MYTEL_NATIVE_WORK}/netinstall.log"\n', '')
     transactions = source[source.index('function yum_gauge'):source.index('function post_install')]
@@ -186,6 +192,23 @@ function install_packages
     flow = re.sub(r'(?m)^(check_tools|add_repos|settings|select_language|sel_astver|additional_packages|generate_files|centos8_tweaks|update_os|install_packages|post_install|set_passwords|mytel_addons|cleanup|mytel_verify_addons|bye|reboot)$',
                   r'mytel_native_step \1', flow)
     helpers = '''
+function mytel_check_repository_sources()
+{
+  local dnf_python=/usr/libexec/platform-python
+  [ -x "$dnf_python" ] || dnf_python="$MYTEL_PYTHON"
+  "$dnf_python" -I -B "${MYTEL_BUNDLE_ROOT}/installer/vendor-native/repository-preflight.py" "${MYTEL_NATIVE_WORK}" "$@"
+}
+
+function mytel_check_install_repositories()
+{
+  local staged
+  check_tools || return 1
+  staged=$(mktemp -d "${MYTEL_NATIVE_WORK}/planned-repos.XXXXXXXX") || return 1
+  add_repos "$staged" || return $?
+  mytel_check_repository_sources --staged-repos "$staged" --enable powertools --enable devel \
+    --package-url https://rpms.remirepo.net/enterprise/remi-release-8.rpm
+}
+
 function mytel_addons()
 {
   [ "${ASTVER:-}" = 20 ] || { printf 'MytelPBX requires native Asterisk 20.\\n' >&2; return 1; }
@@ -213,7 +236,12 @@ function mytel_native_step()
   fi
 }
 '''
-    load_online = '''source "${MYTEL_BUNDLE_ROOT}/installer/vendor-native/terminal-ui.sh" || exit 1
+    load_online = '''if [ "$#" = 1 ] && [ "$1" = --check-repositories ]; then
+  mytel_check_install_repositories
+  exit $?
+fi
+[ "$#" = 0 ] || exit 1
+source "${MYTEL_BUNDLE_ROOT}/installer/vendor-native/terminal-ui.sh" || exit 1
 source "${MYTEL_BUNDLE_ROOT}/installer/vendor-native/online-credentials.sh" || exit 1
 mytel_receive_online_passwords || exit 1
 '''

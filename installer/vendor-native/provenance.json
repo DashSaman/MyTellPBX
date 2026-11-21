@@ -48,7 +48,7 @@
     }
   },
   "derivation_changes": [
-    "Online terminal collects confirmed credentials through a private pipe before package setup and preselects PJSIP unless the operator chooses SIP",
+    "The online bootstrap checks active and planned repositories in an isolated DNF workspace before collecting confirmed credentials through a private pipe; PJSIP is selected unless the operator chooses SIP",
     "Online packages always include the native Community Realtime Block List; licensed optional selections are excluded",
     "English terminal phases and observed package output replace the online graphical gauge; native package diagnostics remain private",
     "MytelPBX / Mytel.one display labels; native executable, package, database and repository IDs remain unchanged",
