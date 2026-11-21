@@ -105,7 +105,12 @@ function sel_astver
 
 function add_repos
 {
-  local repo_dir="${1:-/etc/yum.repos.d}"
+  local repo_dir="${1:-$MYTEL_NATIVE_WORK/approved-vendor-repos}"
+  local state_dir="$repo_dir/.mytel-vendor"
+  if [ "$#" = 0 ]; then
+    mkdir -m 0700 "$repo_dir" || return 1
+    state_dir=/var/lib/mytelpbx/repository-snapshots/r7
+  fi
 cat > "$repo_dir/Issabel.repo" <<EOF || return 1
 [issabel-base]
 name=Base RPM Repository for MytelPBX
@@ -208,7 +213,20 @@ enabled=1
 gpgkey=https://repo.us.issabel.org/issabel/RPM-GPG-KEY-Issabel
 EOF
 
-
+  "$MYTEL_PYTHON" -I -B "$MYTEL_BUNDLE_ROOT/installer/vendor-native/vendor-mirror.py" \
+    --repo-dir "$repo_dir" --state-dir "$state_dir" || return $?
+  if [ "$#" = 0 ]; then
+    local backup="$MYTEL_NATIVE_WORK/vendor-repos-before" file
+    mkdir -m 0700 "$backup" || return 1
+    for file in Issabel.repo Issabel5.repo commercial-addons.repo; do
+      if [ -e "/etc/yum.repos.d/$file" ] || [ -L "/etc/yum.repos.d/$file" ]; then
+        [ -f "/etc/yum.repos.d/$file" ] && [ ! -L "/etc/yum.repos.d/$file" ] || return 1
+        cp -p -- "/etc/yum.repos.d/$file" "$backup/$file" || return 1
+      fi
+    done
+    MYTEL_APPROVED_VENDOR_REPOS="$repo_dir"
+    mytel_restore_vendor_repos || return $?
+  fi
 }
 
 function centos8_tweaks {
@@ -336,10 +354,23 @@ function bye()
   mytel_terminal_success
 }
 
+function mytel_restore_vendor_repos()
+{
+  # Native RPM scriptlets can rewrite these three files. Restore the checked
+  # definitions before the next DNF stage and after the product RPM transaction.
+  local file
+  for file in Issabel.repo Issabel5.repo commercial-addons.repo; do
+    if ! cmp -s -- "$MYTEL_APPROVED_VENDOR_REPOS/$file" "/etc/yum.repos.d/$file"; then
+      install -T -m 0644 -- "$MYTEL_APPROVED_VENDOR_REPOS/$file" "/etc/yum.repos.d/$file" || return 1
+    fi
+  done
+}
+
 function mytel_check_repository_sources()
 {
   local dnf_python=/usr/libexec/platform-python
   [ -x "$dnf_python" ] || dnf_python="$MYTEL_PYTHON"
+  if [ "${MYTEL_KEEP_DNF_CACHE:-0}" = 1 ]; then set -- --keep-cache "$@"; fi
   "$dnf_python" -I -B "${MYTEL_BUNDLE_ROOT}/installer/vendor-native/repository-preflight.py" "${MYTEL_NATIVE_WORK}" "$@"
 }
 

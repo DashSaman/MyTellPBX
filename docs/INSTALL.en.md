@@ -1,6 +1,6 @@
-# MytelPBX 7.7.0 revision 6 installation
+# MytelPBX 7.7.0 revision 7 installation
 
-Revision 6 uses tag `v7.7.0-r6`. The online installer runs in English and sets the
+Revision 7 uses tag `v7.7.0-r7`. The online installer runs in English and sets the
 web panel to Persian from the first sign-in. The
 [revision 3 record](releases/7.7.0/revision-3.md) covers the earlier release.
 
@@ -10,7 +10,7 @@ Use a **fresh Rocky Linux 8.10 Minimal x86_64 server**, root access, an interact
 console or SSH terminal, and working Internet access. To install the published revision, run:
 
 ```bash
-curl -fsSL -o install-mytellpbx.sh https://github.com/DashSaman/MyTellPBX/releases/download/v7.7.0-r6/install-mytellpbx.sh && bash install-mytellpbx.sh
+curl -fsSL -o install-mytellpbx.sh https://github.com/DashSaman/MyTellPBX/releases/download/v7.7.0-r7/install-mytellpbx.sh && bash install-mytellpbx.sh
 ```
 
 The script is downloaded to a file before Bash starts, so setup retains
@@ -89,6 +89,14 @@ repositories it plans to configure before asking for passwords. It also
 checks the Rocky repositories used later and the HTTPS download of the Remi
 release RPM. After Remi is configured, the installer checks its repositories
 before enabling PHP and installing packages.
+
+For the nine enabled Issabel sources, DNF uses local metalink files containing
+the SHA-256 of the repository index previously fetched over authenticated HTTPS.
+It can use the vendor's alternate HTTP transport only for matching metadata.
+Package signatures are required, including for the legacy repository. The public
+signing keys ship in the checksum-verified installer bundle. A changed index
+requires a newly reviewed snapshot. Active metadata transfers have a bounded
+progress timeout, and a full installation reuses the verified metadata.
 
 Run the same initial checks on a fresh server without starting installation
 with `sudo bash install-mytellpbx.sh --check-repositories`. The console

@@ -35,8 +35,7 @@ def derive(original):
                      'Optional upstream licensed add-ons')
     source = re.sub(r'(?m)^name=(.*)Issabel(.*)$', r'name=\1MytelPBX\2', source)
 
-    # The official primary and mirrorlist hosts currently refuse HTTPS. The
-    # official US mirror serves the same native layout and signing key via TLS.
+    # Use the canonical vendor layout as input to the checked snapshot renderer.
     def mirror(match):
         release, arch, repo = match.groups()
         if release == '4' and repo == 'beta':
@@ -58,10 +57,38 @@ def derive(original):
                     'cat > /etc/yum.repos.d/commercial-addons.repo <<EOF'):
         source = replace(source, command, command + ' || return 1')
     source = replace(source, 'function add_repos\n{\n',
-                     'function add_repos\n{\n  local repo_dir="${1:-/etc/yum.repos.d}"\n')
+                     '''function add_repos
+{
+  local repo_dir="${1:-$MYTEL_NATIVE_WORK/approved-vendor-repos}"
+  local state_dir="$repo_dir/.mytel-vendor"
+  if [ "$#" = 0 ]; then
+    mkdir -m 0700 "$repo_dir" || return 1
+    state_dir=/var/lib/mytelpbx/repository-snapshots/r7
+  fi
+''')
     for repo_file in ('Issabel.repo', 'Issabel5.repo', 'commercial-addons.repo'):
         source = replace(source, 'cat > /etc/yum.repos.d/' + repo_file,
                          'cat > "$repo_dir/' + repo_file + '"')
+    source = replace(source, '\nEOF\n\n\n}\n\nfunction centos8_tweaks', '''
+EOF
+
+  "$MYTEL_PYTHON" -I -B "$MYTEL_BUNDLE_ROOT/installer/vendor-native/vendor-mirror.py" \\
+    --repo-dir "$repo_dir" --state-dir "$state_dir" || return $?
+  if [ "$#" = 0 ]; then
+    local backup="$MYTEL_NATIVE_WORK/vendor-repos-before" file
+    mkdir -m 0700 "$backup" || return 1
+    for file in Issabel.repo Issabel5.repo commercial-addons.repo; do
+      if [ -e "/etc/yum.repos.d/$file" ] || [ -L "/etc/yum.repos.d/$file" ]; then
+        [ -f "/etc/yum.repos.d/$file" ] && [ ! -L "/etc/yum.repos.d/$file" ] || return 1
+        cp -p -- "/etc/yum.repos.d/$file" "$backup/$file" || return 1
+      fi
+    done
+    MYTEL_APPROVED_VENDOR_REPOS="$repo_dir"
+    mytel_restore_vendor_repos || return $?
+  fi
+}
+
+function centos8_tweaks''')
     settings_tail = source[source.index('  echo -en "        Installing base packages '):source.index('\nfunction sel_astver')]
     source = replace(source, settings_tail,
                      '  mytel_run_dnf repositories yum -y install issabel-config_helpers dialog\n}\n')
@@ -192,10 +219,23 @@ function install_packages
     flow = re.sub(r'(?m)^(check_tools|add_repos|settings|select_language|sel_astver|additional_packages|generate_files|centos8_tweaks|update_os|install_packages|post_install|set_passwords|mytel_addons|cleanup|mytel_verify_addons|bye|reboot)$',
                   r'mytel_native_step \1', flow)
     helpers = '''
+function mytel_restore_vendor_repos()
+{
+  # Native RPM scriptlets can rewrite these three files. Restore the checked
+  # definitions before the next DNF stage and after the product RPM transaction.
+  local file
+  for file in Issabel.repo Issabel5.repo commercial-addons.repo; do
+    if ! cmp -s -- "$MYTEL_APPROVED_VENDOR_REPOS/$file" "/etc/yum.repos.d/$file"; then
+      install -T -m 0644 -- "$MYTEL_APPROVED_VENDOR_REPOS/$file" "/etc/yum.repos.d/$file" || return 1
+    fi
+  done
+}
+
 function mytel_check_repository_sources()
 {
   local dnf_python=/usr/libexec/platform-python
   [ -x "$dnf_python" ] || dnf_python="$MYTEL_PYTHON"
+  if [ "${MYTEL_KEEP_DNF_CACHE:-0}" = 1 ]; then set -- --keep-cache "$@"; fi
   "$dnf_python" -I -B "${MYTEL_BUNDLE_ROOT}/installer/vendor-native/repository-preflight.py" "${MYTEL_NATIVE_WORK}" "$@"
 }
 

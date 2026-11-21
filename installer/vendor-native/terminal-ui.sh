@@ -100,12 +100,21 @@ mytel_run_dnf() {
   local kind=$1 logger="${MYTEL_BUNDLE_ROOT}/installer/dnf-progress.py"
   local log="${MYTEL_NATIVE_WORK}/netinstall.log"
   local -a statuses
+  local restore_status=0 manager
   shift
+  if [[ ${MYTEL_KEEP_DNF_CACHE:-0} == 1 && ( $1 == yum || $1 == dnf ) ]]; then
+    manager=$1; shift
+    set -- "$manager" "--setopt=cachedir=$MYTEL_NATIVE_WORK/dnf-cache" "$@"
+  fi
   "${MYTEL_PYTHON}" -B "$logger" --log "$log" --kind "$kind" --check-log || return 1
   LC_ALL=C PYTHONUNBUFFERED=1 "$@" 2>&1 | MYTELL_CONSOLE_ENGLISH=1 PYTHONIOENCODING=utf-8 "${MYTEL_PYTHON}" -B "$logger" --log "$log" --kind "$kind" --detail
   statuses=("${PIPESTATUS[@]}")
+  if [[ -n ${MYTEL_APPROVED_VENDOR_REPOS:-} ]]; then
+    mytel_restore_vendor_repos || restore_status=$?
+  fi
   (( statuses[0] == 0 )) || return "${statuses[0]}"
-  return "${statuses[1]}"
+  (( statuses[1] == 0 )) || return "${statuses[1]}"
+  return "$restore_status"
 }
 
 mytel_package_batch() {

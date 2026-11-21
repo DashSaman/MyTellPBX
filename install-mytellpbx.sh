@@ -145,6 +145,9 @@ main() {
     download_bundle
     extract_bundle
     export MYTEL_BUNDLE_ROOT MYTEL_NATIVE_WORK MYTEL_PYTHON
+    MYTEL_KEEP_DNF_CACHE=0
+    if [ "$#" = 0 ] && [ -z "${MYTEL_MEDIA_ROOT:-}" ]; then MYTEL_KEEP_DNF_CACHE=1; fi
+    export MYTEL_KEEP_DNF_CACHE
     if [ -z "${MYTEL_MEDIA_ROOT:-}" ] || [ "$#" = 1 ]; then
         bash "$MYTEL_BUNDLE_ROOT/installer/vendor-native/mytelpbx-netinstall.sh" --check-repositories \
             || die "Repository checks failed. See $MYTEL_NATIVE_WORK/repository-checks."
