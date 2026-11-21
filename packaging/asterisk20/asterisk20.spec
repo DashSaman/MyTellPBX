@@ -208,6 +208,14 @@ install -pm0644 %{SOURCE4} %{buildroot}/etc/asterisk/cdr.conf
 install -pm0644 %{SOURCE5} %{buildroot}/etc/asterisk/cdr_sqlite3_custom.conf
 install -d %{buildroot}/etc/sysconfig
 printf '%s\n' AST_USER=asterisk AST_GROUP=asterisk COREDUMP=yes COLOR=yes > %{buildroot}/etc/sysconfig/asterisk
+# These upstream helpers are Python 3 compatible. Verify them with the
+# installed interpreter before EL8's normal brp-mangle-shebangs pass.
+for name in reflocks refstats refcounter; do
+    script="%{buildroot}/var/lib/asterisk/scripts/$name.py"
+    grep -qx '#!/usr/bin/env python' "$script"
+    sed -i '1s|^#!/usr/bin/env python$|#!/usr/bin/python3|' "$script"
+    python3 -B "$script" --help >/dev/null
+done
 python3 %{SOURCE8} stage %{SOURCE7} %{buildroot} %{_builddir}
 
 %pre core
