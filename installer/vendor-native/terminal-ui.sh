@@ -117,17 +117,41 @@ mytel_run_dnf() {
   return "$restore_status"
 }
 
+mytel_unmet_package_floors() {
+  # rpm -q --whatprovides on EL8 does not evaluate version inequalities.
+  /usr/libexec/platform-python -I -B - "$@" <<'PY_FLOORS'
+import rpm
+import sys
+
+db = rpm.TransactionSet()
+for spec in sys.argv[1:]:
+    name, evr = spec.split('>=')
+    version, release = evr.split('-')
+    for header in db.dbMatch('name', name):
+        installed = (str(header['epoch'] or 0), header['version'], header['release'])
+        if rpm.labelCompare(installed, ('0', version, release)) >= 0:
+            break
+    else:
+        print(name + ' >= ' + evr)
+PY_FLOORS
+}
+
 mytel_package_batch() {
-  local package status title
-  local -a packages=() missing=() repository_options=()
+  local package status title unmet
+  local floor_pattern='^[A-Za-z0-9][A-Za-z0-9_.+-]*>=[0-9]+(\.[0-9]+)*-[0-9]+$'
+  local -a packages=() floors=() missing=() repository_options=()
   IFS=$' \t\n' read -r -d '' -a packages <<< "$1" || :
   IFS=$' \t\n' read -r -a repository_options <<< "${BETAREPO:-}" || :
   case "$2" in
     core) title='Base packages' ;;
-    product) title='Product packages' ;;
+    product) title='Product packages'; repository_options+=(--exclude=issabel-license) ;;
     *) return 2 ;;
   esac
   for package in "${packages[@]}"; do
+    if [[ $package =~ $floor_pattern ]]; then
+      floors+=("$package")
+      continue
+    fi
     if [[ ! $package =~ ^[A-Za-z0-9][A-Za-z0-9_.+:%-]{0,179}$ ]]; then
       printf 'MytelPBX · Invalid package name. Package phase stopped.\n' >&2
       return 2
@@ -136,9 +160,22 @@ mytel_package_batch() {
       missing+=("$package")
     fi
   done
+  if (( ${#floors[@]} )); then
+    unmet=$(mytel_unmet_package_floors "${floors[@]}") || return 1
+    while IFS= read -r package; do
+      if [[ -n $package ]]; then missing+=("$package"); fi
+    done <<< "$unmet"
+  fi
   printf '    %s · %d to install · %d already installed\n' "$title" "${#missing[@]}" "$((${#packages[@]} - ${#missing[@]}))"
   (( ${#missing[@]} )) || return 0
   if mytel_run_dnf packages yum "${repository_options[@]}" -y install "${missing[@]}"; then
+    if (( ${#floors[@]} )); then
+      unmet=$(mytel_unmet_package_floors "${floors[@]}") || return 1
+      if [[ -n $unmet ]]; then
+        printf 'Required module version missing after installation:\n%s\n' "$unmet" >&2
+        return 1
+      fi
+    fi
     return 0
   else
     status=$?

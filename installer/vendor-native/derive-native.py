@@ -14,6 +14,14 @@ import re
 
 SOURCE_SHA256 = 'd0793041a422981293d74153f1aa56b29ff9803d18ee3319a53865b5b6132d46'
 
+# issabel-5.0.0-1.noarch ships no files or scriptlet bodies. Install its
+# actual module requirements directly so the paid-license broker stays off.
+# The base batch already selects the required asterisk provider (asterisk20).
+NATIVE_MODULES = ('issabel-addons', 'issabel-agenda', 'issabel-email_admin',
+                  'issabel-extras', 'issabel-fax', 'issabel-framework',
+                  'issabel-my_extension', 'issabel-pbx', 'issabel-reports',
+                  'issabel-security', 'issabel-system')
+
 
 def replace(source, old, new, count=1):
     if source.count(old) != count:
@@ -47,6 +55,9 @@ def derive(original):
     source = source.replace('http://repo.issabel.org/', 'https://repo.us.issabel.org/')
     animation = source[source.index('BLA_metro='):source.index('function generate_files')]
     source = replace(source, animation, '')
+    modules = [name + '>=5.0.0-1' for name in NATIVE_MODULES] + ['issabelPBX>=2.12.0-1']
+    source = replace(source, '\nissabel-geoip\nissabel\nissabel-prosody-auth\n',
+                     '\nissabel-geoip\n' + '\n'.join(modules) + '\nissabel-prosody-auth\n')
 
     for filename in ('inst1.txt', 'inst2.txt', 'netinstall.log', 'netinstall_errors.txt'):
         source = source.replace('/tmp/' + filename, '"${MYTEL_NATIVE_WORK}/' + filename + '"')

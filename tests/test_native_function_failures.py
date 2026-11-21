@@ -121,6 +121,26 @@ printf 'CONTINUED\\n'
         self.assertIn(b'Stopped', result.stderr)
         self.assertNotIn(b'CONTINUED', result.stdout)
 
+    def test_product_package_floors_stay_single_dnf_arguments_and_are_rechecked(self):
+        shell = '''
+rpm(){ return 1; }
+mytel_unmet_package_floors(){
+  [[ $# == 2 && $1 == 'alpha>=5.0.0-1' && $2 == 'beta>=2.12.0-1' ]] || return 81
+  if [[ ! -e $MYTEL_NATIVE_WORK/installed || $BAD_POST == 1 ]]; then printf '%s\\n' 'beta >= 2.12.0-1'; fi
+}
+yum(){
+  [[ $# == 5 && $1 == --exclude=issabel-license && $2 == -y && $3 == install && $4 == other && $5 == 'beta >= 2.12.0-1' ]] || return 82
+  touch "$MYTEL_NATIVE_WORK/installed"
+}
+mytel_package_batch 'alpha>=5.0.0-1 beta>=2.12.0-1 other' product
+'''
+        result = self.shell('BAD_POST=0\n' + shell)
+        self.assertEqual(result.returncode, 0, result.stderr)
+        (self.base / 'installed').unlink()
+        result = self.shell('BAD_POST=1\n' + shell)
+        self.assertNotEqual(result.returncode, 0)
+        self.assertIn(b'Required module version missing', result.stderr)
+
     def test_update_uses_a_single_system_transaction_and_preserves_its_status(self):
         result = self.shell('''
 yum(){ printf '%s\\n' "$*" >> "$MYTEL_NATIVE_WORK/calls"; return 42; }

@@ -54,6 +54,8 @@ and the result of each installation phase.
 DNF updates the system in one transaction and resolves the base and PBX package sets
 in two batches. In an interactive terminal, progress updates in place. During Desk
 startup the installer reports database initialization when the service journal confirms it.
+The PBX batch requests the core modules with their native minimum versions and
+excludes the optional license manager, including as an indirect dependency.
 
 ## Panel, Desk and CPU VAD
 

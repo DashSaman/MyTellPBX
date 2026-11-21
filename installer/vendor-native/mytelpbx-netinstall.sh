@@ -62,7 +62,18 @@ EOF
 
 cat > "${MYTEL_NATIVE_WORK}/inst2.txt" <<EOF || return 1
 issabel-geoip
-issabel
+issabel-addons>=5.0.0-1
+issabel-agenda>=5.0.0-1
+issabel-email_admin>=5.0.0-1
+issabel-extras>=5.0.0-1
+issabel-fax>=5.0.0-1
+issabel-framework>=5.0.0-1
+issabel-my_extension>=5.0.0-1
+issabel-pbx>=5.0.0-1
+issabel-reports>=5.0.0-1
+issabel-security>=5.0.0-1
+issabel-system>=5.0.0-1
+issabelPBX>=2.12.0-1
 issabel-prosody-auth
 issabel-endpointconfig2
 xtables-addons

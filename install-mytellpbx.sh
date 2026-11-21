@@ -141,7 +141,7 @@ main() {
     MYTEL_NATIVE_WORK=$(mktemp -d /var/tmp/mytelpbx-native.XXXXXXXX) \
         || die 'Cannot create a private workspace.'
     printf '\n  Preparing and verifying MytelPBX %s…\n  Installation log directory  %s\n' \
-        "$MYTELLPBX_VERSION" "$MYTEL_NATIVE_WORK"
+        "$MYTELLPBX_RELEASE_TAG" "$MYTEL_NATIVE_WORK"
     download_bundle
     extract_bundle
     export MYTEL_BUNDLE_ROOT MYTEL_NATIVE_WORK MYTEL_PYTHON

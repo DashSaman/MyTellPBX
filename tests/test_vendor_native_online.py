@@ -99,6 +99,19 @@ class NativeSourceTests(unittest.TestCase):
         for fragment in ('issabel-license', 'wanpipe-utils', '--checklist', '--radiolist'):
             self.assertNotIn(fragment, derived)
 
+    def test_product_expands_the_signed_empty_meta_package_without_its_license_dependency(self):
+        # rpm -qpR on issabel-5.0.0-1.noarch, SHA-256
+        # 6ec9a538fdae5bc1141a655f38e789a9a8f3da50416738fb3971bd4a609a8c3a.
+        expected = {('issabel-' + name, '5.0.0-1') for name in (
+            'addons', 'agenda', 'email_admin', 'extras', 'fax', 'framework', 'my_extension',
+            'pbx', 'reports', 'security', 'system')}
+        expected.add(('issabelPBX', '2.12.0-1'))
+        source = (NATIVE / 'mytelpbx-netinstall.sh').read_text(encoding='utf-8')
+        packages = source.split('/inst2.txt" <<EOF || return 1\n', 1)[1].split('\nEOF', 1)[0].splitlines()
+        self.assertNotIn('issabel', packages)
+        self.assertNotIn('issabel-license', packages)
+        self.assertEqual({tuple(spec.split('>=')) for spec in packages if '>=' in spec}, expected)
+
     def test_unrecognized_vendor_reference_is_refused(self):
         with self.assertRaises(ValueError):
             module('derive-native').derive(b'#!/bin/bash\necho unexpected\n')
