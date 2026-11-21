@@ -232,7 +232,6 @@ asterisk20-core	/usr/lib64/asterisk/modules/format_gsm.so	100755	0	root	root
 asterisk20-core	/usr/lib64/asterisk/modules/format_h263.so	100755	0	root	root
 asterisk20-core	/usr/lib64/asterisk/modules/format_h264.so	100755	0	root	root
 asterisk20-core	/usr/lib64/asterisk/modules/format_ilbc.so	100755	0	root	root
-asterisk20-core	/usr/lib64/asterisk/modules/format_ogg_opus.so	100755	0	root	root
 asterisk20-core	/usr/lib64/asterisk/modules/format_ogg_speex.so	100755	0	root	root
 asterisk20-core	/usr/lib64/asterisk/modules/format_pcm.so	100755	0	root	root
 asterisk20-core	/usr/lib64/asterisk/modules/format_siren14.so	100755	0	root	root

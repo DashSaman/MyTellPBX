@@ -29,7 +29,9 @@ BuildRequires: jack-audio-connection-kit-devel libresample-devel openldap-devel 
 BuildRequires: libopenr2-devel libpri-devel libss7-devel libtonezone-devel dahdi-devel
 BuildRequires: libcurl-devel libvorbis-devel libogg-devel speexdsp-devel speex-devel mariadb-connector-c-devel bluez-libs-devel
 BuildRequires: freeradius-client-devel codec2-devel unbound-devel libedit-devel libcap-devel
+BuildRequires: pkgconfig(gmime-3.0)
 BuildRequires: python3 systemd-devel libtool pkgconfig libuv-devel newt-devel bzip2 tar curl xmlstarlet
+Requires(post): util-linux
 Requires: asterisk-sounds-en-gsm
 Requires: asterisk20-addons = %{version}-%{release}
 Requires: asterisk20-configs = %{version}-%{release}
@@ -103,6 +105,7 @@ Requires: asterisk20-core = %{version}-%{release}
 chan_ooh323 module for Asterisk.
 
 %package configs
+Requires(post): util-linux
 Summary: Basic configuration files for Asterisk
 Requires: asterisk20-core = %{version}-%{release}
 
@@ -110,6 +113,8 @@ Requires: asterisk20-core = %{version}-%{release}
 Basic configuration files for Asterisk.
 
 %package core
+Requires(pre): shadow-utils
+Requires(post): util-linux
 Summary: Asterisk core package without any "extras".
 Requires: asterisk20 = %{version}-%{release}
 Requires: libxml2
@@ -177,7 +182,7 @@ Voicemail with file storage module for Asterisk.
 
 %prep
 %setup -q -n asterisk-%{version}
-%patch0 -p1
+%patch -P 0 -p1
 tar -xzf %{SOURCE9}
 mkdir -p .build-cache
 cp %{SOURCE10} %{SOURCE11} %{SOURCE12} .build-cache/
@@ -212,25 +217,30 @@ getent passwd asterisk >/dev/null || useradd -r -g asterisk -c "Asterisk PBX" -s
 %post core
 systemctl daemon-reload >/dev/null 2>&1 || :
 systemctl enable asterisk >/dev/null 2>&1 || :
-install -d -o asterisk -g asterisk /var/spool/asterisk/monitor /var/log/asterisk/{cdr-csv,cdr-custom}
+if [ ! -e /var/log/asterisk ]; then install -d -o asterisk -g asterisk /var/log/asterisk; fi
+runuser -u asterisk -- mkdir -p /var/spool/asterisk/monitor /var/log/asterisk/cdr-csv /var/log/asterisk/cdr-custom
 
 %post
+runuser -u asterisk -- /bin/sh <<'AST_POST'
 for saved in /etc/asterisk/*.rpmsave; do
     [ -f "$saved" ] || continue
     [ -e "${saved%.rpmsave}" ] || mv -n -- "$saved" "${saved%.rpmsave}"
 done
 modules=/etc/asterisk/modules_additional.conf
 grep -qxF 'noload => cdr_mysql.so' "$modules" 2>/dev/null || printf '%s\n' 'noload => cdr_mysql.so' >> "$modules"
-chown asterisk:asterisk "$modules"
+AST_POST
 if [ "$1" = 1 ] && [ ! -f /tmp/issabelinstall ]; then systemctl start asterisk.service || :; fi
 
 %post configs
+runuser -u asterisk -- /bin/sh <<'AST_CONFIG'
 if [ -f /etc/asterisk/modules_custom.conf ] && ! grep -qxF 'noload => cdr_mysql.so' /etc/asterisk/modules_custom.conf; then
     printf '%s\n' 'noload => cdr_mysql.so' >> /etc/asterisk/modules_custom.conf
 fi
 if [ -f /etc/asterisk/asterisk.conf ]; then
     sed -i 's/^;execincludes = yes/execincludes = yes/' /etc/asterisk/asterisk.conf
 fi
+
+AST_CONFIG
 
 %post odbc
 if [ -f /etc/asterisk8.odbc.ini ]; then
@@ -256,6 +266,8 @@ fi
 %files configs -f %{_builddir}/asterisk20-configs.files
 
 %files core -f %{_builddir}/asterisk20-core.files
+%license COPYING LICENSE
+%doc CREDITS
 
 %files curl -f %{_builddir}/asterisk20-curl.files
 
