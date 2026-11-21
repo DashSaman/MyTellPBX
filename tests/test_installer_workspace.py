@@ -1,10 +1,10 @@
 """Native bootstrap private-workspace lifecycle; no PBX, network or OS mutations."""
 import hashlib
 import os
-from pathlib import Path
 import shlex
 import shutil
 import unittest
+from pathlib import Path
 
 from native_bootstrap_fixture import BASH, BootstrapFixture
 

@@ -1,13 +1,12 @@
 """Repository checks use isolated metadata and report all failed sources."""
 
-from contextlib import redirect_stdout
 import importlib.util
 import io
-from pathlib import Path
 import tempfile
 import unittest
+from contextlib import redirect_stdout
+from pathlib import Path
 from unittest.mock import patch
-
 
 SOURCE = Path(__file__).resolve().parents[1] / 'installer/vendor-native/repository-preflight.py'
 SPEC = importlib.util.spec_from_file_location('preflight', SOURCE)

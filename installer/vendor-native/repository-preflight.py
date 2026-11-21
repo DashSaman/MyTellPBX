@@ -2,16 +2,15 @@
 """Check the real DNF metadata and HTTPS bootstrap RPMs before installation."""
 
 import argparse
-from concurrent.futures import ThreadPoolExecutor
 import os
-from pathlib import Path
 import re
 import shutil
 import subprocess
 import sys
 import tempfile
+from concurrent.futures import ThreadPoolExecutor, as_completed
+from pathlib import Path
 from urllib.parse import urlsplit, urlunsplit
-
 
 REPO_DIRECTORY = '/etc/yum.repos.d'
 REPO_ID = re.compile(r'[A-Za-z0-9_][A-Za-z0-9_.:-]*')
@@ -60,7 +59,7 @@ def repository_inventory(scratch, staged, enabled):
 
 def dnf_command(repo, dirs, scratch):
     return [
-        'dnf', '--quiet', '--assumeyes', '--noplugins', '--refresh',
+        'dnf', '--verbose', '--assumeyes', '--noplugins', '--refresh',
         '--disablerepo=*', '--enablerepo=' + repo,
         '--setopt=reposdir=' + ','.join(dirs),
         '--setopt=cachedir=' + str(scratch / 'cache'),
@@ -83,11 +82,12 @@ def curl_command(url):
 
 
 def diagnostic(message):
-    for line in message.splitlines():
-        if ('Curl error' in line or 'curl: (' in line or 'Error:' in line
-                or 'Check exceeded' in line):
-            line = ''.join(char for char in line if char.isprintable()).strip()
-            return URL.sub(lambda match: public_url(match[0]), line)[:320]
+    lines = message.splitlines()
+    for indicators in (('Curl error', 'curl: ('), ('Check exceeded', 'Error:')):
+        for line in lines:
+            if any(marker in line for marker in indicators):
+                line = ''.join(char for char in line if char.isprintable()).strip()
+                return URL.sub(lambda match: public_url(match[0]), line)[:320]
     return 'See the diagnostic log.'
 
 
@@ -96,10 +96,10 @@ def probe(job):
     with logfile.open('x', encoding='utf-8') as output:
         try:
             result = subprocess.run(command, stdin=subprocess.DEVNULL, stdout=output,
-                                    stderr=subprocess.STDOUT, timeout=45)
+                                    stderr=subprocess.STDOUT, timeout=90, check=False)
             code = result.returncode
         except subprocess.TimeoutExpired:
-            output.write('\nCheck exceeded 45 seconds.\n')
+            output.write('\nCheck exceeded 90 seconds.\n')
             code = 124
         except OSError:
             output.write('\nError: cannot launch the repository check.\n')
@@ -124,19 +124,19 @@ def run(workdir, staged, enabled, urls):
             jobs.append((repo, dnf_command(repo, dirs, private), result_dir / ('repo-' + repo + '.log')))
         for i, url in enumerate(urls, 1):
             jobs.append((public_url(url), curl_command(url), result_dir / ('rpm-' + str(i) + '.log')))
-        print('  Checking {} repository and download source(s)…'.format(len(jobs) + len(unknown)), flush=True)
+        print(f'  Checking {len(jobs) + len(unknown)} repository and download source(s)…', flush=True)
         for repo in unknown:
-            print('    FAIL {} — required repository is missing from the DNF configuration'.format(repo), flush=True)
+            print(f'    FAIL {repo} — required repository is missing from the DNF configuration', flush=True)
         failed = len(unknown)
         with ThreadPoolExecutor(max_workers=6) as pool:
-            for label, code, detail, logfile in pool.map(probe, jobs):
+            for ready in as_completed([pool.submit(probe, job) for job in jobs]):
+                label, code, detail, logfile = ready.result()
                 if code:
                     failed += 1
-                    print('    FAIL {} — {} ({})'.format(label, detail, logfile.name), flush=True)
+                    print(f'    FAIL {label} — {detail} ({logfile.name})', flush=True)
                 else:
                     print('    OK   ' + label, flush=True)
-    print('  Repository checks: {} passed, {} failed. Logs: {}'.format(
-        len(jobs) + len(unknown) - failed, failed, result_dir), flush=True)
+    print(f'  Repository checks: {len(jobs) + len(unknown) - failed} passed, {failed} failed. Logs: {result_dir}', flush=True)
     return int(bool(failed))
 
 
