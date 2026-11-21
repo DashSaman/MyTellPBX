@@ -52,7 +52,7 @@ BRAND_KEYS = {
 SUPPLEMENTAL_PACKAGES = ('python3.11', 'python3.11-libs', 'python3.11-pip',
                          'python3.11-pip-wheel', 'python3.11-setuptools',
                          'python3.11-setuptools-wheel', 'mpdecimal')
-NATIVE_READY_SECONDS = 120.0
+NATIVE_READY_SECONDS = 300.0
 NATIVE_PROBE_SECONDS = 5.0
 NATIVE_POLL_SECONDS = 2.0
 NATIVE_SERVICES = ('mariadb', 'httpd', 'asterisk')
@@ -157,13 +157,24 @@ def wait_native_ready(requested=None):
     """Allow the native asynchronous restart to settle, without modifying it."""
     if requested is not None and str(requested) != '20':
         raise ValueError('Native Asterisk version differs from the selected version')
-    deadline = time.monotonic() + NATIVE_READY_SECONDS
-    announced = False
+    started = time.monotonic()
+    deadline = started + NATIVE_READY_SECONDS
+    next_notice = started
+    checks = ('Asterisk 20 CLI',) + NATIVE_SERVICES
+    ready = dict.fromkeys(checks, False)
+
+    def pending_labels():
+        return ', '.join(name for name in checks if not ready[name]) or 'readiness confirmation'
+
+    def timeout():
+        return ValueError('Native startup timed out after ' + str(int(NATIVE_READY_SECONDS))
+                          + ' seconds; waiting for: ' + pending_labels())
 
     def probe(argv, label):
         remaining = deadline - time.monotonic()
         if remaining <= 0:
-            return None
+            # Preserve the last observed state if the next probe never starts.
+            raise timeout()
         try:
             return subprocess.run(argv, stdout=subprocess.PIPE, stderr=subprocess.PIPE,
                                   timeout=min(NATIVE_PROBE_SECONDS, remaining))
@@ -174,7 +185,6 @@ def wait_native_ready(requested=None):
             raise ValueError('Native readiness probe unavailable: ' + label) from None
 
     while True:
-        pending = []
         major = None
         version = probe(['/usr/sbin/asterisk', '-rx', 'core show version'], 'asterisk')
         if version is not None and version.returncode == 0:
@@ -186,23 +196,20 @@ def wait_native_ready(requested=None):
                 major = asterisk_major(output, requested)
             except ValueError:
                 pass
-        if major is None:
-            pending.append('Asterisk 20 CLI')
+        ready['Asterisk 20 CLI'] = major is not None
         for service in NATIVE_SERVICES:
             # Multiple units can return success when only one is active.
             active = probe(['systemctl', 'is-active', '--quiet', service], service)
-            if active is None or active.returncode != 0:
-                pending.append(service)
+            ready[service] = active is not None and active.returncode == 0
         now = time.monotonic()
-        if not pending and now < deadline:
+        if all(ready.values()) and now < deadline:
             return major
         if now >= deadline:
-            raise ValueError('Native startup timed out after ' + str(int(NATIVE_READY_SECONDS))
-                             + ' seconds; waiting for: ' + ', '.join(pending or ['readiness confirmation']))
-        if not announced:
-            print('Mytel addons: waiting up to ' + str(int(NATIVE_READY_SECONDS))
-                  + ' seconds for native startup; pending: ' + ', '.join(pending) + '.', flush=True)
-            announced = True
+            raise timeout()
+        if now >= next_notice:
+            print('Mytel addons: waiting for native startup ({}s elapsed, {}s limit); pending: {}.'.format(
+                int(now - started), int(NATIVE_READY_SECONDS), pending_labels()), flush=True)
+            next_notice = now + 30.0
         remaining = deadline - time.monotonic()
         if remaining > 0:
             time.sleep(min(NATIVE_POLL_SECONDS, remaining))

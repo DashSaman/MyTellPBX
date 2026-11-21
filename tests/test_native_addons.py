@@ -228,6 +228,8 @@ class NativeIdentityTests(unittest.TestCase):
 
 
 class NativeReadinessTests(unittest.TestCase):
+    default_deadline = ADDONS.NATIVE_READY_SECONDS
+
     class NextValidation(Exception):
         pass
 
@@ -327,6 +329,25 @@ class NativeReadinessTests(unittest.TestCase):
         self.assertEqual(self.wait(), '20')
         self.assertEqual(self.now, 2.0)
         self.assertTrue(self.sleeps)
+
+    def test_slow_native_restart_becomes_ready_after_163_seconds(self):
+        self.cli_after = 163.0
+        self.services_after['asterisk'] = 130.0
+        with mock.patch.object(ADDONS, 'NATIVE_READY_SECONDS', self.default_deadline):
+            self.assertEqual(self.wait(), '20')
+        self.assertEqual(self.now, 163.0)
+        notices = self.output.getvalue().splitlines()
+        self.assertGreater(len(notices), 2)
+        self.assertLess(len(notices), 10)
+        self.assertIn('150s elapsed', notices[-1])
+        self.assertTrue(notices[-1].endswith('pending: Asterisk 20 CLI.'))
+
+    def test_real_service_timeout_reports_only_last_unready_service_at_deadline(self):
+        self.services_after['httpd'] = float('inf')
+        with mock.patch.object(ADDONS, 'NATIVE_READY_SECONDS', self.default_deadline), \
+                self.assertRaisesRegex(ValueError, r'300 seconds; waiting for: httpd$'):
+            self.wait()
+        self.assertEqual(self.now, 300.0)
 
     def test_unsupported_requested_version_fails_before_any_probe(self):
         with self.assertRaises(ValueError):

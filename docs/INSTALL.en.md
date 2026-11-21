@@ -29,7 +29,8 @@ The native sequence includes:
 7. Native cleanup, an independent Desk doctor check, completion and **automatic
    reboot** on online success.
 
-Before changing the add-on state, a bounded 120-second wait checks the actual
+During startup the terminal reports elapsed time and pending services every 30 seconds.
+Before changing the add-on state, a bounded 300-second wait checks the actual
 Asterisk 20 CLI and MariaDB, httpd and Asterisk services. It neither restarts the
 core nor replays initialization. An observed different Asterisk major is rejected;
 unready services or CLI time out and stop the stage.

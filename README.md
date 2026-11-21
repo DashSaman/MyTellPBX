@@ -35,7 +35,7 @@ curl -fsSL -o install-mytellpbx.sh https://github.com/DashSaman/MyTellPBX/releas
 از فهرست نصب آنلاین حذف شده‌اند. پس از پاک‌سازی و بررسی نهایی، سرور خودکار
 راه‌اندازی مجدد می‌شود. خطای مرحله ادامهٔ نصب و راه‌اندازی مجدد را متوقف می‌کند.
 
-لایهٔ افزوده تا ۱۲۰ ثانیه برای CLI استریسک ۲۰ و فعال‌شدن MariaDB، httpd و
+لایهٔ افزوده تا ۳۰۰ ثانیه برای CLI استریسک ۲۰ و فعال‌شدن MariaDB، httpd و
 Asterisk صبر می‌کند؛ نسخهٔ اشتباه یا پایان مهلت، خطاست و ادامه را متوقف می‌کند.
 پنل وب از اولین ورود فارسی است و گزینهٔ تغییر زبان ندارد.
 
@@ -87,7 +87,7 @@ The online installer runs the pinned native Issabel flow on **fresh Rocky Linux
 confirmation, then asks which driver should use the primary SIP port. PJSIP is
 the default. It reports package progress as it installs **Asterisk 20** and the
 Community Realtime Block List. Mytel branding and checksum-pinned **MytelDesk 1.1.4** with CPU VAD follow
-successful native initialization. A bounded 120-second readiness gate waits for
+successful native initialization. A bounded 300-second readiness gate waits for
 the Asterisk 20 CLI and MariaDB/httpd/Asterisk services; a wrong version or timeout
 stops the add-on. The web panel opens in Persian and has no language selector.
 The online flow reboots
