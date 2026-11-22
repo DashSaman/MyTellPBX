@@ -25,6 +25,9 @@ RPM_DOWNLOAD_NAME = re.compile(rb'([A-Za-z0-9][A-Za-z0-9_.+%-]{0,179}\.rpm)\s')
 RPM_TRANSACTION_NAME = re.compile(rb'([A-Za-z0-9][A-Za-z0-9_.+%-]{0,179}\.(?:x86_64|noarch|i[3-6]86))')
 UPSTREAM_PACKAGE = re.compile(r'^issabel(?:pbx)?', re.IGNORECASE)
 TRANSFER_ERROR = re.compile(rb'^\s*(?:-\s*|\[MIRROR\]\s+[^\s:]+:\s*)?(Curl error \([0-9]{1,3}\)|Status code: [45][0-9]{2}):?\s')
+SCRIPTLET_FAILURE = re.compile(
+    rb'^\s*(?:(?:warning|error):\s*%[a-z]+\([^\r\n]+?\) scriptlet failed, exit status [1-9][0-9]*\b'
+    rb'|Error in [A-Z]+ scriptlet in rpm package\s+\S+)', re.IGNORECASE)
 
 
 class ProgressReporter:
@@ -40,6 +43,7 @@ class ProgressReporter:
         self.line_length = 0
         self.last_idle = None
         self.transfer_problem_shown = False
+        self.scriptlet_failed = False
 
     def detail_line(self, label):
         text = '      · ' + label
@@ -70,6 +74,9 @@ class ProgressReporter:
         self.last_idle = now
 
     def observe(self, record):
+        if SCRIPTLET_FAILURE.match(record):
+            self.scriptlet_failed = True
+            return
         download = DOWNLOAD.match(record)
         transaction = TRANSACTION.match(record) if download is None else None
         if download is not None:
@@ -231,6 +238,11 @@ def main():
             valid = copy_progress(source, private_log, reporter, console_failed=console_failed,
                                   wait_for_input=wait_for_input)
             if not valid: return 1
+            if reporter.scriptlet_failed:
+                message = ('A package setup script failed. See the private installation log.'
+                           if english else 'اسکریپت یکی از بسته‌ها خطا داد. گزارش خصوصی نصب را ببینید.')
+                print(message, file=sys.stderr)
+                return 1
     except (OSError, ValueError):
         if not args.check_log:
             read = getattr(sys.stdin.buffer, 'read1', sys.stdin.buffer.read)

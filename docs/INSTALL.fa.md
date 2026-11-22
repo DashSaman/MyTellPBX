@@ -1,6 +1,6 @@
-# نصب MytelPBX ۷٫۷٫۰ بازبینی ۸
+# نصب MytelPBX ۷٫۷٫۰ بازبینی ۹
 
-بازبینی ۸ با برچسب `v7.7.0-r8` نصاب آنلاین انگلیسی و پنل فارسی را ارائه می‌کند.
+بازبینی ۹ با برچسب `v7.7.0-r9` نصاب آنلاین انگلیسی و پنل فارسی را ارائه می‌کند.
 [گزارش بازبینی ۳](releases/7.7.0/revision-3.md) آزمون نصب نسخهٔ پیشین را پوشش می‌دهد.
 
 ## نصب آنلاین
@@ -9,7 +9,7 @@
 تعاملی کنسول یا SSH و اینترنت استفاده کنید. برای نصب نسخهٔ منتشرشده اجرا کنید:
 
 ```bash
-curl -fsSL -o install-mytellpbx.sh https://github.com/DashSaman/MyTellPBX/releases/download/v7.7.0-r8/install-mytellpbx.sh && bash install-mytellpbx.sh
+curl -fsSL -o install-mytellpbx.sh https://github.com/DashSaman/MyTellPBX/releases/download/v7.7.0-r9/install-mytellpbx.sh && bash install-mytellpbx.sh
 ```
 
 فایل ابتدا دریافت و سپس با Bash اجرا می‌شود تا ترمینال برای پنجره‌های بومی
@@ -137,7 +137,7 @@ myteldesk doctor
 
 نصاب، بسته‌های مرکز تماس را از ریلیز مشخص در مخزن DashSaman/MyTellPBX می‌گیرد.
 پس از بررسی حجم و SHA-256، بسته‌ها از یک مخزن محلی با تأیید امضای RPM توسط DNF نصب می‌شوند.
-این مجموعه Asterisk نسخهٔ 20.12.0-2.mytel.el8 و فریم‌ورک نسخهٔ 5.0.0-6 را دارد.
+این مجموعه Asterisk نسخهٔ 20.12.0-3.mytel.el8 و فریم‌ورک نسخهٔ 5.0.0-6 را دارد.
 دریافت بسته‌های Rocky Linux، EPEL و Remi و وابستگی‌های میز کار به اینترنت نیاز دارد.
 
 میز کار نصب‌شده MytelDesk است و PJSIP پیش‌فرض است. هسته از سورس 20.12.0

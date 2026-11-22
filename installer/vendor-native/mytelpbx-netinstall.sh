@@ -116,7 +116,7 @@ function add_repos
   local state_dir="$repo_dir/.mytel-vendor"
   if [ "$#" = 0 ]; then
     mkdir -m 0700 "$repo_dir" || return 1
-    state_dir=/var/lib/mytelpbx/repository-snapshots/r8
+    state_dir=/var/lib/mytelpbx/repository-snapshots/r9
   fi
   "$MYTEL_PYTHON" -I -B "$MYTEL_BUNDLE_ROOT/installer/vendor-native/vendor-mirror.py" \
     --repo-dir "$repo_dir" --state-dir "$state_dir" --workdir "$MYTEL_NATIVE_WORK" || return $?

@@ -1,6 +1,6 @@
-# MytelPBX 7.7.0 revision 8 installation
+# MytelPBX 7.7.0 revision 9 installation
 
-Revision 8 uses tag `v7.7.0-r8`. The online installer runs in English and sets the
+Revision 9 uses tag `v7.7.0-r9`. The online installer runs in English and sets the
 web panel to Persian from the first sign-in. The
 [revision 3 record](releases/7.7.0/revision-3.md) covers the earlier release.
 
@@ -10,7 +10,7 @@ Use a **fresh Rocky Linux 8.10 Minimal x86_64 server**, root access, an interact
 console or SSH terminal, and working Internet access. To install the published revision, run:
 
 ```bash
-curl -fsSL -o install-mytellpbx.sh https://github.com/DashSaman/MyTellPBX/releases/download/v7.7.0-r8/install-mytellpbx.sh && bash install-mytellpbx.sh
+curl -fsSL -o install-mytellpbx.sh https://github.com/DashSaman/MyTellPBX/releases/download/v7.7.0-r9/install-mytellpbx.sh && bash install-mytellpbx.sh
 ```
 
 The script is downloaded to a file before Bash starts, so setup retains
@@ -146,7 +146,7 @@ usual ports below are planning references, not a claim that rules were installed
 The installer downloads the PBX package snapshot from the versioned release in
 DashSaman/MyTellPBX. It checks the archive size and SHA-256 before configuring
 a local package source. DNF verifies the publisher signatures. Asterisk
-20.12.0-2.mytel.el8 and framework 5.0.0-6 are included. Rocky Linux, EPEL, Remi
+20.12.0-3.mytel.el8 and framework 5.0.0-6 are included. Rocky Linux, EPEL, Remi
 and the MytelDesk runtime dependencies still require Internet access.
 
 The software installation includes MytelDesk and selects PJSIP by default.

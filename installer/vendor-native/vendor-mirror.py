@@ -13,7 +13,7 @@ import sys
 import tarfile
 import tempfile
 
-RELEASE = 'https://github.com/DashSaman/MyTellPBX/releases/download/v7.7.0-r8/'
+RELEASE = 'https://github.com/DashSaman/MyTellPBX/releases/download/v7.7.0-r9/'
 ASSET = 'mytelpbx-vendor-el8-x86_64.tar.gz'
 FILES = ('Issabel.repo', 'Issabel5.repo', 'commercial-addons.repo')
 PROJECT_KEY = 'mytelpbx-rpm-signing.asc'
@@ -21,7 +21,7 @@ PROJECT_RPM = 'Packages/dahdi-firmware-2.11.1-2.mytel.el8.noarch.rpm'
 XTABLES_RPM = 'Packages/xtables-addons-3.18-1dkms.mytel.el8.x86_64.rpm'
 GEOIP_RPM = 'Packages/issabel-geoip-1.6.12-3.mytel.el8.x86_64.rpm'
 PROJECT_FILTER = 'asterisk20,asterisk20-*,dahdi-firmware,xtables-addons,issabel-geoip'
-ASTERISK_BUILD = '-20.12.0-2.mytel.el8.x86_64.rpm'
+ASTERISK_BUILD = '-20.12.0-3.mytel.el8.x86_64.rpm'
 ASTERISK_PARTS = ('', '-core', '-configs', '-dahdi', '-doc', '-odbc', '-voicemail', '-resample', '-curl',
                  '-devel', '-addons', '-addons-core', '-addons-bluetooth', '-addons-ooh323', '-addons-mysql')
 ESSENTIAL = {PROJECT_RPM, XTABLES_RPM, GEOIP_RPM, 'Packages/asterisk-pr-sounds-1.1-0.noarch.rpm',

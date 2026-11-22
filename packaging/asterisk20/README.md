@@ -18,4 +18,6 @@ python3 packaging/asterisk20/SOURCES/package-layout.py verify \
   packaging/asterisk20/SOURCES/native-layout.tsv "$top/RPMS"
 ```
 
+The configs RPM ships the fresh-install setting `execincludes = yes` in `asterisk.conf`. The RPM keeps administrator edits through `%config(noreplace)`. The verification command reads the packaged file and checks the setting.
+
 The ODBC post-install step preserves existing DSNs and adds the two missing native DSNs. PBX-owned configuration writes run as the Asterisk service account. The native package names, API version, PBX service name and configuration paths are preserved.

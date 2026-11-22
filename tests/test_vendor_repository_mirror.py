@@ -109,7 +109,7 @@ class VendorRepositoryTests(unittest.TestCase):
         ])
         self.assertEqual(len(calls), 2)
         for command in calls:
-            self.assertEqual(command[-1], 'https://github.com/DashSaman/MyTellPBX/releases/download/v7.7.0-r8/' + MIRROR.ASSET)
+            self.assertEqual(command[-1], 'https://github.com/DashSaman/MyTellPBX/releases/download/v7.7.0-r9/' + MIRROR.ASSET)
             self.assertIn('--continue-at', command)
             self.assertEqual(command[command.index('--proto-redir') + 1], '=https')
         self.assertFalse((self.work / (MIRROR.ASSET + '.part')).exists())
@@ -170,7 +170,7 @@ class VendorRepositoryTests(unittest.TestCase):
             self.configure(pin)
 
     def test_each_essential_rpm_must_exist_even_when_archive_count_is_correct(self):
-        self.assertIn('Packages/asterisk20-core-20.12.0-2.mytel.el8.x86_64.rpm', MIRROR.ESSENTIAL)
+        self.assertIn('Packages/asterisk20-core-20.12.0-3.mytel.el8.x86_64.rpm', MIRROR.ESSENTIAL)
         self.assertIn('Packages/asterisk-pr-sounds-1.1-0.noarch.rpm', MIRROR.ESSENTIAL)
         for omitted in sorted(MIRROR.ESSENTIAL):
             with self.subTest(omitted=omitted):

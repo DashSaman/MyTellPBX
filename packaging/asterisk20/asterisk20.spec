@@ -1,7 +1,7 @@
 # Adapted from the publisher's asterisk18.centos8.spec.
 Name: asterisk20
 Version: 20.12.0
-Release: 2.mytel%{?dist}
+Release: 3.mytel%{?dist}
 Summary: Asterisk 20 telephony platform for MytelPBX
 License: GPLv2 and other compatible licenses (see LICENSE)
 URL: https://www.asterisk.org/
@@ -200,6 +200,12 @@ export AST_DOWNLOAD_CACHE="$PWD/.build-cache"
 for target in install samples install-headers; do
     make DESTDIR="%{buildroot}" "$target"
 done
+# Set the intended fresh-install default in the RPM payload. The configs
+# scriptlet may run before the core package owns /etc/asterisk.
+sample="%{buildroot}/etc/asterisk/asterisk.conf"
+test "$(grep -c '^;execincludes = yes\([[:space:]]\|$\)' "$sample")" = 1
+sed -i 's/^;execincludes = yes/execincludes = yes/' "$sample"
+grep -q '^execincludes = yes\([[:space:]]\|$\)' "$sample"
 install -Dpm0644 %{SOURCE6} %{buildroot}/usr/lib/systemd/system/asterisk.service
 install -Dpm0644 %{SOURCE1} %{buildroot}/etc/logrotate.d/asterisk
 install -Dpm0644 %{SOURCE2} %{buildroot}/etc/asterisk8.odbc.ini
@@ -244,10 +250,6 @@ runuser -u asterisk -- /bin/sh <<'AST_CONFIG'
 if [ -f /etc/asterisk/modules_custom.conf ] && ! grep -qxF 'noload => cdr_mysql.so' /etc/asterisk/modules_custom.conf; then
     printf '%s\n' 'noload => cdr_mysql.so' >> /etc/asterisk/modules_custom.conf
 fi
-if [ -f /etc/asterisk/asterisk.conf ]; then
-    sed -i 's/^;execincludes = yes/execincludes = yes/' /etc/asterisk/asterisk.conf
-fi
-
 AST_CONFIG
 
 %post odbc

@@ -68,6 +68,20 @@ class DnfProgressTests(unittest.TestCase):
         self.assertFalse(self.module.copy_progress(source, FailedLog(), self.reporter()))
         self.assertEqual(source.tell(), len(fixture))
 
+    def test_rpm_scriptlet_failure_stops_stage_after_logging_full_transaction(self):
+        errors = (b'warning: %post(private-name-20.12.0.x86_64) scriptlet failed, exit status 4',
+                  b'Error in POSTIN scriptlet in rpm package private-name')
+        for error in errors:
+            with self.subTest(error=error), patch.dict(os.environ, {'MYTELL_CONSOLE_ENGLISH': '1'}):
+                body = error + b'\n  Verifying : last-1.el8.noarch 2/2\nComplete!\n'
+                source = io.BytesIO(body)
+                status, log, output = self.invoke_main(source)
+                self.assertNotEqual(status, 0)
+                self.assertEqual(log.read_bytes(), body)
+                self.assertEqual(source.tell(), len(body))
+                self.assertNotIn('private-name', output.getvalue())
+                log.unlink()
+
     def test_short_private_log_writes_are_completed_without_data_loss(self):
         class ShortLog(io.BytesIO):
             def write(self, data): return super().write(data[:3])
