@@ -112,6 +112,14 @@ def verify(rows, rpmroot):
         if name in found:
             raise ValueError('Duplicate runtime RPM: ' + name)
         found[name] = set(subprocess.check_output(['rpm', '-qpl', str(path)]).decode().splitlines())
+        if name == 'asterisk20-configs':
+            # Inspect the packed file after RPM's buildroot processing.
+            payload = subprocess.check_output(['rpm2cpio', str(path)])
+            config = subprocess.run(['cpio', '--quiet', '-i', '--to-stdout', './etc/asterisk/asterisk.conf'],
+                                    input=payload, stdout=subprocess.PIPE, check=True).stdout
+            options = [line.split(b';', 1)[0].strip() for line in config.splitlines()]
+            if options.count(b'execincludes = yes') != 1:
+                raise ValueError('Packaged asterisk.conf lacks the native execincludes setting')
     if set(found) != set(PACKAGES):
         raise ValueError('Missing native subpackages: ' + ', '.join(sorted(set(PACKAGES) - set(found))))
     for package in PACKAGES:
